@@ -54,7 +54,7 @@ export default function Leaderboard() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-bold">{u.name}</span>
-                      {user?.id === u.id && <span className="rounded bg-red-600 px-1.5 text-xs font-bold">YOU</span>}
+                      {user?.id === u.id && <span className="rounded bg-blood-600 px-1.5 text-xs font-bold text-white">YOU</span>}
                       {u.influencer && <span title="Community Champion (5+ referrals)">🗣️</span>}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-400">

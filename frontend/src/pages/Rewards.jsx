@@ -64,7 +64,7 @@ export default function Rewards() {
             const affordable = user && user.points >= r.cost;
             const pct = user ? Math.min(100, Math.round((user.points / r.cost) * 100)) : 0;
             return (
-              <div key={r.id} className={cx('card flex flex-col p-6', affordable && 'border-red-500/40')}>
+              <div key={r.id} className={cx('card card-hover flex flex-col p-6', affordable && 'border-blood-300 dark:border-blood-500/40')}>
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600/15">
                   <Icon className="h-7 w-7 text-red-400" />
                 </div>
@@ -74,8 +74,8 @@ export default function Rewards() {
                   {r.cost} <span className="text-sm font-semibold text-slate-400">BLP</span>
                 </div>
                 {user && (
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
-                    <div className="h-full rounded-full bg-red-500" style={{ width: `${pct}%` }} />
+                  <div className="progress-bar mt-2 h-1.5">
+                    <div className="progress-fill" style={{ width: `${pct}%` }} />
                   </div>
                 )}
                 <button className="btn-primary mt-4" disabled={!affordable || busyId != null} onClick={() => redeem(r)}>

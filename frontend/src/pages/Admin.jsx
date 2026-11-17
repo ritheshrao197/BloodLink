@@ -162,7 +162,7 @@ function Requests() {
     <div className="card overflow-hidden">
       <div className="flex flex-wrap gap-2 border-b border-slate-800 p-4">
         {['all', 'Active', 'Fulfilled', 'Cancelled'].map((s) => (
-          <button key={s} onClick={() => setStatus(s)} className={cx('rounded-lg px-3 py-1 text-sm font-semibold', status === s ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white')}>
+          <button key={s} onClick={() => setStatus(s)} className={cx('rounded-lg px-3 py-1 text-sm font-semibold', status === s ? 'bg-slate-700 text-slate-50' : 'text-slate-400 hover:text-slate-50')}>
             {s === 'all' ? 'All' : s}
           </button>
         ))}

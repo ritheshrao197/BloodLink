@@ -7,7 +7,14 @@ export default function RequestCard({ request: r, onRespond, highlight }) {
   const pct = Math.min(100, Math.round((r.units_fulfilled / r.units_needed) * 100));
   const active = r.status === 'Active';
   return (
-    <div className={cx('card relative flex flex-col overflow-hidden p-5 transition hover:-translate-y-0.5', u.border, highlight && 'ring-2 ring-red-500')}>
+    <article
+      className={cx(
+        'card card-hover relative flex flex-col overflow-hidden p-5',
+        active && r.urgency === 'Critical' ? 'card-emergency' : u.border,
+        highlight && 'ring-2 ring-blood-500',
+      )}
+      aria-label={`${r.urgency} request: ${r.blood_group} at ${r.hospital}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           {active && (
@@ -44,8 +51,11 @@ export default function RequestCard({ request: r, onRespond, highlight }) {
           <Hospital className="h-4 w-4 shrink-0 text-slate-500" /> {r.hospital}
         </p>
         <p className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 shrink-0 text-slate-500" /> {r.city}
-          {r.state && <span className="text-slate-500">, {r.state}</span>}
+          <MapPin className="h-4 w-4 shrink-0 text-slate-500" />
+          <span>
+            {r.city}
+            {r.state && <span className="text-slate-500">, {r.state}</span>}
+          </span>
         </p>
       </div>
 
@@ -56,8 +66,8 @@ export default function RequestCard({ request: r, onRespond, highlight }) {
           </span>
           <span>Accepts: {r.compatible_donor_groups.join(' ')}</span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
-          <div className="h-full rounded-full bg-red-500 transition-all" style={{ width: `${pct}%` }} />
+        <div className="progress-bar h-1.5" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+          <div className="progress-fill" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
@@ -67,6 +77,6 @@ export default function RequestCard({ request: r, onRespond, highlight }) {
         </button>
       )}
       {!active && r.fulfilled_by && <p className="mt-4 text-sm text-emerald-400">✓ Fulfilled by {r.fulfilled_by}</p>}
-    </div>
+    </article>
   );
 }

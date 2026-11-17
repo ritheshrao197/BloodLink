@@ -3,19 +3,19 @@ import { cx, timeAgo } from '../lib/utils';
 
 // Full class strings so Tailwind keeps them
 export const RARITY = {
-  Common: { text: 'text-slate-300', card: 'border-slate-500/60 bg-slate-800/60', glow: '', dot: 'bg-slate-400' },
-  Uncommon: { text: 'text-emerald-300', card: 'border-emerald-400/60 bg-emerald-950/30', glow: 'shadow-lg shadow-emerald-500/20', dot: 'bg-emerald-400' },
-  Rare: { text: 'text-sky-300', card: 'border-sky-400/60 bg-sky-950/30', glow: 'shadow-lg shadow-sky-500/30', dot: 'bg-sky-400' },
-  Epic: { text: 'text-fuchsia-300', card: 'border-fuchsia-400/70 bg-fuchsia-950/30', glow: 'shadow-xl shadow-fuchsia-500/30', dot: 'bg-fuchsia-400' },
-  Legendary: { text: 'text-amber-300', card: 'border-amber-400/80 bg-amber-950/30', glow: 'shadow-xl shadow-amber-400/40', dot: 'bg-amber-400' },
-  Mythic: { text: 'text-red-300', card: 'border-red-500/80 bg-red-950/40', glow: 'shadow-2xl shadow-red-500/50 animate-glow', dot: 'bg-red-500' },
+  Common: { text: 'text-slate-300', card: 'border-slate-500/60 bg-slate-800/60', glow: '', dot: 'bg-rarity-common' },
+  Uncommon: { text: 'text-emerald-300', card: 'border-emerald-400/60 bg-emerald-950/30', glow: 'shadow-lg shadow-emerald-500/20', dot: 'bg-rarity-uncommon' },
+  Rare: { text: 'text-blue-300', card: 'border-blue-400/60 bg-blue-950/30', glow: 'shadow-lg shadow-blue-500/30', dot: 'bg-rarity-rare' },
+  Epic: { text: 'text-violet-300', card: 'border-violet-400/70 bg-violet-950/30', glow: 'shadow-glow-purple', dot: 'bg-rarity-epic' },
+  Legendary: { text: 'text-amber-300', card: 'border-amber-400/80 bg-amber-950/30', glow: 'animate-glow', dot: 'bg-rarity-legendary' },
+  Mythic: { text: 'text-red-300', card: 'border-red-500/80 bg-red-950/40', glow: 'animate-glow-red', dot: 'bg-rarity-mythic' },
 };
 
 export const TIER = {
   Bronze: { bar: 'bg-amber-700', ring: 'ring-amber-700', bg: 'from-amber-800/50 to-amber-950/40', text: 'text-amber-500', glow: '' },
   Silver: { bar: 'bg-slate-300', ring: 'ring-slate-300', bg: 'from-slate-500/40 to-slate-800/40', text: 'text-slate-200', glow: 'shadow-lg shadow-slate-300/20' },
   Gold: { bar: 'bg-yellow-400', ring: 'ring-yellow-400', bg: 'from-yellow-600/40 to-amber-900/30', text: 'text-yellow-300', glow: 'shadow-xl shadow-yellow-400/40' },
-  Platinum: { bar: 'bg-cyan-300', ring: 'ring-cyan-300', bg: 'from-cyan-500/40 to-indigo-900/40', text: 'text-cyan-200', glow: 'shadow-2xl shadow-cyan-300/50 animate-glow' },
+  Platinum: { bar: 'bg-cyan-300', ring: 'ring-cyan-300', bg: 'from-cyan-500/40 to-indigo-900/40', text: 'text-cyan-200', glow: 'shadow-2xl shadow-cyan-300/50' },
 };
 
 export function RarityTag({ rarity, className }) {
@@ -40,7 +40,7 @@ export function AchievementCard({ a, isNew }) {
       )}
       title={a.requirement}
     >
-      {isNew && <span className="absolute right-2 top-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold">NEW</span>}
+      {isNew && <span className="absolute right-2 top-2 rounded-full bg-blood-600 px-2 py-0.5 text-[10px] font-bold text-white">NEW</span>}
       <div className={cx('text-4xl', !unlocked && 'opacity-30 grayscale')}>{a.icon}</div>
       <h3 className={cx('mt-2 font-bold leading-tight', !unlocked && 'text-slate-400')}>{a.name}</h3>
       <RarityTag rarity={a.rarity} className="mt-1" />
@@ -74,7 +74,7 @@ export function TierBadge({ f, isNew }) {
   const nextPct = f.next ? Math.min(100, Math.round((100 * f.value) / f.next.target)) : 100;
   return (
     <div className={cx('relative flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4', t?.glow)}>
-      {isNew && <span className="absolute right-2 top-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold">NEW</span>}
+      {isNew && <span className="absolute right-2 top-2 rounded-full bg-blood-600 px-2 py-0.5 text-[10px] font-bold text-white">NEW</span>}
       <div
         className={cx(
           'flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-3xl ring-4',

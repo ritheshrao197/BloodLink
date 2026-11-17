@@ -83,7 +83,7 @@ export default function Profile() {
             <span className={user.is_available ? 'text-emerald-400' : 'text-slate-400'}>{user.is_available ? 'Available to donate' : 'Not available'}</span>
             <Toggle checked={user.is_available} onChange={toggleAvailability} disabled={saving} />
           </label>
-          <button onClick={signOut} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white">
+          <button onClick={signOut} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-50">
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>
