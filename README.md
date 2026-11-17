@@ -33,7 +33,10 @@ cd bot;      ..\.venv\Scripts\python bot.py          # only if TELEGRAM_BOT_TOKE
 ```
 
 Open http://localhost:5173. The database is created and seeded with demo donors and requests on first start.
-To reset the demo data: `cd backend; ..\.venv\Scripts\python seed_data.py --reset`.
+The demo data simulates 18 months of network activity: about 700 donors and 35 hospitals in 6 states, about 770 SOS requests,
+1,100 donations, referrals and voucher redemptions. Points, badges and stats all follow from that history.
+`seed_data.py --refresh` replaces the demo data and keeps Telegram-linked accounts; `--reset` wipes everything.
+Bumping `SEED_VERSION` in [backend/seed_data.py](backend/seed_data.py) makes a deployment refresh its demo data once on its next start.
 
 On macOS/Linux use `.venv/bin/python` instead of `.venv\Scripts\python`.
 

@@ -53,11 +53,10 @@ async def lifespan(_app: FastAPI):
     if os.getenv("AUTO_SEED", "1") == "1":
         db = SessionLocal()
         try:
-            if db.query(User).count() == 0:
-                from seed_data import seed
+            from seed_data import auto_seed
 
-                seed(db)
-                log.info("Empty database: inserted demo seed data (set AUTO_SEED=0 to disable)")
+            if done := auto_seed(db):
+                log.info("Demo data: %s (set AUTO_SEED=0 to disable)", done)
         finally:
             db.close()
     log.info("Telegram notifications %s", "ENABLED" if notifier.enabled() else "DISABLED (no TELEGRAM_BOT_TOKEN)")
