@@ -32,6 +32,7 @@ export const api = {
   user: (id) => request(`/users/${id}`),
   userByCode: (code) => request(`/users/by-code/${enc(code)}`),
   activity: (id) => request(`/users/${id}/activity`),
+  setLanguage: (id, language) => request(`/users/${id}/language`, { method: 'PATCH', body: { language } }),
   setAvailability: (id, isAvailable) =>
     request(`/users/${id}/availability`, { method: 'PATCH', body: { is_available: isAvailable } }),
   donors: (params) => request('/donors', { params }),

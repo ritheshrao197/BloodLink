@@ -312,6 +312,15 @@ def set_availability_tg(telegram_id: str, body: AvailabilityBody, db: Session = 
     return user_private(db, user)
 
 
+@app.patch("/api/users/{user_id}/language")
+def set_language(user_id: int, body: LanguageBody, db: Session = Depends(get_db)):
+    """Web language choice; Telegram messages follow it too."""
+    user = find_user(db, user_id=user_id)
+    user.language = body.language
+    db.commit()
+    return user_private(db, user)
+
+
 @app.patch("/api/users/by-telegram/{telegram_id}/language")
 def set_language_tg(telegram_id: str, body: LanguageBody, db: Session = Depends(get_db)):
     user = find_user(db, telegram_id=telegram_id)

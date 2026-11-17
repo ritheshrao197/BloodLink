@@ -1,33 +1,61 @@
 import { useState } from 'react';
-import { Award, Droplet, Gift, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Trophy, UserRound, X } from 'lucide-react';
+import { Award, Droplet, Gift, Languages, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Trophy, UserRound, X } from 'lucide-react';
+import { api } from '../lib/api';
 import { Link, useRouter } from '../lib/router';
 import { useSession } from '../lib/session';
 import { useTheme } from '../lib/theme';
 import { cx } from '../lib/utils';
+import { LANGUAGES, useI18n } from '../i18n';
 
 const NAV = [
-  { to: '/', label: 'Live Feed', icon: Droplet },
-  { to: '/donors', label: 'Find Donors', icon: Search },
-  { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
-  { to: '/achievements', label: 'Achievements', icon: Award },
-  { to: '/rewards', label: 'Rewards', icon: Gift },
-  { to: '/admin', label: 'Admin', icon: Shield },
+  { to: '/', key: 'feed', icon: Droplet },
+  { to: '/donors', key: 'donors', icon: Search },
+  { to: '/leaderboard', key: 'leaderboard', icon: Trophy },
+  { to: '/achievements', key: 'achievements', icon: Award },
+  { to: '/rewards', key: 'rewards', icon: Gift },
+  { to: '/admin', key: 'admin', icon: Shield },
 ];
 
-const THEME = {
-  light: { icon: Sun, label: 'Light theme' },
-  dark: { icon: Moon, label: 'Dark theme' },
-  system: { icon: Monitor, label: 'System theme' },
-};
+const THEME_ICON = { light: Sun, dark: Moon, system: Monitor };
+
+function LanguagePicker() {
+  const { lang, setLang, t } = useI18n();
+  const { user, setUser } = useSession();
+  const change = (code) => {
+    setLang(code);
+    // keep the account (and its Telegram messages) in the same language
+    if (user && user.language !== code) api.setLanguage(user.id, code).then(setUser).catch(() => {});
+  };
+  return (
+    <label className="relative flex h-10 items-center rounded-lg text-slate-400 transition focus-within:ring-4 focus-within:ring-blood-500/30 hover:bg-slate-800 hover:text-slate-50">
+      <Languages className="pointer-events-none absolute left-2.5 h-4 w-4" aria-hidden />
+      <span className="sr-only">{t('common.language')}</span>
+      <select
+        value={lang}
+        onChange={(e) => change(e.target.value)}
+        className="h-10 cursor-pointer appearance-none rounded-lg bg-transparent pl-8 pr-2 text-sm font-semibold text-slate-300 outline-none"
+      >
+        {LANGUAGES.map((l) => (
+          <option key={l.code} value={l.code} className="bg-white text-slate-50 dark:bg-slate-900">
+            {l.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 export default function Layout({ children }) {
   const { path } = useRouter();
   const { user } = useSession();
   const { mode, cycle } = useTheme();
+  const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
-  const ThemeIcon = THEME[mode].icon;
+  const wide = lang === 'en'; // translated labels are longer: collapse the nav earlier
+  const ThemeIcon = THEME_ICON[mode];
+  const themeLabel = t(`nav.theme.${mode}`);
 
-  const navLink = ({ to, label, icon: Icon }) => {
+  const navLink = ({ to, key, icon: Icon }) => {
     const active = to === '/' ? path === '/' : path.startsWith(to);
     return (
       <Link
@@ -36,12 +64,12 @@ export default function Layout({ children }) {
         onClick={() => setOpen(false)}
         aria-current={active ? 'page' : undefined}
         className={cx(
-          'flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
+          'flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition',
           active ? 'bg-blood-600/10 text-blood-600 dark:bg-blood-500/15 dark:text-blood-400' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-50',
         )}
       >
-        <Icon className="h-4 w-4" />
-        {label}
+        <Icon className="h-4 w-4 shrink-0" />
+        {t(`nav.${key}`)}
       </Link>
     );
   };
@@ -49,30 +77,31 @@ export default function Layout({ children }) {
   return (
     <div className="flex min-h-screen flex-col bg-[radial-gradient(ellipse_at_top,_rgba(220,38,38,0.08),_transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(220,38,38,0.14),_transparent_55%)]">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-blood-600 focus:px-4 focus:py-2 focus:text-white">
-        Skip to content
+        {t('nav.skip')}
       </a>
       <header className="glass-nav">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4">
-          <Link to="/" className="flex items-center gap-2 text-xl font-black tracking-tight" aria-label="BLOODLINK home">
+          <Link to="/" className="flex shrink-0 items-center gap-2 text-xl font-black tracking-tight" aria-label={t('nav.home')}>
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blood-500 to-blood-700 shadow-lg shadow-blood-600/30">
               <Droplet className="h-5 w-5 fill-white text-white" />
             </span>
-            <span>
+            <span className="hidden sm:inline">
               <span className="text-gradient-blood">BLOOD</span>LINK
             </span>
           </Link>
-          <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Main">
+          <nav className={cx('hidden items-center gap-0.5', wide ? 'xl:flex' : '2xl:flex')} aria-label={t('nav.main')}>
             {NAV.map(navLink)}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Link to="/sos" className={cx('btn-sos hidden min-h-10 px-4 py-2 text-sm sm:inline-flex', path === '/sos' && 'animate-none')}>
-              <Siren className="h-4 w-4" /> SOS
+              <Siren className="h-4 w-4" /> {t('nav.sos')}
             </Link>
+            <LanguagePicker />
             <button
               onClick={cycle}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-50"
-              aria-label={`${THEME[mode].label}. Click to change`}
-              title={THEME[mode].label}
+              aria-label={t('nav.theme.change', { mode: themeLabel })}
+              title={themeLabel}
             >
               <ThemeIcon className="h-5 w-5" />
             </button>
@@ -88,14 +117,14 @@ export default function Layout({ children }) {
                 <span className="font-bold text-blood-600 dark:text-blood-400">{user.points} BLP</span>
               </Link>
             ) : (
-              <Link to="/register" className="btn-primary hidden min-h-10 px-4 py-2 text-sm md:inline-flex">
-                <UserRound className="h-4 w-4" /> Become a Donor
+              <Link to="/register" className="btn-primary hidden min-h-10 px-4 py-2 text-sm lg:inline-flex">
+                <UserRound className="h-4 w-4" /> {t('nav.becomeDonor')}
               </Link>
             )}
             <button
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 xl:hidden"
+              className={cx('flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800', wide ? 'xl:hidden' : '2xl:hidden')}
               onClick={() => setOpen(!open)}
-              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}
               aria-expanded={open}
             >
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -103,12 +132,12 @@ export default function Layout({ children }) {
           </div>
         </div>
         {open && (
-          <nav className="grid gap-1 border-t border-slate-800 p-3 xl:hidden" aria-label="Mobile">
-            <Link to="/sos" onClick={() => setOpen(false)} className="btn-sos mb-2 w-full animate-none sm:hidden">
-              <Siren className="h-4 w-4" /> Request Emergency SOS
+          <nav className={cx('grid gap-1 border-t border-slate-800 p-3 sm:grid-cols-2', wide ? 'xl:hidden' : '2xl:hidden')} aria-label={t('nav.main')}>
+            <Link to="/sos" onClick={() => setOpen(false)} className="btn-sos mb-2 w-full animate-none sm:col-span-2 sm:hidden">
+              <Siren className="h-4 w-4" /> {t('nav.sosLong')}
             </Link>
             {NAV.map(navLink)}
-            {!user && navLink({ to: '/register', label: 'Become a Donor', icon: UserRound })}
+            {!user && navLink({ to: '/register', key: 'becomeDonor', icon: UserRound })}
           </nav>
         )}
       </header>
@@ -118,11 +147,8 @@ export default function Layout({ children }) {
       </main>
 
       <footer className="border-t border-slate-800/80 py-10 text-center text-xs text-slate-500">
-        <p className="text-sm font-semibold text-slate-400">Every drop counts. Every second matters.</p>
-        <p className="mx-auto mt-2 max-w-2xl px-4">
-          Compatibility shown is preliminary (rule-based ABO/Rh). Medical eligibility is always confirmed by hospital staff. Vouchers are
-          demo-only.
-        </p>
+        <p className="text-sm font-semibold text-slate-400">{t('footer.tagline')}</p>
+        <p className="mx-auto mt-2 max-w-2xl px-4">{t('footer.disclaimer')}</p>
       </footer>
     </div>
   );

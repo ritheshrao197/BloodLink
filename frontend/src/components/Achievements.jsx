@@ -1,5 +1,6 @@
 import { Lock } from 'lucide-react';
-import { cx, timeAgo } from '../lib/utils';
+import { cx } from '../lib/utils';
+import { useI18n } from '../i18n';
 
 // Full class strings so Tailwind keeps them
 export const RARITY = {
@@ -18,17 +19,38 @@ export const TIER = {
   Platinum: { bar: 'bg-cyan-300', ring: 'ring-cyan-300', bg: 'from-cyan-500/40 to-indigo-900/40', text: 'text-cyan-200', glow: 'shadow-2xl shadow-cyan-300/50' },
 };
 
+/**
+ * Translated description / requirement for an achievement. Names stay as-is (they are proper names, like GitHub's);
+ * texts fall back to the English sent by the API when a language has no override.
+ */
+export function achText({ tOr }, a) {
+  if (a.family) {
+    const unit = tOr(`achv.${a.family}.unit`, a.unit || a.requirement?.replace(/^\d+ /, ''));
+    return { description: tOr(`achv.${a.family}.d`, a.description), requirement: `${a.target} ${unit}`, unit };
+  }
+  return { description: tOr(`achv.${a.key}.d`, a.description), requirement: tOr(`achv.${a.key}.r`, a.requirement) };
+}
+
 export function RarityTag({ rarity, className }) {
+  const { t } = useI18n();
   const r = RARITY[rarity] || RARITY.Common;
   return (
     <span className={cx('inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide', r.text, className)}>
       <span className={cx('h-1.5 w-1.5 rounded-full', r.dot)} />
-      {rarity}
+      {t(`achievements.rarityName.${rarity}`)}
     </span>
   );
 }
 
+function NewTag() {
+  const { t } = useI18n();
+  return <span className="absolute right-2 top-2 rounded-full bg-blood-600 px-2 py-0.5 text-[10px] font-bold text-white">{t('achievements.new')}</span>;
+}
+
 export function AchievementCard({ a, isNew }) {
+  const i18n = useI18n();
+  const { t, ago } = i18n;
+  const { description, requirement } = achText(i18n, a);
   const r = RARITY[a.rarity] || RARITY.Common;
   const unlocked = a.unlocked !== false;
   const pct = a.target ? Math.round((100 * Math.min(a.progress ?? 0, a.target)) / a.target) : 0;
@@ -38,17 +60,17 @@ export function AchievementCard({ a, isNew }) {
         'relative flex flex-col rounded-xl border-2 p-4 transition',
         unlocked ? cx(r.card, r.glow, 'hover:-translate-y-0.5') : 'border-slate-800 bg-slate-900/60',
       )}
-      title={a.requirement}
+      title={requirement}
     >
-      {isNew && <span className="absolute right-2 top-2 rounded-full bg-blood-600 px-2 py-0.5 text-[10px] font-bold text-white">NEW</span>}
+      {isNew && <NewTag />}
       <div className={cx('text-4xl', !unlocked && 'opacity-30 grayscale')}>{a.icon}</div>
       <h3 className={cx('mt-2 font-bold leading-tight', !unlocked && 'text-slate-400')}>{a.name}</h3>
       <RarityTag rarity={a.rarity} className="mt-1" />
-      <p className={cx('mt-2 flex-1 text-xs', unlocked ? 'text-slate-300' : 'text-slate-500')}>{unlocked ? a.description : a.requirement}</p>
+      <p className={cx('mt-2 flex-1 text-xs', unlocked ? 'text-slate-300' : 'text-slate-500')}>{unlocked ? description : requirement}</p>
       {unlocked ? (
-        <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-          <span>{a.unlocked_at ? timeAgo(a.unlocked_at) : `+${a.points} BLP`}</span>
-          {a.percent_of_donors != null && <span>{a.percent_of_donors}% of donors</span>}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-2 text-[11px] text-slate-400">
+          <span>{a.unlocked_at ? ago(a.unlocked_at) : `+${a.points} BLP`}</span>
+          {a.percent_of_donors != null && <span>{t('achievements.pctDonors', { pct: a.percent_of_donors })}</span>}
         </div>
       ) : (
         <div className="mt-3">
@@ -70,15 +92,18 @@ export function AchievementCard({ a, isNew }) {
 
 /** A GitHub-style tiered badge: one badge that levels up Bronze -> Platinum. */
 export function TierBadge({ f, isNew }) {
-  const t = f.tier && TIER[f.tier];
+  const i18n = useI18n();
+  const { t } = i18n;
+  const { description, unit } = achText(i18n, { family: f.key, description: f.description, unit: f.unit, target: 0 });
+  const tier = f.tier && TIER[f.tier];
   const nextPct = f.next ? Math.min(100, Math.round((100 * f.value) / f.next.target)) : 100;
   return (
-    <div className={cx('relative flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4', t?.glow)}>
-      {isNew && <span className="absolute right-2 top-2 rounded-full bg-blood-600 px-2 py-0.5 text-[10px] font-bold text-white">NEW</span>}
+    <div className={cx('relative flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4', tier?.glow)}>
+      {isNew && <NewTag />}
       <div
         className={cx(
           'flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-3xl ring-4',
-          t ? cx(t.bg, t.ring) : 'from-slate-800 to-slate-900 opacity-40 ring-slate-700 grayscale',
+          tier ? cx(tier.bg, tier.ring) : 'from-slate-800 to-slate-900 opacity-40 ring-slate-700 grayscale',
         )}
       >
         {f.icon}
@@ -86,26 +111,24 @@ export function TierBadge({ f, isNew }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
           <h3 className="font-bold">{f.name}</h3>
-          <span className={cx('text-xs font-bold uppercase tracking-wide', t ? t.text : 'text-slate-500')}>{f.tier || 'Locked'}</span>
+          <span className={cx('text-xs font-bold uppercase tracking-wide', tier ? tier.text : 'text-slate-500')}>
+            {f.tier ? t(`achievements.tier.${f.tier}`) : t('achievements.locked')}
+          </span>
         </div>
-        <p className="text-xs text-slate-400">{f.description}</p>
+        <p className="text-xs text-slate-400">{description}</p>
         <div className="mt-2 flex gap-1">
           {f.tiers.map((x) => (
             <span
               key={x.tier}
-              title={`${x.tier}: ${x.target} ${f.unit} (+${x.points} BLP) · ${x.percent_of_donors}% of donors`}
+              title={`${t(`achievements.tier.${x.tier}`)}: ${x.target} ${unit} (+${x.points} BLP) · ${t('achievements.pctDonors', { pct: x.percent_of_donors })}`}
               className={cx('h-1.5 flex-1 rounded-full', x.unlocked_at ? TIER[x.tier].bar : 'bg-slate-800')}
             />
           ))}
         </div>
         <p className="mt-1 text-[11px] text-slate-500">
-          {f.next ? (
-            <>
-              {f.value}/{f.next.target} {f.unit} to <b className={TIER[f.next.tier].text}>{f.next.tier}</b> ({nextPct}%)
-            </>
-          ) : (
-            'Max tier reached'
-          )}
+          {f.next
+            ? t('achievements.toTier', { value: f.value, target: f.next.target, unit, tier: t(`achievements.tier.${f.next.tier}`), pct: nextPct })
+            : t('achievements.maxTier')}
         </p>
       </div>
     </div>
@@ -114,11 +137,12 @@ export function TierBadge({ f, isNew }) {
 
 /** Compact row of a user's rarest achievement icons (leaderboard, profile header). */
 export function Showcase({ data, size = 'text-lg' }) {
+  const { t } = useI18n();
   if (!data?.count) return null;
   return (
-    <span className="inline-flex items-center gap-0.5" title={`${data.count} achievements`}>
+    <span className="inline-flex items-center gap-0.5" title={t('achievements.count', { n: data.count })}>
       {data.top.map((a) => (
-        <span key={a.name} className={size} title={`${a.name}${a.tier ? ` (${a.tier})` : ''} · ${a.rarity}`}>
+        <span key={a.name} className={size} title={`${a.name}${a.tier ? ` (${t(`achievements.tier.${a.tier}`)})` : ''} · ${t(`achievements.rarityName.${a.rarity}`)}`}>
           {a.icon}
         </span>
       ))}

@@ -4,16 +4,16 @@ import { api } from '../lib/api';
 import { Link } from '../lib/router';
 import { useSession } from '../lib/session';
 import { usePoll } from '../lib/usePoll';
-import { BADGES, BLOOD_GROUPS, canDonate, cx, timeAgo } from '../lib/utils';
+import { BADGES, BLOOD_GROUPS, canDonate, cx } from '../lib/utils';
+import { useI18n } from '../i18n';
 import RequestCard from '../components/RequestCard';
 import DonateModal from '../components/DonateModal';
 import { Showcase } from '../components/Achievements';
 import { BadgeChip, BloodTag, Empty, ErrorBox, Loading } from '../components/ui';
 
-const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('en-IN'));
-
 export default function Home() {
   const { user, config } = useSession();
+  const { t, num, ago } = useI18n();
   const [filter, setFilter] = useState('All');
   const [respondTo, setRespondTo] = useState(null);
   const feed = usePoll(() => api.requests('Active'), 4000);
@@ -24,9 +24,10 @@ export default function Home() {
   const requests = (feed.data || []).filter((r) =>
     filter === 'All' ? true : filter === 'Mine' ? user && canDonate(user.blood_group, r.blood_group) : r.blood_group === filter,
   );
-  const t = stats.data?.totals;
+  const s = stats.data?.totals;
   const bot = config?.bot_username || 'BloodLinkBot';
   const spotlight = (feed.data || []).find((r) => r.urgency === 'Critical') || feed.data?.[0];
+  const bold = (n) => <b className="text-slate-200">{num(n)}</b>;
 
   return (
     <div className="space-y-14">
@@ -45,36 +46,33 @@ export default function Home() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blood-500 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-blood-500" />
               </span>
-              <span className="overline">Live emergency network</span>
+              <span className="overline">{t('home.live')}</span>
             </span>
-            <h1 className="hero-title mt-5">
-              Bridging donors &amp; patients in critical seconds.
-            </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
-              BLOODLINK removes deadly delays with instant ABO/Rh compatibility matching, district-level donor discovery and a direct
-              emergency broadcast to donors on Telegram.
-            </p>
+            <h1 className="hero-title mt-5">{t('home.heroTitle')}</h1>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">{t('home.heroText')}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/sos" className="btn-sos px-7 py-3.5 text-base">
-                <Droplet className="h-5 w-5 fill-white" /> Request Emergency SOS
+                <Droplet className="h-5 w-5 fill-white" /> {t('nav.sosLong')}
               </Link>
               {user ? (
                 <a href={`https://t.me/${bot}`} target="_blank" rel="noreferrer" className="btn-secondary px-6 py-3.5 text-base">
-                  <Send className="h-5 w-5 text-sky-500" /> Open @{bot}
+                  <Send className="h-5 w-5 text-sky-500" /> {t('home.openBot', { bot })}
                 </a>
               ) : (
                 <Link to="/register" className="btn-secondary px-6 py-3.5 text-base">
-                  <HeartHandshake className="h-5 w-5" /> Join as a Donor
+                  <HeartHandshake className="h-5 w-5" /> {t('home.join')}
                 </Link>
               )}
             </div>
             <p className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400">
               <span className="flex items-center gap-1.5">
-                <Zap className="h-4 w-4 text-yellow-500" aria-hidden /> <b className="text-slate-200">{fmt(t?.donations)}</b> donations matched
+                <Zap className="h-4 w-4 text-yellow-500" aria-hidden />
+                <Fill text={t('home.donationsMatched', { n: '\u0000' })} value={bold(s?.donations)} />
               </span>
               <span aria-hidden>•</span>
               <span className="flex items-center gap-1.5">
-                <Hospital className="h-4 w-4 text-sky-500" aria-hidden /> <b className="text-slate-200">{fmt(t?.hospitals)}</b> partner hospitals
+                <Hospital className="h-4 w-4 text-sky-500" aria-hidden />
+                <Fill text={t('home.partnerHospitals', { n: '\u0000' })} value={bold(s?.hospitals)} />
               </span>
             </p>
           </div>
@@ -86,28 +84,28 @@ export default function Home() {
             </div>
             <div className="card-glass relative p-6 shadow-2xl shadow-blood-900/10">
               <p className="overline flex items-center gap-2">
-                <Radio className="h-3.5 w-3.5" /> Happening now
+                <Radio className="h-3.5 w-3.5" /> {t('home.happening')}
               </p>
               {spotlight ? (
                 <>
                   <div className="mt-4 flex items-center gap-4">
                     <BloodTag group={spotlight.blood_group} size="lg" />
                     <div className="min-w-0">
-                      <p className="text-xl font-extrabold">{spotlight.blood_group} needed</p>
+                      <p className="text-xl font-extrabold">{t('home.needed', { group: spotlight.blood_group })}</p>
                       <p className="truncate text-sm text-slate-400">{spotlight.hospital}</p>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center justify-between text-sm">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 text-sm">
                     <span className="text-slate-400">
-                      {spotlight.city} · {timeAgo(spotlight.created_at)}
+                      {spotlight.city} · {ago(spotlight.created_at)}
                     </span>
-                    <span className="font-semibold text-blood-600 dark:text-blood-400">{spotlight.notified_count} donors alerted</span>
+                    <span className="font-semibold text-blood-600 dark:text-blood-400">{t('home.alerted', { n: num(spotlight.notified_count) })}</span>
                   </div>
                   <div className="progress-bar mt-3">
                     <div className="progress-fill" style={{ width: `${Math.round((100 * spotlight.units_fulfilled) / spotlight.units_needed)}%` }} />
                   </div>
                   <button onClick={() => setRespondTo(spotlight)} className="btn-primary mt-5 w-full">
-                    🩸 I Can Donate
+                    🩸 {t('common.iCanDonate')}
                   </button>
                 </>
               ) : (
@@ -119,12 +117,18 @@ export default function Home() {
       </section>
 
       {/* ---------------- live stats bar ---------------- */}
-      <section className="card grid grid-cols-1 divide-y divide-slate-800 overflow-hidden p-0 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x" aria-label="Network statistics">
+      <section className="card grid grid-cols-1 divide-y divide-slate-800 overflow-hidden p-0 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x" aria-label={t('home.stats')}>
         {[
-          [Users, fmt(t?.donors), 'Registered donors', t && `${fmt(t.available_donors)} available now`, 'text-blood-500'],
-          [Hospital, fmt(t?.hospitals), 'Hospitals', t && `${fmt(t.fulfilled_requests)} requests fulfilled`, 'text-sky-500'],
-          [Zap, stats.data?.avg_response_minutes != null ? `${stats.data.avg_response_minutes} min` : '—', 'Avg. first response', 'vs. 2–6 h on social media', 'text-yellow-500'],
-          [Award, fmt(catalog.data?.achievements?.length), 'Achievements to unlock', 'GitHub-style badges', 'text-violet-500'],
+          [Users, num(s?.donors), t('home.statDonors'), s && t('home.statAvailable', { n: num(s.available_donors) }), 'text-blood-500'],
+          [Hospital, num(s?.hospitals), t('home.statHospitals'), s && t('home.statFulfilled', { n: num(s.fulfilled_requests) }), 'text-sky-500'],
+          [
+            Zap,
+            stats.data?.avg_response_minutes != null ? t('home.minutes', { n: num(stats.data.avg_response_minutes) }) : '—',
+            t('home.statResponse'),
+            t('home.statResponseHint'),
+            'text-yellow-500',
+          ],
+          [Award, num(catalog.data?.achievements?.length), t('home.statAchievements'), t('home.statAchievementsHint'), 'text-violet-500'],
         ].map(([Icon, value, label, hint, color]) => (
           <div key={label} className="flex items-center gap-4 p-5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900">
@@ -144,11 +148,11 @@ export default function Home() {
         <section aria-labelledby="feed-title">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h2 id="feed-title" className="section-title flex items-center gap-3">
-              <Activity className="h-7 w-7 text-blood-600 dark:text-blood-500" aria-hidden /> Live emergencies
+              <Activity className="h-7 w-7 text-blood-600 dark:text-blood-500" aria-hidden /> {t('home.feedTitle')}
               <span className="rounded-full bg-blood-600 px-2.5 py-0.5 text-sm text-white">{feed.data?.length ?? 0}</span>
             </h2>
           </div>
-          <div className="mb-5 flex flex-wrap gap-1.5" role="group" aria-label="Filter by blood group">
+          <div className="mb-5 flex flex-wrap gap-1.5" role="group" aria-label={t('home.filter')}>
             {['All', ...(user ? ['Mine'] : []), ...BLOOD_GROUPS].map((g) => (
               <button
                 key={g}
@@ -159,7 +163,7 @@ export default function Home() {
                   filter === g ? 'bg-blood-600 text-white shadow-md shadow-blood-600/30' : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
                 )}
               >
-                {g === 'Mine' ? 'I can help' : g}
+                {g === 'Mine' ? t('home.mine') : g === 'All' ? t('common.all') : g}
               </button>
             ))}
           </div>
@@ -171,8 +175,8 @@ export default function Home() {
               ))}
             </div>
           ) : requests.length === 0 ? (
-            <Empty icon={HeartHandshake} title="No active requests here">
-              {filter === 'All' ? 'All emergencies are covered right now. 🎉' : 'Try another filter.'}
+            <Empty icon={HeartHandshake} title={t('home.emptyTitle')}>
+              {filter === 'All' ? t('home.emptyAll') : t('home.emptyFilter')}
             </Empty>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -191,17 +195,17 @@ export default function Home() {
 
       {/* ---------------- how it works ---------------- */}
       <section aria-labelledby="how-title">
-        <p className="overline">How it works</p>
+        <p className="overline">{t('home.howOverline')}</p>
         <h2 id="how-title" className="section-title mt-1">
-          From SOS to donor in minutes
+          {t('home.howTitle')}
         </h2>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {[
-            ['Send an SOS', 'Pick a blood group and hospital: three taps on Telegram, or one form here.', Siren],
-            ['Instant match', 'ABO/Rh rules alert every compatible, available donor nearby, in their own language.', Radio],
-            ['One-tap donate', 'Donors tap “I Can Donate”, earn BLP and achievements, and recruit friends.', HeartHandshake],
+            [t('home.how1'), t('home.how1Text'), Siren],
+            [t('home.how2'), t('home.how2Text'), Radio],
+            [t('home.how3'), t('home.how3Text'), HeartHandshake],
           ].map(([title, text, Icon], i) => (
-            <div key={title} className="card card-hover p-6">
+            <div key={i} className="card card-hover p-6">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blood-600/10 dark:bg-blood-500/15">
                   <Icon className="h-5 w-5 text-blood-600 dark:text-blood-400" aria-hidden />
@@ -228,14 +232,27 @@ export default function Home() {
   );
 }
 
+/** Render a translated sentence with a styled value where its {n} placeholder was (word order differs by language). */
+function Fill({ text, value }) {
+  const [before, after] = text.split('\u0000');
+  return (
+    <span>
+      {before}
+      {value}
+      {after}
+    </span>
+  );
+}
+
 function ProfileWidget({ user }) {
+  const { t, num } = useI18n();
   const info = user.badge_info;
   const next = info.next;
   const pct = next ? Math.min(100, Math.round(((user.points - info.min_points) / (next.min_points - info.min_points)) * 100)) : 100;
   return (
     <div className="card overflow-hidden">
       <div className="p-5">
-        <p className="overline">Your profile</p>
+        <p className="overline">{t('home.yourProfile')}</p>
         <div className="mt-3 flex items-center gap-3">
           <BloodTag group={user.blood_group} size="lg" />
           <div className="min-w-0">
@@ -243,31 +260,33 @@ function ProfileWidget({ user }) {
             <BadgeChip badge={user.badge} />
           </div>
         </div>
-        <div className="mt-4 flex items-baseline justify-between">
+        <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-2">
           <span className="text-3xl font-extrabold tabular-nums">
-            {user.points} <span className="text-sm font-semibold text-slate-400">BLP</span>
+            {num(user.points)} <span className="text-sm font-semibold text-slate-400">BLP</span>
           </span>
-          <span className="text-xs text-slate-400">{next ? `${next.min_points - user.points} to ${next.icon} ${next.name}` : 'Max level 💎'}</span>
+          <span className="text-xs text-slate-400">
+            {next ? t('home.toNext', { n: num(next.min_points - user.points), icon: next.icon, name: t(`badge.${next.name}`) }) : t('home.maxLevel')}
+          </span>
         </div>
         <div className="progress-bar mt-2">
           <div className="progress-fill" style={{ width: `${pct}%` }} />
         </div>
       </div>
-      <Link to="/achievements" className="flex items-center justify-between border-t border-slate-800 px-5 py-3.5 text-sm transition hover:bg-slate-900">
+      <Link to="/achievements" className="flex items-center justify-between gap-2 border-t border-slate-800 px-5 py-3.5 text-sm transition hover:bg-slate-900">
         <span className="flex items-center gap-2 font-semibold">
-          <Sparkles className="h-4 w-4 text-violet-500" aria-hidden /> Achievements
+          <Sparkles className="h-4 w-4 text-violet-500" aria-hidden /> {t('nav.achievements')}
         </span>
         <span className="flex items-center gap-1">
-          {user.achievements?.count ? <Showcase data={user.achievements} size="text-base" /> : <span className="text-slate-500">Start your collection</span>}
+          {user.achievements?.count ? <Showcase data={user.achievements} size="text-base" /> : <span className="text-slate-500">{t('home.startCollection')}</span>}
           <ChevronRight className="h-4 w-4 text-slate-500" aria-hidden />
         </span>
       </Link>
-      <Link to="/rewards" className="flex items-center justify-between border-t border-slate-800 px-5 py-3.5 text-sm transition hover:bg-slate-900">
+      <Link to="/rewards" className="flex items-center justify-between gap-2 border-t border-slate-800 px-5 py-3.5 text-sm transition hover:bg-slate-900">
         <span className="flex items-center gap-2 font-semibold">
-          <Gift className="h-4 w-4 text-pink-500" aria-hidden /> Redeem rewards
+          <Gift className="h-4 w-4 text-pink-500" aria-hidden /> {t('home.redeem')}
         </span>
         <span className="flex items-center gap-1 text-slate-400">
-          from 100 BLP <ChevronRight className="h-4 w-4 text-slate-500" aria-hidden />
+          {t('home.fromBlp')} <ChevronRight className="h-4 w-4 text-slate-500" aria-hidden />
         </span>
       </Link>
     </div>
@@ -275,19 +294,20 @@ function ProfileWidget({ user }) {
 }
 
 function JoinWidget() {
+  const { t } = useI18n();
   return (
     <div className="card overflow-hidden">
       <div className="bg-gradient-to-br from-blood-600 to-blood-800 p-5 text-white">
-        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-blood-100">Become a hero</p>
-        <p className="mt-2 text-xl font-extrabold leading-snug">One donation can save up to three lives.</p>
-        <p className="mt-1 text-sm text-blood-100">Join in 20 seconds and get +50 BLP.</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-blood-100">{t('home.heroOverline')}</p>
+        <p className="mt-2 text-xl font-extrabold leading-snug">{t('home.heroLine')}</p>
+        <p className="mt-1 text-sm text-blood-100">{t('home.heroJoin')}</p>
       </div>
       <div className="space-y-2 p-5">
         <Link to="/register" className="btn-primary w-full">
-          <HeartHandshake className="h-4 w-4" /> Register as a donor
+          <HeartHandshake className="h-4 w-4" /> {t('home.registerDonor')}
         </Link>
         <Link to="/profile" className="btn-ghost w-full">
-          I already have a code
+          {t('home.haveCode')}
         </Link>
       </div>
     </div>
@@ -295,14 +315,15 @@ function JoinWidget() {
 }
 
 function TopHeroes({ data, loading, me }) {
+  const { t, num } = useI18n();
   return (
     <div className="card p-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <p className="overline flex items-center gap-1.5">
-          <Trophy className="h-3.5 w-3.5" /> Top heroes
+          <Trophy className="h-3.5 w-3.5" /> {t('home.topHeroes')}
         </p>
         <Link to="/leaderboard" className="text-xs font-semibold text-slate-400 hover:text-blood-500">
-          View all →
+          {t('common.viewAll')}
         </Link>
       </div>
       {loading && !data ? (
@@ -317,7 +338,7 @@ function TopHeroes({ data, loading, me }) {
               </span>
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">{u.name}</span>
               <BloodTag group={u.blood_group} size="sm" />
-              <span className="w-16 text-right text-sm font-bold tabular-nums text-blood-600 dark:text-blood-400">{fmt(u.points)}</span>
+              <span className="w-16 text-right text-sm font-bold tabular-nums text-blood-600 dark:text-blood-400">{num(u.points)}</span>
             </li>
           ))}
         </ol>

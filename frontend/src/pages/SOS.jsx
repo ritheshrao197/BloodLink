@@ -4,17 +4,19 @@ import { api } from '../lib/api';
 import { Link } from '../lib/router';
 import { useSession } from '../lib/session';
 import { BLOOD_GROUPS, COMPATIBILITY, cx } from '../lib/utils';
+import { useI18n } from '../i18n';
 import { BadgeChip, BloodTag, ErrorBox, PageHeader, Spinner } from '../components/ui';
 import LocationPicker from '../components/LocationPicker';
 
 const URGENCIES = [
-  ['Critical', 'Needed within the hour', 'border-red-500 bg-red-600/15 text-red-300'],
-  ['High', 'Needed today', 'border-orange-500 bg-orange-500/15 text-orange-300'],
-  ['Normal', 'Planned procedure', 'border-amber-400 bg-amber-400/10 text-amber-200'],
+  ['Critical', 'border-red-500 bg-red-600/15 text-red-300'],
+  ['High', 'border-orange-500 bg-orange-500/15 text-orange-300'],
+  ['Normal', 'border-amber-400 bg-amber-400/10 text-amber-200'],
 ];
 
 export default function SOS() {
   const { user, config } = useSession();
+  const { t, lang } = useI18n();
   const [form, setForm] = useState({
     requester_name: user?.role === 'hospital' ? user.name : '',
     blood_group: 'O+',
@@ -35,7 +37,8 @@ export default function SOS() {
     setBusy(true);
     setError(null);
     try {
-      setResult(await api.sos({ ...form, units_needed: Number(form.units_needed) }));
+      // requester_language: Telegram updates about this request go out in the language it was made in
+      setResult(await api.sos({ ...form, units_needed: Number(form.units_needed), requester_language: lang }));
     } catch (err) {
       setError(err);
     } finally {
@@ -51,38 +54,36 @@ export default function SOS() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-600/20">
             <Siren className="h-8 w-8 animate-pulse text-red-500" />
           </div>
-          <h1 className="mt-4 text-3xl font-extrabold">🚨 SOS Broadcasted!</h1>
+          <h1 className="mt-4 text-3xl font-extrabold">{t('sos.sent')}</h1>
           <p className="mt-2 text-slate-300">
-            Request <b>#{r.id}</b> for <b>{r.units_needed} unit(s) of {r.blood_group}</b> at {r.hospital}, {r.city}.
+            {t('sos.summary', { id: r.id, units: r.units_needed, group: r.blood_group, hospital: r.hospital, city: r.city })}
           </p>
           <div className="mt-6 grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-slate-800/60 p-4">
               <div className="text-3xl font-extrabold text-red-400">{result.matched_donors}</div>
-              <div className="text-sm text-slate-400">compatible donors matched</div>
+              <div className="text-sm text-slate-400">{t('sos.matched')}</div>
             </div>
             <div className="rounded-xl bg-slate-800/60 p-4">
               <div className="text-3xl font-extrabold text-sky-400">{result.telegram_reachable}</div>
-              <div className="text-sm text-slate-400">alerted instantly on Telegram</div>
+              <div className="text-sm text-slate-400">{t('sos.alerted')}</div>
             </div>
           </div>
-          {!config?.telegram_enabled && (
-            <p className="mt-3 text-xs text-amber-300/80">Telegram bot token not configured on the server — alerts are logged only.</p>
-          )}
+          {!config?.telegram_enabled && <p className="mt-3 text-xs text-amber-300/80">{t('sos.noBot')}</p>}
         </div>
 
         {result.donors.length > 0 && (
           <div className="card mt-6 p-5">
-            <h2 className="mb-3 font-bold">Matched donors</h2>
+            <h2 className="mb-3 font-bold">{t('sos.matchedDonors')}</h2>
             <ul className="divide-y divide-slate-800">
               {result.donors.map((d) => (
-                <li key={d.id} className="flex items-center justify-between py-2.5">
-                  <div className="flex items-center gap-3">
+                <li key={d.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-3">
                     <BloodTag group={d.blood_group} size="sm" />
-                    <span className="font-medium">{d.name}</span>
-                    <span className="text-sm text-slate-500">{d.city}</span>
+                    <span className="truncate font-medium">{d.name}</span>
+                    <span className="hidden text-sm text-slate-500 sm:inline">{d.city}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    {d.telegram_linked && <Send className="h-4 w-4 text-sky-400" title="Telegram alert sent" />}
+                  <div className="flex shrink-0 items-center gap-3 text-sm">
+                    {d.telegram_linked && <Send className="h-4 w-4 text-sky-400" aria-label={t('sos.telegramSent')} />}
                     <BadgeChip badge={d.badge} />
                   </div>
                 </li>
@@ -90,12 +91,12 @@ export default function SOS() {
             </ul>
           </div>
         )}
-        <div className="mt-6 flex justify-center gap-3">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link to="/" className="btn-primary">
-            Track on live feed
+            {t('sos.track')}
           </Link>
           <button className="btn-ghost" onClick={() => setResult(null)}>
-            New request
+            {t('sos.another')}
           </button>
         </div>
       </div>
@@ -104,18 +105,19 @@ export default function SOS() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader icon={Siren} title="Emergency SOS" subtitle="Broadcast to every compatible, available donor in seconds." />
+      <PageHeader icon={Siren} title={t('sos.title')} subtitle={t('sos.subtitle')} />
       <form onSubmit={submit} className="card space-y-6 p-6 sm:p-8">
         <div>
-          <span className="label">Blood group needed</span>
+          <span className="label">{t('sos.group')}</span>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
             {BLOOD_GROUPS.map((g) => (
               <button
                 type="button"
                 key={g}
+                aria-pressed={form.blood_group === g}
                 onClick={() => setForm({ ...form, blood_group: g })}
                 className={cx(
-                  'rounded-xl border py-3 text-lg font-extrabold transition',
+                  'min-h-11 rounded-xl border py-3 text-lg font-extrabold transition',
                   form.blood_group === g ? 'border-red-500 bg-red-600 text-white' : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-red-500/50',
                 )}
               >
@@ -124,40 +126,47 @@ export default function SOS() {
             ))}
           </div>
           <p className="mt-2 text-sm text-slate-400">
-            Will alert donors with: <span className="font-semibold text-slate-200">{COMPATIBILITY[form.blood_group].join(', ')}</span>
+            {t('sos.willAlert')} <span className="font-semibold text-slate-200">{COMPATIBILITY[form.blood_group].join(', ')}</span>
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="sos-name">Patient / requester name</label>
+            <label className="label" htmlFor="sos-name">
+              {t('sos.name')}
+            </label>
             <input id="sos-name" className="input" value={form.requester_name} onChange={set('requester_name')} required />
           </div>
           <div>
-            <label className="label" htmlFor="sos-phone">Contact phone (shared with responding donors)</label>
-            <input id="sos-phone" className="input" value={form.contact_phone} onChange={set('contact_phone')} placeholder="+91 …" />
+            <label className="label" htmlFor="sos-phone">
+              {t('sos.phone')}
+            </label>
+            <input id="sos-phone" className="input" value={form.contact_phone} onChange={set('contact_phone')} placeholder="+91 …" inputMode="tel" />
           </div>
           <div className="sm:col-span-2">
             <LocationPicker withHospital idPrefix="sos" value={form} onChange={(v) => setForm({ ...form, ...v })} />
           </div>
           <div>
-            <label className="label" htmlFor="sos-units">Units needed</label>
+            <label className="label" htmlFor="sos-units">
+              {t('sos.units')}
+            </label>
             <input id="sos-units" type="number" min={1} max={10} className="input" value={form.units_needed} onChange={set('units_needed')} />
           </div>
         </div>
 
         <div>
-          <span className="label">Urgency</span>
+          <span className="label">{t('sos.urgency')}</span>
           <div className="grid gap-2 sm:grid-cols-3">
-            {URGENCIES.map(([u, hint, active]) => (
+            {URGENCIES.map(([u, active]) => (
               <button
                 type="button"
                 key={u}
+                aria-pressed={form.urgency === u}
                 onClick={() => setForm({ ...form, urgency: u })}
                 className={cx('rounded-xl border px-4 py-3 text-left transition', form.urgency === u ? active : 'border-slate-700 text-slate-300 hover:border-slate-500')}
               >
-                <div className="font-bold">{u}</div>
-                <div className="text-xs opacity-80">{hint}</div>
+                <div className="font-bold">{t(`urgency.${u}`)}</div>
+                <div className="text-xs opacity-80">{t(`urgency.${u}Hint`)}</div>
               </button>
             ))}
           </div>
@@ -165,11 +174,11 @@ export default function SOS() {
 
         <ErrorBox error={error} />
         <button className="btn-primary w-full py-3.5 text-lg" disabled={busy}>
-          {busy ? <Spinner /> : <Siren className="h-5 w-5" />} Broadcast SOS
+          {busy ? <Spinner /> : <Siren className="h-5 w-5" />} {t('sos.broadcast')}
         </button>
         <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
-          <CheckCircle2 className="h-3.5 w-3.5" /> Faster on the go: send <code className="text-slate-300">/sos</code> to @
-          {config?.bot_username || 'BloodLinkBot'} on Telegram.
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+          <span>{t('sos.faster', { cmd: '/sos', bot: config?.bot_username || 'BloodLinkBot' })}</span>
         </p>
       </form>
     </div>

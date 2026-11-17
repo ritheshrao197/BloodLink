@@ -79,6 +79,15 @@ a starter list of hospitals. SOS alerts reach each donor in their own language. 
 awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_12345` (referral) and `?start=link_USER_12345`
 (link a web account).
 
+### Languages
+
+The web app is available in English, ಕನ್ನಡ, हिन्दी, മലയാളം, தமிழ், తెలుగు, বাংলা, অসমীয়া, कोंकणी (Konkani) and ತುಳು (Tulu).
+The header language picker remembers the choice and saves it to the account, so Telegram messages follow it.
+Dictionaries are in [frontend/src/i18n/](frontend/src/i18n/). `npm run i18n:check` (also run by `npm run build`) checks that
+every file has exactly the keys and `{placeholders}` of `en.js`, with nothing empty, and no letters from another script
+(for example Malayalam letters inside Tamil). Each language loads its own Noto font.
+The Telegram bot itself speaks English, ಕನ್ನಡ and हिन्दी; for the other languages it falls back to English.
+
 ### Achievements
 
 GitHub-style collectible badges, separate from spendable BLP (each one pays a one-off BLP bonus when unlocked). There are 36

@@ -104,6 +104,17 @@
   }
 }
 
+/* Indic scripts (every language except English): no negative tracking (it breaks conjuncts), taller lines for vowel signs */
+html:not(:lang(en)) :is(h1, h2, h3, .hero-title, .section-title, .overline) { letter-spacing: normal !important; }
+html:not(:lang(en)) .hero-title { line-height: 1.3; font-size: clamp(2rem, 4.6vw, 3.25rem); }
+html:not(:lang(en)) body { line-height: 1.6; }
+html:not(:lang(en)) .overline { text-transform: none; }
+
+/* Letter-spacing and small caps break how Indic letters join: switch them off for every non-English language */
+html:not(:lang(en)) :is(.uppercase, [class*='tracking-']) { text-transform: none; letter-spacing: normal !important; }
+/* Tamil words are long: a smaller headline keeps the hero readable */
+html:lang(ta) .hero-title { font-size: clamp(1.75rem, 3.4vw, 2.6rem); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

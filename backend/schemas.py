@@ -17,7 +17,7 @@ class UserCreate(BaseModel):
     blood_group: str
     city: str = Field(min_length=1, max_length=80)
     state: Optional[str] = None
-    language: Literal["en", "kn", "hi"] = "en"
+    language: Literal["en", "kn", "hi", "ml", "ta", "te", "bn", "as", "kok", "tcy"] = "en"
     phone: Optional[str] = None
     role: Literal["donor", "hospital"] = "donor"
     referred_by: Optional[str] = None
@@ -45,7 +45,7 @@ class SOSCreate(BaseModel):
     urgency: Literal["Critical", "High", "Normal"] = "High"
     contact_phone: Optional[str] = None
     requester_telegram_id: Optional[str] = None
-    requester_language: Optional[Literal["en", "kn", "hi"]] = None
+    requester_language: Optional[Literal["en", "kn", "hi", "ml", "ta", "te", "bn", "as", "kok", "tcy"]] = None
 
     _bg = field_validator("blood_group")(_check_group)
 
@@ -72,4 +72,4 @@ class AvailabilityBody(BaseModel):
 
 
 class LanguageBody(BaseModel):
-    language: Literal["en", "kn", "hi"]
+    language: Literal["en", "kn", "hi", "ml", "ta", "te", "bn", "as", "kok", "tcy"]

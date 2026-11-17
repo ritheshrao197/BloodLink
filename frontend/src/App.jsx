@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { RouterProvider, useRouter, Link } from './lib/router';
-import { SessionProvider } from './lib/session';
+import { SessionProvider, useSession } from './lib/session';
+import { I18nProvider, useI18n } from './i18n';
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -25,15 +27,26 @@ const ROUTES = {
 };
 
 function NotFound() {
+  const { t } = useI18n();
   return (
     <div className="py-24 text-center">
       <div className="text-6xl">🩸</div>
-      <h1 className="mt-4 text-3xl font-bold">Page not found</h1>
+      <h1 className="mt-4 text-3xl font-bold">{t('notFound.title')}</h1>
       <Link to="/" className="btn-primary mt-6">
-        Back to live feed
+        {t('notFound.back')}
       </Link>
     </div>
   );
+}
+
+/** A signed-in user's saved language applies until they pick one on this device. */
+function LanguageSync() {
+  const { user } = useSession();
+  const { lang, setLang, explicit } = useI18n();
+  useEffect(() => {
+    if (user?.language && !explicit && user.language !== lang) setLang(user.language, { remember: false });
+  }, [user?.language, explicit]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }
 
 function Routes() {
@@ -44,14 +57,17 @@ function Routes() {
 
 export default function App() {
   return (
-    <RouterProvider>
-      <SessionProvider>
-        <ToastProvider>
-          <Layout>
-            <Routes />
-          </Layout>
-        </ToastProvider>
-      </SessionProvider>
-    </RouterProvider>
+    <I18nProvider>
+      <RouterProvider>
+        <SessionProvider>
+          <LanguageSync />
+          <ToastProvider>
+            <Layout>
+              <Routes />
+            </Layout>
+          </ToastProvider>
+        </SessionProvider>
+      </RouterProvider>
+    </I18nProvider>
   );
 }

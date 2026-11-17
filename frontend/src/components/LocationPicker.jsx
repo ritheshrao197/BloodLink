@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { useI18n } from '../i18n';
 
 const OTHER = '__other__';
 let cache = null;
@@ -22,8 +23,10 @@ function useLocations() {
 /**
  * State -> district (-> hospital) dropdowns, with "Other" free text at each level.
  * value: { state, city, hospital }; onChange receives the merged value.
+ * Place names stay as official (English) names: that is what hospitals, maps and the bot use.
  */
 export default function LocationPicker({ value, onChange, withHospital = false, idPrefix = 'loc' }) {
+  const { t } = useI18n();
   const states = useLocations();
   const [otherState, setOtherState] = useState(false);
   const [otherHospital, setOtherHospital] = useState(false);
@@ -42,7 +45,9 @@ export default function LocationPicker({ value, onChange, withHospital = false, 
   return (
     <div className={withHospital ? 'grid gap-4 sm:grid-cols-3' : 'grid gap-4 sm:grid-cols-2'}>
       <div>
-        <label className="label" htmlFor={`${idPrefix}-state`}>State</label>
+        <label className="label" htmlFor={`${idPrefix}-state`}>
+          {t('location.state')}
+        </label>
         <select
           id={`${idPrefix}-state`}
           className="input"
@@ -56,19 +61,28 @@ export default function LocationPicker({ value, onChange, withHospital = false, 
           required
         >
           <option value="" disabled>
-            {states ? 'Select state' : 'Loading…'}
+            {states ? t('location.selectState') : t('common.loading')}
           </option>
           {states?.map((s) => (
             <option key={s.name}>{s.name}</option>
           ))}
-          <option value={OTHER}>Other state…</option>
+          <option value={OTHER}>{t('location.otherState')}</option>
         </select>
       </div>
 
       <div>
-        <label className="label" htmlFor={`${idPrefix}-district`}>{otherState ? 'City' : 'District'}</label>
+        <label className="label" htmlFor={`${idPrefix}-district`}>
+          {otherState ? t('location.city') : t('location.district')}
+        </label>
         {otherState ? (
-          <input id={`${idPrefix}-district`} className="input" value={value.city} placeholder="e.g. Hyderabad" onChange={(e) => set({ city: e.target.value })} required />
+          <input
+            id={`${idPrefix}-district`}
+            className="input"
+            value={value.city}
+            placeholder={t('location.cityPlaceholder')}
+            onChange={(e) => set({ city: e.target.value })}
+            required
+          />
         ) : (
           <select
             id={`${idPrefix}-district`}
@@ -82,7 +96,7 @@ export default function LocationPicker({ value, onChange, withHospital = false, 
             required
           >
             <option value="" disabled>
-              {stateObj ? 'Select district' : 'Pick a state first'}
+              {stateObj ? t('location.selectDistrict') : t('location.stateFirst')}
             </option>
             {stateObj?.districts.map((d) => (
               <option key={d.name}>{d.name}</option>
@@ -93,7 +107,9 @@ export default function LocationPicker({ value, onChange, withHospital = false, 
 
       {withHospital && (
         <div>
-          <label className="label" htmlFor={`${idPrefix}-hospital`}>Hospital</label>
+          <label className="label" htmlFor={`${idPrefix}-hospital`}>
+            {t('location.hospital')}
+          </label>
           {hospitalSelect ? (
             <select
               id={`${idPrefix}-hospital`}
@@ -108,19 +124,19 @@ export default function LocationPicker({ value, onChange, withHospital = false, 
               required
             >
               <option value="" disabled>
-                Select hospital
+                {t('location.selectHospital')}
               </option>
               {districtObj.hospitals.map((h) => (
                 <option key={h}>{h}</option>
               ))}
-              <option value={OTHER}>Other hospital…</option>
+              <option value={OTHER}>{t('location.otherHospital')}</option>
             </select>
           ) : (
             <input
               id={`${idPrefix}-hospital`}
               className="input"
               value={value.hospital || ''}
-              placeholder={districtObj || otherState ? 'Hospital name' : 'Pick a district first'}
+              placeholder={districtObj || otherState ? t('location.hospitalName') : t('location.districtFirst')}
               disabled={!districtObj && !otherState}
               onChange={(e) => set({ hospital: e.target.value })}
               required

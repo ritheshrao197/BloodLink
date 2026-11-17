@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check, Copy, Loader2, X } from 'lucide-react';
 import { BADGES, cx } from '../lib/utils';
+import { useI18n } from '../i18n';
 
 // Each blood group has its own subtle tag colour (design system 2.5)
 const GROUP_TONE = {
@@ -15,10 +16,11 @@ const GROUP_TONE = {
 };
 
 export function BloodTag({ group, size = 'md', className }) {
+  const { t } = useI18n();
   const sizes = { sm: 'h-7 min-w-7 text-xs', md: 'h-9 min-w-9 text-sm', lg: 'h-14 min-w-14 text-xl' };
   return (
     <span
-      aria-label={`Blood group ${group}`}
+      aria-label={t('common.bloodGroup', { group })}
       className={cx(
         'inline-flex items-center justify-center rounded-lg px-1.5 font-extrabold ring-1',
         GROUP_TONE[group] || 'bg-red-500/15 text-red-300 ring-red-500/40',
@@ -32,12 +34,14 @@ export function BloodTag({ group, size = 'md', className }) {
 }
 
 export function BadgeChip({ badge, showTitle = false }) {
+  const { t } = useI18n();
   const b = BADGES[badge] || BADGES.Bronze;
+  const title = t(`badge.title.${badge}`);
   return (
-    <span className={cx('inline-flex items-center gap-1 text-sm font-semibold', b.text)} title={b.title}>
+    <span className={cx('inline-flex items-center gap-1 text-sm font-semibold', b.text)} title={title}>
       <span className="text-base leading-none">{b.icon}</span>
-      {badge}
-      {showTitle && <span className="font-normal text-slate-400">· {b.title}</span>}
+      {t(`badge.${badge}`)}
+      {showTitle && <span className="font-normal text-slate-400">· {title}</span>}
     </span>
   );
 }
@@ -46,7 +50,9 @@ export function Spinner({ className }) {
   return <Loader2 className={cx('animate-spin', className || 'h-5 w-5')} />;
 }
 
-export function Loading({ label = 'Loading…', rows = 0 }) {
+export function Loading({ label, rows = 0 }) {
+  const { t } = useI18n();
+  label = label || t('common.loading');
   if (rows) {
     return (
       <div className="space-y-3 py-4" role="status" aria-label={label}>
@@ -116,6 +122,7 @@ export function StatCard({ icon: Icon, label, value, hint, accent = 'text-red-40
 }
 
 export function Modal({ open, onClose, title, children }) {
+  const { t } = useI18n();
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -134,7 +141,7 @@ export function Modal({ open, onClose, title, children }) {
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-bold">{title}</h2>
-          <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-50" aria-label="Close">
+          <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-50" aria-label={t('common.close')}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -145,6 +152,7 @@ export function Modal({ open, onClose, title, children }) {
 }
 
 export function CopyField({ value, label }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -160,7 +168,7 @@ export function CopyField({ value, label }) {
       {label && <div className="label">{label}</div>}
       <div className="flex gap-2">
         <input readOnly value={value} className="input font-mono text-sm" onFocus={(e) => e.target.select()} />
-        <button type="button" onClick={copy} className="btn-ghost shrink-0 px-3" aria-label="Copy">
+        <button type="button" onClick={copy} className="btn-ghost shrink-0 px-3" aria-label={t('common.copy')}>
           {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
         </button>
       </div>

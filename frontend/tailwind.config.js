@@ -54,7 +54,7 @@ export default {
         rarity: { common: '#94A3B8', uncommon: '#10B981', rare: '#3B82F6', epic: '#8B5CF6', legendary: '#F59E0B', mythic: '#EF4444' },
       },
       fontFamily: {
-        sans: ['Inter', 'SF Pro Text', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Noto Sans Kannada', 'Noto Sans Devanagari', 'Noto Sans Malayalam', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Bengali', 'SF Pro Text', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'SF Mono', 'ui-monospace', 'monospace'],
       },
       boxShadow: {
