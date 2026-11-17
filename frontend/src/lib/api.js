@@ -41,11 +41,15 @@ export const api = {
   donate: (requestId, userId) =>
     request(`/donate/${requestId}`, { method: 'POST', body: { user_id: userId, confirmed: true } }),
   rewards: () => request('/rewards'),
+  achievements: () => request('/achievements'),
+  userAchievements: (id) => request(`/users/${id}/achievements`),
+  achievementsSeen: (id) => request(`/users/${id}/achievements/seen`, { method: 'POST' }),
   redeem: (rewardId, userId) => request(`/redeem/${rewardId}`, { method: 'POST', body: { user_id: userId } }),
   admin: {
     stats: () => request('/admin/stats'),
     users: () => request('/admin/users'),
     vouchers: () => request('/admin/vouchers'),
+    favorite: (id) => request(`/admin/users/${id}/favorite`, { method: 'POST' }),
     verifyUser: (id, verified) => request(`/admin/users/${id}/verify`, { method: 'POST', params: { verified } }),
     verifyRequest: (id, verified) =>
       request(`/admin/requests/${id}/verify`, { method: 'POST', params: { verified } }),

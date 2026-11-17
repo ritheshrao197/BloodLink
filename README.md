@@ -79,6 +79,22 @@ a starter list of hospitals. SOS alerts reach each donor in their own language. 
 awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_12345` (referral) and `?start=link_USER_12345`
 (link a web account).
 
+### Achievements
+
+GitHub-style collectible badges, separate from spendable BLP (each one pays a one-off BLP bonus when unlocked). There are 36
+achievements across Donation, Speed, Referral, Streak, Location, Fun and Verification, plus 4 tiered badges that level up
+Bronze → Silver → Gold → Platinum: 🦈 Blood Shark (donations), ⚡ Quickdraw (responses under 5 minutes), 🤝 Recruiter
+(referrals) and 🔥 Hot Streak. They are computed from real history in [backend/achievements.py](backend/achievements.py), so each
+records when it was earned. Rarity percentages are live ("3% of donors").
+
+- **Web:** `/achievements` shows the collection with progress bars and NEW tags. The profile and leaderboard show each user's
+  rarest icons, and the donate dialog celebrates new unlocks.
+- **Telegram:** `/achievements` (or 🏅 in the menu) shows the collection. Unlocks arrive as messages in the user's language.
+- **Admin:** ⭐ Favorite in the Users tab awards "Admin's Favorite".
+- **Safety:** streaks count consecutive 3-month windows, never months, because whole-blood donors need 90+ days between
+  donations (120 for women). Rainmaker checks the weather through [Open-Meteo](https://open-meteo.com), which is free and
+  needs no key, in the background after a donation; only the district name is sent. Set `WEATHER_CHECK=0` to turn it off.
+
 ### Points (BLP)
 
 Register +50 · referral welcome bonus +50 · donation +100 · response under 5 min +20 · donating again after 3+ months +50 ·

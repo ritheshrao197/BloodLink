@@ -8,6 +8,7 @@ import { BADGES, cx, timeAgo } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { BloodTag, CopyField, PageHeader, StatCard, Toggle } from '../components/ui';
 import SignInByCode from '../components/SignInByCode';
+import { Showcase } from '../components/Achievements';
 
 export default function Profile() {
   const { user, setUser, signOut, refresh } = useSession();
@@ -70,6 +71,12 @@ export default function Profile() {
             </span>
             {user.extra_badges.includes('Influencer') && <span className="font-bold text-fuchsia-300">🗣️ Community Champion</span>}
           </div>
+          {user.achievements?.count > 0 && (
+            <Link to="/achievements" className="mt-2 inline-flex items-center gap-2 rounded-lg bg-slate-800/60 px-3 py-1.5 text-sm hover:bg-slate-800">
+              <Showcase data={user.achievements} />
+              <span className="text-slate-400">achievements →</span>
+            </Link>
+          )}
         </div>
         <div className="flex flex-col items-end gap-3">
           <label className="flex items-center gap-3 text-sm">

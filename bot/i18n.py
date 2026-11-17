@@ -24,6 +24,7 @@ S = {
     "btn_invite": {"en": "🤝 Invite Friends", "kn": "🤝 ಸ್ನೇಹಿತರನ್ನು ಆಹ್ವಾನಿಸಿ", "hi": "🤝 दोस्तों को बुलाएँ"},
     "btn_rewards": {"en": "🎁 Rewards", "kn": "🎁 ಬಹುಮಾನಗಳು", "hi": "🎁 इनाम"},
     "btn_leaderboard": {"en": "🏆 Leaderboard", "kn": "🏆 ಲೀಡರ್‌ಬೋರ್ಡ್", "hi": "🏆 लीडरबोर्ड"},
+    "btn_achievements": {"en": "🏅 Achievements", "kn": "🏅 ಸಾಧನೆಗಳು", "hi": "🏅 उपलब्धियाँ"},
     "btn_language": {"en": "🌐 Language", "kn": "🌐 ಭಾಷೆ", "hi": "🌐 भाषा"},
     "btn_available": {"en": "🟢 I'm available", "kn": "🟢 ನಾನು ಲಭ್ಯವಿದ್ದೇನೆ", "hi": "🟢 मैं उपलब्ध हूँ"},
     "btn_busy": {"en": "⚪ Pause alerts", "kn": "⚪ ಎಚ್ಚರಿಕೆಗಳನ್ನು ನಿಲ್ಲಿಸಿ", "hi": "⚪ अलर्ट रोकें"},
@@ -190,6 +191,17 @@ S = {
     "redeemed_popup": {"en": "Redeemed! Your voucher code is in the chat 🎉", "kn": "ಪಡೆಯಲಾಗಿದೆ! ವೋಚರ್ ಕೋಡ್ ಚಾಟ್‌ನಲ್ಲಿದೆ 🎉",
                        "hi": "मिल गया! वाउचर कोड चैट में है 🎉"},
     "leaderboard": {"en": "🏆 <b>TOP HEROES</b>", "kn": "🏆 <b>ಅಗ್ರ ಹೀರೋಗಳು</b>", "hi": "🏆 <b>टॉप हीरो</b>"},
+    "ach_title": {"en": "🏅 <b>YOUR ACHIEVEMENTS</b>", "kn": "🏅 <b>ನಿಮ್ಮ ಸಾಧನೆಗಳು</b>", "hi": "🏅 <b>आपकी उपलब्धियाँ</b>"},
+    "ach_summary": {"en": "{unlocked}/{total} unlocked · +{points} BLP earned",
+                    "kn": "{unlocked}/{total} ಅನ್‌ಲಾಕ್ · +{points} BLP ಗಳಿಸಲಾಗಿದೆ",
+                    "hi": "{unlocked}/{total} अनलॉक · +{points} BLP कमाए"},
+    "ach_tiers": {"en": "<b>Tiered badges</b>", "kn": "<b>ಹಂತದ ಬ್ಯಾಡ್ಜ್‌ಗಳು</b>", "hi": "<b>स्तर वाले बैज</b>"},
+    "ach_recent": {"en": "<b>Latest unlocks</b>", "kn": "<b>ಇತ್ತೀಚಿನ ಸಾಧನೆಗಳು</b>", "hi": "<b>हाल की उपलब्धियाँ</b>"},
+    "ach_next": {"en": "<b>Up next</b>", "kn": "<b>ಮುಂದಿನ ಗುರಿ</b>", "hi": "<b>अगला लक्ष्य</b>"},
+    "ach_none": {"en": "No achievements yet. Your first donation unlocks 🩸 First Drop!",
+                 "kn": "ಇನ್ನೂ ಸಾಧನೆಗಳಿಲ್ಲ. ಮೊದಲ ರಕ್ತದಾನ 🩸 First Drop ಅನ್‌ಲಾಕ್ ಮಾಡುತ್ತದೆ!",
+                 "hi": "अभी कोई उपलब्धि नहीं। पहला रक्तदान 🩸 First Drop अनलॉक करेगा!"},
+    "ach_locked": {"en": "locked", "kn": "ಲಾಕ್", "hi": "लॉक"},
     "cancelled": {"en": "Cancelled.", "kn": "ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ.", "hi": "रद्द किया गया।"},
     "unknown": {"en": "Tap a button below 👇", "kn": "ಕೆಳಗಿನ ಬಟನ್ ಒತ್ತಿ 👇", "hi": "नीचे दिया बटन दबाएँ 👇"},
     "error": {"en": "⚠️ Something went wrong. Please try again.", "kn": "⚠️ ಏನೋ ತಪ್ಪಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
@@ -204,11 +216,11 @@ S = {
 # Telegram "/" command menu descriptions per language
 COMMANDS = {
     "en": [("menu", "🏠 Main menu"), ("sos", "🚨 Request blood"), ("register", "🩸 Become a donor"),
-           ("requests", "📋 Active requests"), ("me", "👤 My profile"), ("language", "🌐 Change language")],
+           ("requests", "📋 Active requests"), ("me", "👤 My profile"), ("achievements", "🏅 Achievements"), ("language", "🌐 Change language")],
     "kn": [("menu", "🏠 ಮುಖ್ಯ ಮೆನು"), ("sos", "🚨 ರಕ್ತ ವಿನಂತಿ"), ("register", "🩸 ದಾನಿಯಾಗಿ"),
-           ("requests", "📋 ಸಕ್ರಿಯ ವಿನಂತಿಗಳು"), ("me", "👤 ನನ್ನ ಪ್ರೊಫೈಲ್"), ("language", "🌐 ಭಾಷೆ ಬದಲಿಸಿ")],
+           ("requests", "📋 ಸಕ್ರಿಯ ವಿನಂತಿಗಳು"), ("me", "👤 ನನ್ನ ಪ್ರೊಫೈಲ್"), ("achievements", "🏅 ಸಾಧನೆಗಳು"), ("language", "🌐 ಭಾಷೆ ಬದಲಿಸಿ")],
     "hi": [("menu", "🏠 मुख्य मेनू"), ("sos", "🚨 खून का अनुरोध"), ("register", "🩸 डोनर बनें"),
-           ("requests", "📋 सक्रिय अनुरोध"), ("me", "👤 मेरी प्रोफ़ाइल"), ("language", "🌐 भाषा बदलें")],
+           ("requests", "📋 सक्रिय अनुरोध"), ("me", "👤 मेरी प्रोफ़ाइल"), ("achievements", "🏅 उपलब्धियाँ"), ("language", "🌐 भाषा बदलें")],
 }
 
 

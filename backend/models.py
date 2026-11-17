@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
 
 from database import Base
 
@@ -29,6 +29,7 @@ class User(Base):
     referred_by = Column(String, nullable=True)
     total_donations = Column(Integer, default=0)
     is_available = Column(Boolean, default=True)
+    available_since = Column(DateTime, default=utcnow, nullable=True)  # for "The Constant" achievement
     is_verified = Column(Boolean, default=False)
     last_donation_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow)
@@ -65,6 +66,7 @@ class Donation(Base):
     donor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     points_awarded = Column(Integer, default=0)
     quick_response = Column(Boolean, default=False)
+    weather = Column(String, nullable=True)  # "rain" | "dry" | None (unknown), for the Rainmaker achievement
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -104,3 +106,16 @@ class PointLog(Base):
     amount = Column(Integer)
     reason = Column(String)
     created_at = Column(DateTime, default=utcnow)
+
+
+class UserAchievement(Base):
+    """An unlocked achievement. The catalog itself lives in code (achievements.py), keyed by `key`."""
+
+    __tablename__ = "user_achievements"
+    __table_args__ = (UniqueConstraint("user_id", "key"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    key = Column(String, nullable=False)
+    unlocked_at = Column(DateTime, default=utcnow)
+    is_new = Column(Boolean, default=True)  # shows a NEW tag until the user has seen it

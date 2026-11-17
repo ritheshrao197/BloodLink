@@ -4,6 +4,7 @@ import { useSession } from '../lib/session';
 import { usePoll } from '../lib/usePoll';
 import { BADGES, cx } from '../lib/utils';
 import { BadgeChip, BloodTag, ErrorBox, Loading, PageHeader } from '../components/ui';
+import { Showcase } from '../components/Achievements';
 
 const PODIUM = [
   { place: 2, height: 'h-28', ring: 'ring-slate-300/60', medal: '🥈' },
@@ -56,8 +57,11 @@ export default function Leaderboard() {
                       {user?.id === u.id && <span className="rounded bg-red-600 px-1.5 text-xs font-bold">YOU</span>}
                       {u.influencer && <span title="Community Champion (5+ referrals)">🗣️</span>}
                     </div>
-                    <div className="text-xs text-slate-400">
-                      {u.city} · {u.total_donations} donations · {u.referrals} referrals
+                    <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-400">
+                      <span>
+                        {u.city} · {u.total_donations} donations · {u.referrals} referrals
+                      </span>
+                      <Showcase data={u.achievements} size="text-sm" />
                     </div>
                   </div>
                   <BloodTag group={u.blood_group} size="sm" />

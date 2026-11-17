@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Droplet, Gift, Menu, Search, Shield, Siren, Trophy, UserRound, X } from 'lucide-react';
+import { Award, Droplet, Gift, Menu, Search, Shield, Siren, Trophy, UserRound, X } from 'lucide-react';
 import { Link, useRouter } from '../lib/router';
 import { useSession } from '../lib/session';
 import { cx } from '../lib/utils';
@@ -9,6 +9,7 @@ const NAV = [
   { to: '/sos', label: 'SOS', icon: Siren },
   { to: '/donors', label: 'Donors', icon: Search },
   { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+  { to: '/achievements', label: 'Achievements', icon: Award },
   { to: '/rewards', label: 'Rewards', icon: Gift },
   { to: '/admin', label: 'Admin', icon: Shield },
 ];

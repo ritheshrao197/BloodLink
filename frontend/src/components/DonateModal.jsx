@@ -6,6 +6,7 @@ import { useSession } from '../lib/session';
 import { canDonate } from '../lib/utils';
 import { BloodTag, CopyField, ErrorBox, Modal, Spinner } from './ui';
 import SignInByCode from './SignInByCode';
+import { RarityTag } from './Achievements';
 
 export default function DonateModal({ request, onClose, onDone }) {
   const { user, setUser } = useSession();
@@ -53,6 +54,29 @@ export default function DonateModal({ request, onClose, onDone }) {
               ))}
             </ul>
           </div>
+          {result.achievements?.length > 0 && (
+            <div className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-300">🎉 Achievement unlocked</p>
+              <ul className="mt-2 space-y-2">
+                {result.achievements.map((a) => (
+                  <li key={a.key} className="flex items-center gap-3">
+                    <span className="text-3xl">{a.icon}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold">
+                        {a.name}
+                        {a.tier && ` (${a.tier})`}
+                      </span>
+                      <RarityTag rarity={a.rarity} />
+                    </span>
+                    <span className="text-sm font-bold text-emerald-400">+{a.points}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/achievements" onClick={onClose} className="mt-3 block text-center text-xs text-amber-300 hover:underline">
+                View your collection →
+              </Link>
+            </div>
+          )}
           <p className="text-sm text-slate-300">
             Please head to <b>{request.hospital}, {request.city}</b> with a photo ID.
             {request.contact_phone && <> Contact: <b>{request.contact_phone}</b>.</>}

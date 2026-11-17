@@ -178,7 +178,8 @@ def menu_kb(lang: str, user: dict | None) -> InlineKeyboardMarkup:
     rows += [
         [btn(t(lang, "btn_requests"), "m_requests"), btn(t(lang, "btn_me"), "m_me")],
         [btn(t(lang, "btn_rewards"), "m_rewards"), btn(t(lang, "btn_leaderboard"), "m_leaderboard")],
-        [btn(t(lang, "btn_invite"), "m_invite"), btn(t(lang, "btn_language"), "m_language")],
+        [btn(t(lang, "btn_achievements"), "m_achievements"), btn(t(lang, "btn_invite"), "m_invite")],
+        [btn(t(lang, "btn_language"), "m_language")],
     ]
     if user:
         rows.append([btn(t(lang, "btn_busy"), "m_busy") if user["is_available"]
@@ -347,7 +348,7 @@ async def menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("sos", None)
     await ack(update)
     handler = {"requests": requests_cmd, "me": me, "invite": invite, "rewards": rewards,
-               "leaderboard": leaderboard, "language": ask_language, "available": available, "busy": busy}.get(action)
+               "leaderboard": leaderboard, "achievements": achievements_cmd, "language": ask_language, "available": available, "busy": busy}.get(action)
     if handler:
         await handler(update, context)
     return END
@@ -670,6 +671,41 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await reply(update, t(L(context), "leaderboard") + "\n\n" + "\n".join(lines) + f"\n\n🌐 {WEB_URL}/leaderboard")
 
 
+RARITY_DOT = {"Common": "⚪", "Uncommon": "🟢", "Rare": "🔵", "Epic": "🟣", "Legendary": "🟡", "Mythic": "🔴"}
+TIER_ICON = {"Bronze": "🥉", "Silver": "🥈", "Gold": "🥇", "Platinum": "💎"}
+
+
+async def achievements_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await ensure_lang(update, context)
+    lang = L(context)
+    try:
+        data = await api("GET", f"/users/by-telegram/{update.effective_user.id}/achievements")
+    except ApiError:
+        return await not_registered(update, context)
+    s = data["summary"]
+    lines = [t(lang, "ach_title"), t(lang, "ach_summary", unlocked=s["unlocked"], total=s["total"], points=s["points_earned"])]
+
+    lines += ["", t(lang, "ach_tiers")]
+    for f in data["families"]:
+        tier = f"{TIER_ICON[f['tier']]} {f['tier']}" if f["tier"] else f"🔒 {t(lang, 'ach_locked')}"
+        nxt = f" · {f['value']}/{f['next']['target']} → {f['next']['tier']}" if f["next"] else ""
+        lines.append(f"{f['icon']} {esc(f['name'])}: <b>{tier}</b>{nxt}")
+
+    got = sorted((a for a in data["singles"] if a["unlocked"]), key=lambda a: a["unlocked_at"], reverse=True)
+    if got:
+        lines += ["", t(lang, "ach_recent")]
+        lines += [f"{a['icon']} <b>{esc(a['name'])}</b> {RARITY_DOT[a['rarity']]} {a['rarity']}" for a in got[:8]]
+    else:
+        lines += ["", t(lang, "ach_none")]
+
+    locked = [a for a in data["singles"] if not a["unlocked"] and a["key"] != "admins_favorite"]
+    locked.sort(key=lambda a: -a["progress"] / a["target"])
+    lines += ["", t(lang, "ach_next")]
+    lines += [f"🔒 {a['icon']} {esc(a['name'])}: {esc(a['requirement'])} ({a['progress']}/{a['target']})" for a in locked[:3]]
+    lines += ["", f"🌐 {WEB_URL}/achievements"]
+    await reply(update, "\n".join(lines))
+
+
 async def requests_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_lang(update, context)
     lang = L(context)
@@ -799,7 +835,7 @@ def build_app() -> Application:
     )
     app.add_handler(flows)
     for name, fn in [("start", start), ("menu", menu_cmd), ("help", menu_cmd), ("language", ask_language),
-                     ("me", me), ("invite", invite), ("leaderboard", leaderboard), ("requests", requests_cmd),
+                     ("me", me), ("invite", invite), ("leaderboard", leaderboard), ("achievements", achievements_cmd), ("requests", requests_cmd),
                      ("available", available), ("busy", busy), ("rewards", rewards), ("cancel", cancel)]:
         app.add_handler(CommandHandler(name, fn))
     app.add_handler(cb(menu_router, pattern=r"^m_(?!menu_show)"))

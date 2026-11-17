@@ -18,11 +18,12 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine
+import achievements
 import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "2"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "3"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -86,6 +87,16 @@ ACTIVE = [(2, "Critical", 2, 0), (4, "Critical", 1, 0), (9, "High", 1, 0), (14, 
           (22, "High", 2, 0), (31, "High", 1, 0), (47, "Normal", 2, 1), (63, "Critical", 2, 1),
           (85, "High", 1, 0), (130, "Normal", 1, 0), (190, "High", 3, 2), (260, "Normal", 2, 0),
           (60 * 9, "Normal", 1, 0), (60 * 20, "Normal", 2, 1)]
+
+
+def rain_chance(state: str | None, when: datetime) -> float:
+    """Rough monsoon climatology: SW monsoon Jun-Sep (strongest on the west coast), NE monsoon Oct-Dec in Tamil Nadu."""
+    m = (when + IST).month
+    if 6 <= m <= 9:
+        return 0.6 if state in ("Kerala", "Goa") else 0.45 if state in ("Karnataka", "Maharashtra") else 0.3
+    if 10 <= m <= 12 and state in ("Tamil Nadu", "Kerala"):
+        return 0.35
+    return 0.05
 
 
 def pick(rng: random.Random, weights: dict):
@@ -201,7 +212,7 @@ def seed(db: Session) -> None:
         donor.total_donations += 1
         donor.last_donation_at = when
         db.add(Donation(request_id=req.id, donor_id=donor.id, points_awarded=total, quick_response=quick,
-                        created_at=when))
+                        weather="rain" if rng.random() < rain_chance(req.state, when) else "dry", created_at=when))
         req.units_fulfilled += 1
         req.fulfilled_by = f"{req.fulfilled_by}, {donor.name}" if req.fulfilled_by else donor.name
 
@@ -307,12 +318,33 @@ def seed(db: Session) -> None:
                              "status": rng.choice(["Issued", "Issued", "Used"]), "created_at": when})
 
     for d in donors:
-        logic.update_badge(d)
         d.is_verified = d.total_donations > 0 and rng.random() < 0.9 or rng.random() < 0.2
-    # Insert ledgers in time order so "latest activity" lists read naturally
+        if d.is_available:  # availability streaks of varying length, for "The Constant"
+            start = max(d.created_at, d.last_donation_at or d.created_at)
+            d.available_since = start + (now - start) * rng.uniform(0, 0.5)
+        else:
+            d.available_since = None
     db.add_all(Referral(referrer_id=d.referral["referrer"].id, referred_id=d.id, status=d.referral["status"],
                         points_awarded=d.referral["points_awarded"], created_at=d.referral["created_at"])
                for d in donors if d.referral)
+    db.flush()
+
+    # ---------- achievements, dated to the moment each was earned ----------
+    def verified_at(u: User) -> datetime:
+        return min(now, u.created_at + timedelta(days=rng.uniform(1, 20)))
+
+    achievements.evaluate(db, donors, now=now, award=earn, timeless_at=verified_at,
+                          new_since=now - timedelta(days=7), notify=False)
+    standouts = sorted(donors, key=lambda u: -(u.total_donations * 3 + u.zeal))[:4]
+    fav = achievements.BY_KEY["admins_favorite"]
+    for u in standouts:
+        when = now - timedelta(days=rng.uniform(3, 60))
+        db.add(achievements.UserAchievement(user_id=u.id, key=fav["key"], unlocked_at=when, is_new=False))
+        earn(u, fav["points"], f"Achievement unlocked: {fav['icon']} {fav['name']}", when)
+    for d in donors:
+        logic.update_badge(d)
+
+    # Insert ledgers in time order so "latest activity" lists read naturally
     db.add_all(PointLog(user_id=u.id, amount=a, reason=r, created_at=w)
                for u, a, r, w in sorted(logs, key=lambda x: x[3]))
     db.add_all(Reward(user_id=v.pop("user").id, **v) for v in sorted(vouchers, key=lambda v: v["created_at"]))
@@ -351,6 +383,7 @@ def clear_demo(db: Session) -> int:
     demo_reqs = [i for (i,) in db.query(BloodRequest.id).filter(BloodRequest.requester_telegram_id.is_(None))]
     db.query(Donation).filter(or_(Donation.donor_id.in_(demo_users), Donation.request_id.in_(demo_reqs))) \
         .delete(synchronize_session=False)
+    db.query(achievements.UserAchievement).filter(achievements.UserAchievement.user_id.in_(demo_users)).delete(synchronize_session=False)
     db.query(Referral).filter(or_(Referral.referrer_id.in_(demo_users), Referral.referred_id.in_(demo_users))) \
         .delete(synchronize_session=False)
     db.query(Reward).filter(Reward.user_id.in_(demo_users)).delete(synchronize_session=False)

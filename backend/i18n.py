@@ -4,6 +4,7 @@ LANGUAGES = ("en", "kn", "hi")
 
 STRINGS = {
     "en": {
+        "achievements": "🎉 <b>ACHIEVEMENT UNLOCKED!</b>\n\n{lines}\n\n💰 +{points} BLP awarded\n🏆 See your collection: /achievements",
         "sos_alert": "🚨 <b>EMERGENCY: {group} BLOOD NEEDED</b>\n\n🏥 {hospital}, {city}\n🩸 Units needed: {units}\n"
                      "{uicon} Urgency: {urgency}\n👤 Requested by: {name}\n\n"
                      "You are a compatible donor. Respond within 5 minutes for a +20 BLP quick-response bonus!",
@@ -18,6 +19,7 @@ STRINGS = {
         "redeemed": "🎁 You redeemed <b>{reward}</b>!\nVoucher code: <code>{code}</code>\n(Demo voucher — not redeemable)",
     },
     "kn": {
+        "achievements": "🎉 <b>ಸಾಧನೆ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ!</b>\n\n{lines}\n\n💰 +{points} BLP ನೀಡಲಾಗಿದೆ\n🏆 ನಿಮ್ಮ ಸಂಗ್ರಹ: /achievements",
         "sos_alert": "🚨 <b>ತುರ್ತು: {group} ರಕ್ತ ಬೇಕಾಗಿದೆ</b>\n\n🏥 {hospital}, {city}\n🩸 ಬೇಕಾದ ಯೂನಿಟ್: {units}\n"
                      "{uicon} ತುರ್ತು ಮಟ್ಟ: {urgency}\n👤 ವಿನಂತಿಸಿದವರು: {name}\n\n"
                      "ನೀವು ಹೊಂದಾಣಿಕೆಯ ದಾನಿ. 5 ನಿಮಿಷದೊಳಗೆ ಪ್ರತಿಕ್ರಿಯಿಸಿದರೆ +20 BLP ಬೋನಸ್!",
@@ -32,6 +34,7 @@ STRINGS = {
         "redeemed": "🎁 ನೀವು <b>{reward}</b> ಪಡೆದಿದ್ದೀರಿ!\nವೋಚರ್ ಕೋಡ್: <code>{code}</code>\n(ಡೆಮೊ ವೋಚರ್)",
     },
     "hi": {
+        "achievements": "🎉 <b>उपलब्धि अनलॉक!</b>\n\n{lines}\n\n💰 +{points} BLP मिले\n🏆 अपना संग्रह देखें: /achievements",
         "sos_alert": "🚨 <b>आपातकाल: {group} खून चाहिए</b>\n\n🏥 {hospital}, {city}\n🩸 ज़रूरी यूनिट: {units}\n"
                      "{uicon} तात्कालिकता: {urgency}\n👤 अनुरोधकर्ता: {name}\n\n"
                      "आप मेल खाते डोनर हैं। 5 मिनट में जवाब दें और +20 BLP बोनस पाएँ!",

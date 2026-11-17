@@ -12,11 +12,14 @@ from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
 import database  # noqa: F401  (loads .env before notifier reads the token)
+import achievements
 from database import Base, SessionLocal, engine, get_db
 import locations
 import logic
 import notifier
-from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
+import threading
+import weather
+from models import BloodRequest, Donation, PointLog, Referral, Reward, User, UserAchievement, utcnow
 from schemas import (AvailabilityBody, DonateBody, LanguageBody, LinkTelegramBody, RedeemBody, SOSCreate,
                      UserCreate)
 
@@ -26,8 +29,9 @@ log = logging.getLogger("bloodlink")
 
 def migrate() -> None:
     """Add columns introduced after v2.0 to existing SQLite files and map old city names to districts."""
-    new_columns = {"users": {"state": "VARCHAR", "language": "VARCHAR DEFAULT 'en'"},
-                   "requests": {"state": "VARCHAR", "requester_language": "VARCHAR"}}
+    new_columns = {"users": {"state": "VARCHAR", "language": "VARCHAR DEFAULT 'en'", "available_since": "TIMESTAMP"},
+                   "requests": {"state": "VARCHAR", "requester_language": "VARCHAR"},
+                   "donations": {"weather": "VARCHAR"}}
     insp = inspect(engine)
     with engine.begin() as conn:
         for table, cols in new_columns.items():
@@ -35,6 +39,8 @@ def migrate() -> None:
             for name, ddl in cols.items():
                 if name not in existing:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+                    if name == "available_since":  # assume people available now have been since joining
+                        conn.execute(text("UPDATE users SET available_since = created_at WHERE is_available"))
     db = SessionLocal()
     try:
         for row in [*db.query(User).filter(User.state.is_(None)), *db.query(BloodRequest).filter(BloodRequest.state.is_(None))]:
@@ -59,6 +65,14 @@ async def lifespan(_app: FastAPI):
                 log.info("Demo data: %s (set AUTO_SEED=0 to disable)", done)
         finally:
             db.close()
+    db = SessionLocal()
+    try:  # award anything already earned (existing users after an upgrade, time-based ones like The Constant)
+        unlocked = achievements.evaluate(db, db.query(User).filter(User.role == "donor").all())
+        db.commit()
+        if unlocked:
+            log.info("Achievements: %d unlocked for %d users at startup", sum(map(len, unlocked.values())), len(unlocked))
+    finally:
+        db.close()
     log.info("Telegram notifications %s", "ENABLED" if notifier.enabled() else "DISABLED (no TELEGRAM_BOT_TOKEN)")
     yield
 
@@ -111,6 +125,7 @@ def user_private(db: Session, u: User) -> dict:
         "web_referral_link": f"{WEB_URL}/register?ref={u.referral_code}",
         "telegram_link_url": f"https://t.me/{bot}?start=link_{u.referral_code}",
         "referrals": stats,
+        "achievements": achievements.showcase(db, [u.id])[u.id],
     }
 
 
@@ -207,6 +222,8 @@ def register_user(body: UserCreate, db: Session = Depends(get_db)):
                         points_awarded=logic.POINTS_REFERRAL_REGISTER))
         notifier.notify_t(referrer.telegram_id, referrer.language, "ref_joined",
                           name=notifier.esc(user.name), points=logic.POINTS_REFERRAL_REGISTER)
+        db.flush()
+        achievements.evaluate(db, [referrer])
     db.commit()
     db.refresh(user)
     return {"status": "success", "user_id": user.id, "referral_code": user.referral_code,
@@ -271,10 +288,18 @@ def link_telegram(body: LinkTelegramBody, db: Session = Depends(get_db)):
     return {"status": "success", "user": user_private(db, user)}
 
 
+def set_available(user: User, value: bool) -> None:
+    if value and not user.is_available:
+        user.available_since = utcnow()
+    elif not value:
+        user.available_since = None
+    user.is_available = value
+
+
 @app.patch("/api/users/{user_id}/availability")
 def set_availability(user_id: int, body: AvailabilityBody, db: Session = Depends(get_db)):
     user = find_user(db, user_id=user_id)
-    user.is_available = body.is_available
+    set_available(user, body.is_available)
     db.commit()
     return user_private(db, user)
 
@@ -282,7 +307,7 @@ def set_availability(user_id: int, body: AvailabilityBody, db: Session = Depends
 @app.patch("/api/users/by-telegram/{telegram_id}/availability")
 def set_availability_tg(telegram_id: str, body: AvailabilityBody, db: Session = Depends(get_db)):
     user = find_user(db, telegram_id=telegram_id)
-    user.is_available = body.is_available
+    set_available(user, body.is_available)
     db.commit()
     return user_private(db, user)
 
@@ -321,10 +346,11 @@ def leaderboard(limit: int = 10, db: Session = Depends(get_db)):
     counts = dict(
         db.query(Referral.referrer_id, func.count(Referral.id)).group_by(Referral.referrer_id).all()
     )
+    shows = achievements.showcase(db, [u.id for u in users])
     return [
         {"id": u.id, "name": u.name, "points": u.points, "badge": u.badge, "blood_group": u.blood_group,
          "city": u.city, "total_donations": u.total_donations, "referrals": counts.get(u.id, 0),
-         "influencer": counts.get(u.id, 0) >= logic.INFLUENCER_REFERRALS}
+         "influencer": counts.get(u.id, 0) >= logic.INFLUENCER_REFERRALS, "achievements": shows[u.id]}
         for u in users
     ]
 
@@ -445,7 +471,11 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db)):
                 ref.points_awarded = (ref.points_awarded or 0) + logic.POINTS_REFERRAL_DONATION
             notifier.notify_t(referrer.telegram_id, referrer.language, "ref_donated",
                               name=notifier.esc(donor.name), points=logic.POINTS_REFERRAL_DONATION, code=code)
+    db.flush()
+    unlocked = achievements.evaluate(db, [donor, referrer] if first_donation and donor.referred_by else [donor])
     db.commit()
+    donation_id = db.query(Donation.id).filter(Donation.request_id == req.id, Donation.donor_id == donor.id).scalar()
+    threading.Thread(target=record_weather, args=(donation_id, req.city), daemon=True).start()
 
     if req.requester_telegram_id:
         requester = db.query(User).filter(User.telegram_id == req.requester_telegram_id).first()
@@ -461,9 +491,64 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db)):
                    f"Donor awarded {total} BLP.",
         "points_awarded": total,
         "breakdown": breakdown,
+        "achievements": [achievements.public(a) for a in unlocked.get(donor.id, [])],
         "donor": user_private(db, donor),
         "request": request_out(req),
     }
+
+
+def record_weather(donation_id: int, district: str) -> None:
+    """Background: note whether it was raining (Rainmaker achievement). Never delays the donation response."""
+    w = weather.current(district)
+    if not w:
+        return
+    db = SessionLocal()
+    try:
+        d = db.get(Donation, donation_id)
+        if d:
+            d.weather = w
+            db.flush()
+            achievements.evaluate(db, [db.get(User, d.donor_id)])
+            db.commit()
+    except Exception:  # noqa: BLE001  (best effort)
+        log.exception("recording weather failed")
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------- achievements
+@app.get("/api/achievements")
+def achievement_catalog(db: Session = Depends(get_db)):
+    """Every achievement, with how many donors hold it (live rarity)."""
+    counts, donors = achievements.unlock_counts(db)
+    return {"donors": donors, "categories": achievements.CATEGORIES, "rarities": achievements.RARITIES,
+            "achievements": [{**achievements.public(a), "unlocked_by": counts.get(a["key"], 0),
+                              "percent_of_donors": round(100 * counts.get(a["key"], 0) / donors, 1) if donors else 0}
+                             for a in achievements.CATALOG]}
+
+
+def _collection(db: Session, user: User) -> dict:
+    achievements.evaluate(db, [user])  # catches time-based unlocks such as The Constant
+    db.commit()
+    return achievements.collection(db, user)
+
+
+@app.get("/api/users/{user_id}/achievements")
+def user_achievements(user_id: int, db: Session = Depends(get_db)):
+    return _collection(db, find_user(db, user_id=user_id))
+
+
+@app.get("/api/users/by-telegram/{telegram_id}/achievements")
+def user_achievements_tg(telegram_id: str, db: Session = Depends(get_db)):
+    return _collection(db, find_user(db, telegram_id=telegram_id))
+
+
+@app.post("/api/users/{user_id}/achievements/seen")
+def achievements_seen(user_id: int, db: Session = Depends(get_db)):
+    user = find_user(db, user_id=user_id)
+    db.query(UserAchievement).filter(UserAchievement.user_id == user.id).update({"is_new": False})
+    db.commit()
+    return {"status": "success"}
 
 
 # ---------------------------------------------------------------- rewards
@@ -544,8 +629,21 @@ def admin_users(db: Session = Depends(get_db)):
 def admin_verify_user(user_id: int, verified: bool = True, db: Session = Depends(get_db)):
     user = find_user(db, user_id=user_id)
     user.is_verified = verified
+    db.flush()
+    achievements.evaluate(db, [user])
     db.commit()
     return user_public(user)
+
+
+@app.post("/api/admin/users/{user_id}/favorite")
+def admin_favorite(user_id: int, db: Session = Depends(get_db)):
+    """Award the hand-picked "Admin's Favorite" achievement."""
+    user = find_user(db, user_id=user_id)
+    if user.role != "donor":
+        raise HTTPException(400, "Only donors can receive achievements")
+    granted = achievements.grant(db, user, "admins_favorite")
+    db.commit()
+    return {"status": "success" if granted else "already_awarded", "user": user_public(user)}
 
 
 @app.post("/api/admin/requests/{request_id}/verify")
@@ -554,6 +652,9 @@ def admin_verify_request(request_id: int, verified: bool = True, db: Session = D
     if not req:
         raise HTTPException(404, "Request not found")
     req.is_verified = verified
+    db.flush()
+    donor_ids = [d for (d,) in db.query(Donation.donor_id).filter(Donation.request_id == req.id)]
+    achievements.evaluate(db, db.query(User).filter(User.id.in_(donor_ids)).all() if donor_ids else [])
     db.commit()
     return request_out(req)
 

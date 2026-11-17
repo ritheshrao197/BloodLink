@@ -10,6 +10,7 @@ import Leaderboard from './pages/Leaderboard';
 import Rewards from './pages/Rewards';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import Achievements from './pages/Achievements';
 
 const ROUTES = {
   '/': Home,
@@ -17,6 +18,7 @@ const ROUTES = {
   '/donors': Donors,
   '/register': Register,
   '/leaderboard': Leaderboard,
+  '/achievements': Achievements,
   '/rewards': Rewards,
   '/profile': Profile,
   '/admin': Admin,

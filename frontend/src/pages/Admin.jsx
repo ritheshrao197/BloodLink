@@ -274,6 +274,15 @@ function UsersTab() {
     }
   };
 
+  const star = async (u) => {
+    try {
+      const res = await api.admin.favorite(u.id);
+      toast(res.status === 'success' ? `⭐ ${u.name} received Admin's Favorite` : `${u.name} already has Admin's Favorite`);
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
   const rows = (data || []).filter((u) => `${u.name} ${u.city} ${u.blood_group} ${u.referral_code}`.toLowerCase().includes(q.toLowerCase()));
 
   return (
@@ -289,7 +298,7 @@ function UsersTab() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-900 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                {['Name', 'Group', 'City', 'Role', 'Points', 'Donations', 'Telegram', 'Code', 'Verified'].map((h) => (
+                {['Name', 'Group', 'City', 'Role', 'Points', 'Donations', 'Telegram', 'Code', 'Verified', 'Recognise'].map((h) => (
                   <th key={h} className="whitespace-nowrap px-4 py-3 font-semibold">
                     {h}
                   </th>
@@ -334,6 +343,17 @@ function UsersTab() {
                     >
                       <BadgeCheck className="h-3.5 w-3.5" /> {u.is_verified ? 'Verified' : 'Verify'}
                     </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    {u.role === 'donor' && (
+                      <button
+                        onClick={() => star(u)}
+                        title="Award the Admin's Favorite achievement (+300 BLP)"
+                        className="rounded-lg border border-slate-700 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:border-amber-400/60"
+                      >
+                        ⭐ Favorite
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
