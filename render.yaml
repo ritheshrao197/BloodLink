@@ -1,0 +1,22 @@
+# Render Blueprint: one free web service running API + web app + Telegram bot.
+services:
+  - type: web
+    name: bloodlink
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt -r bot/requirements.txt && cd frontend && npm ci && npm run build
+    startCommand: bash start.sh
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: BLOODLINK_WEB_URL
+        sync: false
+      - key: AUTO_SEED
+        value: "1"

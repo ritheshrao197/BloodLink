@@ -37,6 +37,23 @@ To reset the demo data: `cd backend; ..\.venv\Scripts\python seed_data.py --rese
 
 On macOS/Linux use `.venv/bin/python` instead of `.venv\Scripts\python`.
 
+## Deploy for free (Render + Neon)
+
+In production one service runs everything: [start.sh](start.sh) starts the bot, and the API also serves the built web app
+(`frontend/dist`), so the site and `/api` share one URL.
+
+1. **Database:** create a free Postgres at [neon.tech](https://neon.tech) and copy its connection string
+   (`postgresql://…`). Render's free disk is wiped on every restart, so SQLite would lose data.
+2. **App:** on [render.com](https://render.com) choose **New → Blueprint** and pick this repo. [render.yaml](render.yaml) sets everything up.
+   Fill in `TELEGRAM_BOT_TOKEN`, `DATABASE_URL` (from Neon) and `BLOODLINK_WEB_URL` (`https://<name>.onrender.com`, which
+   you can set after the first deploy).
+3. **Keep it awake:** free Render services sleep after 15 minutes without web traffic, and then the bot stops answering. Add a
+   free monitor at [cron-job.org](https://cron-job.org) or [UptimeRobot](https://uptimerobot.com) that opens
+   `https://<name>.onrender.com/api/health` every 10 minutes. The free 750 hours a month cover one service running all the time.
+4. **Stop the bot on your PC.** Telegram allows only one copy of a bot to poll at a time.
+
+Set `AUTO_SEED=0` if you don't want demo data in the live database.
+
 ## Features
 
 | Area | What's there |

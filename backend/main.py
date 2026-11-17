@@ -2,9 +2,12 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import timedelta
+from pathlib import Path
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
@@ -575,3 +578,18 @@ def admin_vouchers(db: Session = Depends(get_db)):
     rows = db.query(Reward, User).join(User, Reward.user_id == User.id).order_by(Reward.id.desc()).all()
     return [{"id": r.id, "user": u.name, "reward_name": r.reward_name, "points_cost": r.points_cost,
              "voucher_code": r.voucher_code, "status": r.status, "created_at": iso(r.created_at)} for r, u in rows]
+
+
+# --- Production: serve the built React app (frontend/dist) from the same origin as the API ---
+DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if DIST.is_dir():
+    app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str):
+        if path.startswith("api/"):
+            raise HTTPException(404, "Not found")
+        file = (DIST / path).resolve()
+        if path and file.is_file() and DIST in file.parents:
+            return FileResponse(file)
+        return FileResponse(DIST / "index.html")  # client-side routes like /sos, /profile
