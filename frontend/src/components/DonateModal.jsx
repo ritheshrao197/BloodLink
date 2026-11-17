@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PartyPopper, XCircle } from 'lucide-react';
+import { PartyPopper, Share2, XCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { Link } from '../lib/router';
 import { useSession } from '../lib/session';
@@ -8,6 +8,8 @@ import { useI18n } from '../i18n';
 import { BloodTag, CopyField, ErrorBox, Modal, Spinner } from './ui';
 import SignInByCode from './SignInByCode';
 import { RarityTag, achText } from './Achievements';
+import { EligibilityForm, ReasonList } from './Eligibility';
+import ShareCardModal from './ShareCard';
 
 export default function DonateModal({ request, onClose, onDone }) {
   const { user, setUser } = useSession();
@@ -17,8 +19,11 @@ export default function DonateModal({ request, onClose, onDone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [screening, setScreening] = useState(null); // set once the health check passes
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
+    setScreening(null);
     setConfirmed(false);
     setError(null);
     setResult(null);
@@ -31,7 +36,7 @@ export default function DonateModal({ request, onClose, onDone }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.donate(request.id, user.id);
+      const res = await api.donate(request.id, user.id, screening);
       setResult(res);
       setUser(res.donor);
       onDone?.(res);
@@ -85,10 +90,20 @@ export default function DonateModal({ request, onClose, onDone }) {
             {t('donate.headTo', { place: `${request.hospital}, ${request.city}` })}
             {request.contact_phone && <> {t('donate.contact', { phone: request.contact_phone })}</>}
           </p>
+          <button onClick={() => setSharing(true)} className="btn-primary w-full from-amber-500 to-amber-700 shadow-amber-900/30">
+            <Share2 className="h-4 w-4" /> {t('card.cta')}
+          </button>
           <CopyField label={t('donate.invite')} value={result.donor.web_referral_link} />
-          <button onClick={onClose} className="btn-primary w-full">
+          <button onClick={onClose} className="btn-ghost w-full">
             {t('common.done')}
           </button>
+          <ShareCardModal
+            open={sharing}
+            onClose={() => setSharing(false)}
+            kind="donation"
+            user={result.donor}
+            donation={{ hospital: request.hospital, city: request.city, created_at: new Date().toISOString() }}
+          />
         </div>
       ) : (
         <div className="space-y-4">
@@ -121,14 +136,23 @@ export default function DonateModal({ request, onClose, onDone }) {
                 })}
               </span>
             </div>
+          ) : !screening ? (
+            <EligibilityForm user={user} onEligible={setScreening} />
           ) : (
             <>
+              <p className="flex items-center gap-2 rounded-lg bg-emerald-950/40 px-3 py-2 text-sm font-semibold text-emerald-300">{t('elig.ok')}</p>
               <p className="text-sm text-slate-300">{t('donate.donatingAs', { name: user.name, group: user.blood_group })}</p>
               <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-300">
                 <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-red-600" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
                 {t('donate.confirm')}
               </label>
-              <ErrorBox error={error} />
+              {error?.data?.eligibility ? (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-950/30 p-3 text-amber-200">
+                  <ReasonList reasons={error.data.eligibility.reasons} />
+                </div>
+              ) : (
+                <ErrorBox error={error} />
+              )}
               <button className="btn-primary w-full" disabled={!confirmed || busy} onClick={submit}>
                 {busy ? <Spinner /> : '🩸'} {t('donate.confirmBtn')}
               </button>

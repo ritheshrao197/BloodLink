@@ -150,6 +150,42 @@ S = {
     "bd_donation": {"en": "Successful donation", "kn": "ಯಶಸ್ವಿ ರಕ್ತದಾನ", "hi": "सफल रक्तदान"},
     "bd_quick": {"en": "Quick response (< 5 min)", "kn": "ತ್ವರಿತ ಪ್ರತಿಕ್ರಿಯೆ (< 5 ನಿಮಿಷ)", "hi": "तेज़ जवाब (< 5 मिनट)"},
     "bd_streak": {"en": "Streak bonus", "kn": "ನಿರಂತರತೆ ಬೋನಸ್", "hi": "स्ट्रीक बोनस"},
+    "elig_prompt": {
+        "en": "🩺 <b>Quick health check</b>\nBefore you go, do any of these apply to you?\n\n"
+              "• Fever, cold, cough or infection in the last 2 weeks\n• Antibiotics in the last 7 days\n"
+              "• Alcohol in the last 24 hours\n• Tattoo, piercing or acupuncture in the last 12 months\n"
+              "• Surgery in the last 6 months\n• (Women) pregnant, delivered or breastfeeding in the last 12 months\n"
+              "• Younger than 18, older than 65, or under 45 kg",
+        "kn": "🩺 <b>ತ್ವರಿತ ಆರೋಗ್ಯ ಪರಿಶೀಲನೆ</b>\nಹೊರಡುವ ಮೊದಲು, ಇವುಗಳಲ್ಲಿ ಯಾವುದಾದರೂ ನಿಮಗೆ ಅನ್ವಯಿಸುತ್ತದೆಯೇ?\n\n"
+              "• ಕಳೆದ 2 ವಾರಗಳಲ್ಲಿ ಜ್ವರ, ನೆಗಡಿ, ಕೆಮ್ಮು ಅಥವಾ ಸೋಂಕು\n• ಕಳೆದ 7 ದಿನಗಳಲ್ಲಿ ಆಂಟಿಬಯೋಟಿಕ್\n"
+              "• ಕಳೆದ 24 ಗಂಟೆಗಳಲ್ಲಿ ಮದ್ಯಪಾನ\n• ಕಳೆದ 12 ತಿಂಗಳಲ್ಲಿ ಟ್ಯಾಟೂ, ಚುಚ್ಚುವಿಕೆ ಅಥವಾ ಅಕ್ಯುಪಂಕ್ಚರ್\n"
+              "• ಕಳೆದ 6 ತಿಂಗಳಲ್ಲಿ ಶಸ್ತ್ರಚಿಕಿತ್ಸೆ\n• (ಮಹಿಳೆಯರು) ಕಳೆದ 12 ತಿಂಗಳಲ್ಲಿ ಗರ್ಭಿಣಿ, ಹೆರಿಗೆ ಅಥವಾ ಸ್ತನ್ಯಪಾನ\n"
+              "• 18 ಕ್ಕಿಂತ ಕಡಿಮೆ, 65 ಕ್ಕಿಂತ ಹೆಚ್ಚು ವಯಸ್ಸು, ಅಥವಾ 45 ಕೆಜಿಗಿಂತ ಕಡಿಮೆ ತೂಕ",
+        "hi": "🩺 <b>जल्दी स्वास्थ्य जाँच</b>\nनिकलने से पहले, क्या इनमें से कुछ भी आप पर लागू होता है?\n\n"
+              "• पिछले 2 हफ़्तों में बुखार, सर्दी, खाँसी या संक्रमण\n• पिछले 7 दिनों में एंटीबायोटिक\n"
+              "• पिछले 24 घंटों में शराब\n• पिछले 12 महीनों में टैटू, पियर्सिंग या एक्यूपंक्चर\n"
+              "• पिछले 6 महीनों में सर्जरी\n• (महिलाएँ) पिछले 12 महीनों में गर्भावस्था, प्रसव या स्तनपान\n"
+              "• उम्र 18 से कम या 65 से ज़्यादा, या वज़न 45 किलो से कम",
+    },
+    "rem_later": {"en": "👍 No problem, we'll keep you posted.", "kn": "👍 ಪರವಾಗಿಲ್ಲ, ನಿಮಗೆ ತಿಳಿಸುತ್ತೇವೆ.",
+                  "hi": "👍 कोई बात नहीं, हम आपको बताते रहेंगे।"},
+    "elig_ok_btn": {"en": "✅ None apply — I'll donate", "kn": "✅ ಯಾವುದೂ ಅನ್ವಯಿಸದು — ದಾನ ಮಾಡುತ್ತೇನೆ",
+                    "hi": "✅ कोई लागू नहीं — मैं दान करूँगा"},
+    "elig_no_btn": {"en": "✋ One of these applies", "kn": "✋ ಇವುಗಳಲ್ಲಿ ಒಂದು ಅನ್ವಯಿಸುತ್ತದೆ", "hi": "✋ इनमें से कुछ लागू है"},
+    "elig_deferred": {
+        "en": "🙏 Thank you for being honest — that keeps donors and patients safe. Please don't donate today; "
+              "you can set when you're able to again on your profile:\n{url}",
+        "kn": "🙏 ಪ್ರಾಮಾಣಿಕತೆಗೆ ಧನ್ಯವಾದ — ಇದು ದಾನಿಗಳು ಮತ್ತು ರೋಗಿಗಳನ್ನು ಸುರಕ್ಷಿತವಾಗಿರಿಸುತ್ತದೆ. ದಯವಿಟ್ಟು ಇಂದು ದಾನ ಮಾಡಬೇಡಿ; "
+              "ಮತ್ತೆ ಯಾವಾಗ ಸಾಧ್ಯ ಎಂಬುದನ್ನು ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ನೋಡಿ:\n{url}",
+        "hi": "🙏 ईमानदारी के लिए धन्यवाद — इससे डोनर और मरीज़ दोनों सुरक्षित रहते हैं। कृपया आज रक्तदान न करें; "
+              "दोबारा कब कर सकते हैं, यह अपनी प्रोफ़ाइल पर देखें:\n{url}",
+    },
+    "elig_wait": {"en": "⏳ Not yet: you can donate again from {date}. Thank you for wanting to help!",
+                  "kn": "⏳ ಇನ್ನೂ ಇಲ್ಲ: {date} ರಿಂದ ಮತ್ತೆ ದಾನ ಮಾಡಬಹುದು. ಸಹಾಯ ಮಾಡುವ ಮನಸ್ಸಿಗೆ ಧನ್ಯವಾದ!",
+                  "hi": "⏳ अभी नहीं: आप {date} से फिर रक्तदान कर सकते हैं। मदद की इच्छा के लिए धन्यवाद!"},
+    "elig_not_now": {"en": "⏳ You can't donate right now. See why on your profile: {url}",
+                     "kn": "⏳ ಸದ್ಯಕ್ಕೆ ದಾನ ಮಾಡಲಾಗದು. ಕಾರಣ ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ನೋಡಿ: {url}",
+                     "hi": "⏳ आप अभी रक्तदान नहीं कर सकते। वजह अपनी प्रोफ़ाइल पर देखें: {url}"},
     "not_registered": {
         "en": "You're not registered yet. Tap below to join — it takes 20 seconds.",
         "kn": "ನೀವು ಇನ್ನೂ ನೋಂದಾಯಿಸಿಲ್ಲ. ಸೇರಲು ಕೆಳಗೆ ಒತ್ತಿ — 20 ಸೆಕೆಂಡು ಸಾಕು.",

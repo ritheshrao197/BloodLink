@@ -12,18 +12,19 @@ The output is deterministic (fixed random seed) apart from timestamps, which are
 import math
 import random
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine
 import achievements
+import eligibility
 import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "3"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "4"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -139,7 +140,7 @@ def seed(db: Session) -> None:
         state, district, _w = rng.choices(AREAS, weights=area_w)[0]
         female = rng.random() < 0.42
         first = rng.choice(FIRST_F if female else FIRST_M)
-        people.append({"state": state, "district": district,
+        people.append({"state": state, "district": district, "female": female,
                        "name": f"{first} {rng.choice(SURNAMES[state])}",
                        # how likely this person is to answer an SOS: a few heroes, a long tail
                        "zeal": rng.paretovariate(1.6),
@@ -155,7 +156,10 @@ def seed(db: Session) -> None:
         u = User(name=p["name"], blood_group=pick(rng, DONOR_GROUPS), city=p["district"], state=p["state"],
                  language=pick(rng, LANG_BY_STATE.get(p["state"], {"en": 1})), phone=phone(rng), role="donor",
                  referral_code=code(), points=0, total_donations=0, is_available=True,
-                 created_at=p["joined"])
+                 created_at=p["joined"], sex="female" if p["female"] else "male",
+                 # most donors are 18-45; weights are realistic for eligible adults
+                 date_of_birth=date(now.year - int(min(62, max(18, rng.gauss(29, 8)))), rng.randint(1, 12), rng.randint(1, 28)),
+                 weight_kg=int(max(46, rng.gauss(58 if p["female"] else 70, 9))))
         u.zeal = p["zeal"]
         earn(u, logic.POINTS_REGISTER, "Registration bonus", u.created_at)
         earlier = [d for d in donors if d.created_at < u.created_at - timedelta(days=1)]
@@ -220,7 +224,7 @@ def seed(db: Session) -> None:
         ok = set(logic.compatible_donor_groups(req.blood_group))
         def eligible(pool):
             return [d for d in pool if d.blood_group in ok and d.created_at < at and d.is_available
-                    and (not d.last_donation_at or at - d.last_donation_at >= timedelta(days=90))]
+                    and (not d.last_donation_at or at - d.last_donation_at >= timedelta(days=eligibility.interval_days(d)))]
 
         local = eligible(by_district.get(req.city, []))
         if len(local) >= max(3, req.units_needed * 2):

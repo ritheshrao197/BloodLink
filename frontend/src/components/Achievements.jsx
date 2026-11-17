@@ -1,4 +1,4 @@
-import { Lock } from 'lucide-react';
+import { Lock, Share2 } from 'lucide-react';
 import { cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 
@@ -47,7 +47,7 @@ function NewTag() {
   return <span className="absolute right-2 top-2 rounded-full bg-blood-600 px-2 py-0.5 text-[10px] font-bold text-white">{t('achievements.new')}</span>;
 }
 
-export function AchievementCard({ a, isNew }) {
+export function AchievementCard({ a, isNew, onShare }) {
   const i18n = useI18n();
   const { t, ago } = i18n;
   const { description, requirement } = achText(i18n, a);
@@ -71,6 +71,11 @@ export function AchievementCard({ a, isNew }) {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-2 text-[11px] text-slate-400">
           <span>{a.unlocked_at ? ago(a.unlocked_at) : `+${a.points} BLP`}</span>
           {a.percent_of_donors != null && <span>{t('achievements.pctDonors', { pct: a.percent_of_donors })}</span>}
+          {onShare && (
+            <button onClick={() => onShare(a)} className="-mr-1 flex h-8 w-8 items-center justify-center rounded-lg hover:bg-slate-800" aria-label={t('card.cta')} title={t('card.cta')}>
+              <Share2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ) : (
         <div className="mt-3">

@@ -114,7 +114,7 @@ export default function Layout({ children }) {
                   {user.blood_group}
                 </span>
                 <span className="hidden font-medium md:inline">{user.name.split(' ')[0]}</span>
-                <span className="font-bold text-blood-600 dark:text-blood-400">{user.points} BLP</span>
+                <span className="whitespace-nowrap font-bold text-blood-600 dark:text-blood-400">{user.points} BLP</span>
               </Link>
             ) : (
               <Link to="/register" className="btn-primary hidden min-h-10 px-4 py-2 text-sm lg:inline-flex">

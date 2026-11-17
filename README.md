@@ -79,6 +79,24 @@ a starter list of hospitals. SOS alerts reach each donor in their own language. 
 awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_12345` (referral) and `?start=link_USER_12345`
 (link a web account).
 
+### Donor safety and engagement
+
+- **Eligibility check.** Before donating, on the web or Telegram, donors answer a 20-second self-check based on India's NBTC guidelines:
+  - age 18–65 and weight at least 45 kg;
+  - at least 90 days since the last donation for men, 120 for women;
+  - recent fever or infection, antibiotics, alcohol, tattoo or piercing, surgery, pregnancy or breastfeeding.
+
+  The server re-checks before accepting a donation. SOS alerts skip donors who can't donate yet. A "yes" pauses alerts until
+  that date, and the donor can undo it from their profile. Rules are in [backend/eligibility.py](backend/eligibility.py). It's
+  a preliminary check: hospital staff always decide.
+- **Donation reminders** on Telegram: 5 days before a donor can give again, on the day (with an "I'm available" button), and a
+  gentle nudge a week later. They run hourly in the backend ([backend/reminders.py](backend/reminders.py)) and are sent once per
+  donation cycle. Run them on demand with `POST /api/admin/reminders/run`, or turn them off with `REMINDERS=0`.
+- **Royal shareable cards:** 1080×1080 images drawn in the browser, in five designs: Blood Royalty, Achievement Crown, Diamond
+  Elite, Emerald Guardian and Midnight Hero. Each has the donor's QR invite code. Offered after a donation, on each unlocked
+  achievement and on the profile. They share natively on phones (image straight to WhatsApp or Instagram), or via
+  WhatsApp/Telegram/X/LinkedIn/Facebook links, or as a download.
+
 ### Languages
 
 The web app is available in English, ಕನ್ನಡ, हिन्दी, മലയാളം, தமிழ், తెలుగు, বাংলা, অসমীয়া, कोंकणी (Konkani) and ತುಳು (Tulu).

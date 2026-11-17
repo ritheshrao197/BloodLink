@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 
 import database  # noqa: F401  (loads .env before notifier reads the token)
 import achievements
+import eligibility
+import reminders
 from database import Base, SessionLocal, engine, get_db
 import locations
 import logic
@@ -20,7 +22,7 @@ import notifier
 import threading
 import weather
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, UserAchievement, utcnow
-from schemas import (AvailabilityBody, DonateBody, LanguageBody, LinkTelegramBody, RedeemBody, SOSCreate,
+from schemas import (AvailabilityBody, DonateBody, EligibilityBody, HealthBody, LanguageBody, LinkTelegramBody, RedeemBody, SOSCreate,
                      UserCreate)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -29,7 +31,8 @@ log = logging.getLogger("bloodlink")
 
 def migrate() -> None:
     """Add columns introduced after v2.0 to existing SQLite files and map old city names to districts."""
-    new_columns = {"users": {"state": "VARCHAR", "language": "VARCHAR DEFAULT 'en'", "available_since": "TIMESTAMP"},
+    new_columns = {"users": {"state": "VARCHAR", "language": "VARCHAR DEFAULT 'en'", "available_since": "TIMESTAMP",
+                             "sex": "VARCHAR", "date_of_birth": "DATE", "weight_kg": "INTEGER", "deferred_until": "TIMESTAMP"},
                    "requests": {"state": "VARCHAR", "requester_language": "VARCHAR"},
                    "donations": {"weather": "VARCHAR"}}
     insp = inspect(engine)
@@ -74,6 +77,7 @@ async def lifespan(_app: FastAPI):
     finally:
         db.close()
     log.info("Telegram notifications %s", "ENABLED" if notifier.enabled() else "DISABLED (no TELEGRAM_BOT_TOKEN)")
+    reminders.start()
     yield
 
 
@@ -126,6 +130,7 @@ def user_private(db: Session, u: User) -> dict:
         "telegram_link_url": f"https://t.me/{bot}?start=link_{u.referral_code}",
         "referrals": stats,
         "achievements": achievements.showcase(db, [u.id])[u.id],
+        "eligibility": eligibility.status(u) if u.role == "donor" else None,
     }
 
 
@@ -210,6 +215,7 @@ def register_user(body: UserCreate, db: Session = Depends(get_db)):
         role=body.role, telegram_id=body.telegram_id, telegram_username=body.telegram_username,
         referral_code=logic.new_referral_code(db),
         referred_by=referrer.referral_code if referrer else None, points=0,
+        sex=body.sex, date_of_birth=body.date_of_birth, weight_kg=body.weight_kg,
     )
     db.add(user)
     db.flush()
@@ -329,6 +335,49 @@ def set_language_tg(telegram_id: str, body: LanguageBody, db: Session = Depends(
     return user_private(db, user)
 
 
+# ---------------------------------------------------------------- eligibility
+def _save_health(user: User, health: HealthBody | None) -> None:
+    if not health:
+        return
+    for field in ("sex", "date_of_birth", "weight_kg"):
+        value = getattr(health, field)
+        if value is not None:
+            setattr(user, field, value)
+
+
+@app.get("/api/eligibility/questions")
+def eligibility_questions(sex: str | None = None):
+    return {"questions": eligibility.questions_for(sex), "min_age": eligibility.MIN_AGE, "max_age": eligibility.MAX_AGE,
+            "min_weight_kg": eligibility.MIN_WEIGHT_KG, "interval_days": eligibility.INTERVAL_DAYS}
+
+
+@app.post("/api/eligibility/check")
+def eligibility_check(body: EligibilityBody, db: Session = Depends(get_db)):
+    """Run the pre-donation check without donating (records any deferral)."""
+    user = find_user(db, user_id=body.user_id, telegram_id=body.telegram_id)
+    _save_health(user, body.screening.health)
+    result = eligibility.check(user, body.screening.model_dump())
+    db.commit()
+    return result
+
+
+@app.patch("/api/users/{user_id}/health")
+def set_health(user_id: int, body: HealthBody, db: Session = Depends(get_db)):
+    user = find_user(db, user_id=user_id)
+    _save_health(user, body)
+    db.commit()
+    return user_private(db, user)
+
+
+@app.delete("/api/users/{user_id}/deferral")
+def clear_deferral(user_id: int, db: Session = Depends(get_db)):
+    """The donor answered a screening question by mistake: lift the self-reported deferral."""
+    user = find_user(db, user_id=user_id)
+    user.deferred_until = None
+    db.commit()
+    return user_private(db, user)
+
+
 @app.get("/api/donors")
 def search_donors(
     blood_group: str | None = None,
@@ -370,8 +419,10 @@ def matching_donors(db: Session, req: BloodRequest) -> list[User]:
     base = db.query(User).filter(User.role == "donor", User.is_available.is_(True), User.blood_group.in_(groups))
     if req.requester_telegram_id:
         base = base.filter((User.telegram_id.is_(None)) | (User.telegram_id != req.requester_telegram_id))
-    local = base.filter(func.lower(User.city) == req.city.lower()).all()
-    return local or base.all()  # fall back to all cities when nobody local matches
+    now = utcnow()
+    ok = lambda users: [u for u in users if eligibility.can_be_alerted(u, now)]  # noqa: E731
+    local = ok(base.filter(func.lower(User.city) == req.city.lower()).all())
+    return local or ok(base.all())  # fall back to all cities when nobody local matches
 
 
 def _broadcast(request_id: int):
@@ -442,6 +493,13 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db)):
                                  f"Compatible groups: {', '.join(logic.compatible_donor_groups(req.blood_group))}.")
     if db.query(Donation).filter(Donation.request_id == req.id, Donation.donor_id == donor.id).first():
         raise HTTPException(400, "You have already responded to this request.")
+    if body.screening is None:
+        raise HTTPException(400, "Please answer the quick health check before donating.")
+    _save_health(donor, body.screening.health)
+    check = eligibility.check(donor, body.screening.model_dump())
+    if not check["eligible"]:
+        db.commit()  # keep any recorded deferral
+        raise HTTPException(409, {"message": "Not eligible to donate right now.", "eligibility": check})
 
     now = utcnow()
     breakdown = [{"code": "donation", "reason": "Successful donation", "points": logic.POINTS_DONATION}]
@@ -642,6 +700,12 @@ def admin_verify_user(user_id: int, verified: bool = True, db: Session = Depends
     achievements.evaluate(db, [user])
     db.commit()
     return user_public(user)
+
+
+@app.post("/api/admin/reminders/run")
+def admin_run_reminders():
+    """Send any donation reminders that are due right now (they also run hourly in the background)."""
+    return {"sent": reminders.run_once(), "telegram": notifier.enabled()}
 
 
 @app.post("/api/admin/users/{user_id}/favorite")

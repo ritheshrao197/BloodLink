@@ -7,6 +7,7 @@ import { cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 import { ErrorBox, Loading, PageHeader, StatCard } from '../components/ui';
 import { AchievementCard, RARITY, TierBadge } from '../components/Achievements';
+import ShareCardModal from '../components/ShareCard';
 
 const CATEGORY_ICON = { Donation: '🩸', Speed: '⚡', Referral: '🤝', Streak: '🔥', Location: '🌍', Fun: '🎮', Verification: '🛡️' };
 
@@ -18,6 +19,7 @@ export default function Achievements() {
   const [category, setCategory] = useState('All');
   const [show, setShow] = useState('all'); // all | unlocked | locked
   const newKeys = useRef(new Set());
+  const [sharing, setSharing] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,7 +148,7 @@ export default function Achievements() {
         {singles.length ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {singles.map((a) => (
-              <AchievementCard key={a.key} a={a} isNew={newKeys.current.has(a.key)} />
+              <AchievementCard key={a.key} a={a} isNew={newKeys.current.has(a.key)} onShare={user && a.unlocked ? setSharing : undefined} />
             ))}
           </div>
         ) : (
@@ -166,6 +168,7 @@ export default function Achievements() {
         </div>
         <p className="mt-3 text-xs text-slate-500">{t('achievements.safety')}</p>
       </section>
+      <ShareCardModal open={!!sharing} onClose={() => setSharing(null)} kind="achievement" user={user} achievement={sharing} />
     </div>
   );
 }

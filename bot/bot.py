@@ -71,7 +71,9 @@ END = ConversationHandler.END
 
 # ------------------------------------------------------------------ API + helpers
 class ApiError(Exception):
-    pass
+    def __init__(self, message, data: dict | None = None):
+        super().__init__(message)
+        self.data = data or {}
 
 
 async def api(method: str, path: str, **kwargs):
@@ -85,6 +87,8 @@ async def api(method: str, path: str, **kwargs):
         detail = data.get("detail", f"Error {r.status_code}") if isinstance(data, dict) else str(data)
         if isinstance(detail, list):
             detail = "; ".join(d.get("msg", str(d)) for d in detail)
+        elif isinstance(detail, dict):
+            raise ApiError(detail.get("message", str(detail)), detail)
         raise ApiError(detail)
     return data
 
@@ -617,13 +621,46 @@ async def sos_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ------------------------------------------------------------------ one-tap donate
 async def donate_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """SOS alert button: ask the quick health check first (one tap if nothing applies)."""
     q = update.callback_query
     lang = await ensure_lang(update, context) or "en"
     request_id = int(q.data.removeprefix("donate_"))
+    await ack(update)
+    await context.bot.send_message(
+        q.message.chat_id, t(lang, "elig_prompt"), parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup([[btn(t(lang, "elig_ok_btn"), f"dok_{request_id}")],
+                                           [btn(t(lang, "elig_no_btn"), f"dno_{request_id}")]]))
+
+
+async def reminder_later(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = await ensure_lang(update, context) or "en"
+    await ack(update, t(lang, "rem_later"))
+    await update.callback_query.edit_message_reply_markup(None)
+
+
+async def donate_declined(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = await ensure_lang(update, context) or "en"
+    await ack(update)
+    await update.callback_query.edit_message_text(t(lang, "elig_deferred", url=f"{WEB_URL}/profile"))
+
+
+async def donate_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    lang = await ensure_lang(update, context) or "en"
+    request_id = int(q.data.removeprefix("dok_"))
+    screening = {"answers": {}, "basics_confirmed": True}  # the donor confirmed none of the listed conditions apply
     try:
         res = await api("POST", f"/donate/{request_id}",
-                        json={"donor_telegram_id": str(update.effective_user.id), "confirmed": True})
+                        json={"donor_telegram_id": str(update.effective_user.id), "confirmed": True, "screening": screening})
     except ApiError as e:
+        elig = e.data.get("eligibility")
+        if elig:
+            wait = next((r for r in elig["reasons"] if r["code"] == "interval"), None)
+            text = (t(lang, "elig_wait", date=wait["until"][:10]) if wait
+                    else t(lang, "elig_not_now", url=f"{WEB_URL}/profile"))
+            await ack(update)
+            await q.edit_message_text(text)
+            return
         await ack(update, (t(lang, "server_down") if str(e) == "server_down" else str(e))[:190], alert=True)
         return
     await ack(update, t(lang, "donate_thanks"))
@@ -842,6 +879,9 @@ def build_app() -> Application:
     app.add_handler(cb(menu_show_click, pattern=r"^m_menu_show$"))
     app.add_handler(cb(language_chosen, pattern=r"^lang_"))
     app.add_handler(cb(donate_click, pattern=r"^donate_\d+$"))
+    app.add_handler(cb(donate_confirmed, pattern=r"^dok_\d+$"))
+    app.add_handler(cb(donate_declined, pattern=r"^dno_\d+$"))
+    app.add_handler(cb(reminder_later, pattern=r"^rem_later$"))
     app.add_handler(cb(redeem_click, pattern=r"^redeem_\d+$"))
     app.add_handler(cb(cancel, pattern=r"^x_cancel$"))
     app.add_handler(MessageHandler(text, unknown_text))

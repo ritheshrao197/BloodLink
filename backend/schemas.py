@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
@@ -12,6 +13,28 @@ def _check_group(v: str) -> str:
     return v
 
 
+Sex = Literal["male", "female", "other"]
+
+
+class HealthBody(BaseModel):
+    sex: Optional[Sex] = None
+    date_of_birth: Optional[date] = None
+    weight_kg: Optional[int] = Field(default=None, ge=20, le=250)
+
+
+class Screening(BaseModel):
+    """Answers to the pre-donation questionnaire (see eligibility.QUESTIONS)."""
+    answers: dict[str, bool] = {}
+    basics_confirmed: bool = False  # "I am 18-65 years old and weigh at least 45 kg" (when the profile lacks them)
+    health: Optional[HealthBody] = None  # optionally save health basics at the same time
+
+
+class EligibilityBody(BaseModel):
+    user_id: Optional[int] = None
+    telegram_id: Optional[str] = None
+    screening: Screening = Screening()
+
+
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     blood_group: str
@@ -23,6 +46,9 @@ class UserCreate(BaseModel):
     referred_by: Optional[str] = None
     telegram_id: Optional[str] = None
     telegram_username: Optional[str] = None
+    sex: Optional[Sex] = None
+    date_of_birth: Optional[date] = None
+    weight_kg: Optional[int] = Field(default=None, ge=20, le=250)
 
     _bg = field_validator("blood_group")(_check_group)
 
@@ -54,6 +80,7 @@ class DonateBody(BaseModel):
     donor_telegram_id: Optional[str] = None
     user_id: Optional[int] = None
     confirmed: bool = True
+    screening: Optional[Screening] = None
 
 
 class RedeemBody(BaseModel):

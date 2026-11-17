@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BadgeCheck, CheckCircle2, Droplet, Gift, History, LogOut, Send, UserRound, Users } from 'lucide-react';
+import { BadgeCheck, CheckCircle2, Droplet, Gift, History, LogOut, Send, Share2, UserRound, Users } from 'lucide-react';
 import { api } from '../lib/api';
 import { Link } from '../lib/router';
 import { useSession } from '../lib/session';
@@ -10,6 +10,8 @@ import { useToast } from '../components/Toast';
 import { BloodTag, CopyField, PageHeader, StatCard, Toggle } from '../components/ui';
 import SignInByCode from '../components/SignInByCode';
 import { Showcase } from '../components/Achievements';
+import { EligibilityCard } from '../components/Eligibility';
+import ShareCardModal from '../components/ShareCard';
 
 // Voucher names are stored in English; map them back to catalog ids so they can be translated
 const REWARD_IDS = { 'Coffee Voucher': 1, 'Movie Ticket': 2, 'Shopping Voucher': 3, 'College Merch': 4 };
@@ -19,6 +21,7 @@ export default function Profile() {
   const { t, tOr, num, ago, date, reason } = useI18n();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
+  const [sharing, setSharing] = useState(null); // 'donation' | 'referral'
   const activity = usePoll(() => (user ? api.activity(user.id) : Promise.resolve(null)), 8000, user?.id);
 
   // keep header points in sync with background events (e.g. Telegram donations)
@@ -91,6 +94,18 @@ export default function Profile() {
             </span>
             <Toggle checked={user.is_available} onChange={toggleAvailability} disabled={saving} />
           </label>
+          <div className="flex flex-wrap justify-end gap-2">
+            {user.total_donations > 0 && (
+              <button onClick={() => setSharing('donation')} className="btn-ghost min-h-10 py-2 text-sm">
+                <Share2 className="h-4 w-4" /> {t('card.cta')}
+              </button>
+            )}
+            {user.referrals.total > 0 && (
+              <button onClick={() => setSharing('referral')} className="btn-ghost min-h-10 py-2 text-sm" title={t('card.variant.emerald_guardian')}>
+                🤝 {t('card.variant.emerald_guardian')}
+              </button>
+            )}
+          </div>
           <button onClick={signOut} className="flex min-h-10 items-center gap-1.5 text-sm text-slate-400 hover:text-slate-50">
             <LogOut className="h-4 w-4" /> {t('common.signOut')}
           </button>
@@ -108,6 +123,8 @@ export default function Profile() {
         <StatCard icon={Users} label={t('profile.referrals')} value={user.referrals.total} hint={t('profile.referralsDonated', { n: user.referrals.donated })} accent="text-sky-400" />
         <StatCard icon={Gift} label={t('profile.referralPoints')} value={num(user.referrals.points_earned)} accent="text-fuchsia-300" />
       </div>
+
+      {user.role === 'donor' && <EligibilityCard key={user.id} user={user} onUser={setUser} />}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card p-6">
@@ -161,6 +178,8 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      <ShareCardModal open={!!sharing} onClose={() => setSharing(null)} kind={sharing || 'donation'} user={user} donation={a?.donations?.[0]} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Panel title={t('profile.history')} rows={a?.points_log} empty={t('profile.noActivity')}>

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint
 
 from database import Base
 
@@ -30,6 +30,11 @@ class User(Base):
     total_donations = Column(Integer, default=0)
     is_available = Column(Boolean, default=True)
     available_since = Column(DateTime, default=utcnow, nullable=True)  # for "The Constant" achievement
+    # health basics for the eligibility check (all optional, self-reported)
+    sex = Column(String, nullable=True)  # male | female | other
+    date_of_birth = Column(Date, nullable=True)
+    weight_kg = Column(Integer, nullable=True)
+    deferred_until = Column(DateTime, nullable=True)  # self-reported temporary deferral (fever, tattoo, ...)
     is_verified = Column(Boolean, default=False)
     last_donation_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow)
@@ -106,6 +111,19 @@ class PointLog(Base):
     amount = Column(Integer)
     reason = Column(String)
     created_at = Column(DateTime, default=utcnow)
+
+
+class ReminderLog(Base):
+    """One row per reminder sent, so each kind goes out once per donation cycle."""
+
+    __tablename__ = "reminder_logs"
+    __table_args__ = (UniqueConstraint("user_id", "kind", "cycle"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    kind = Column(String, nullable=False)  # soon | eligible | nudge
+    cycle = Column(String, nullable=False)  # date of the donation that started this cycle
+    sent_at = Column(DateTime, default=utcnow)
 
 
 class UserAchievement(Base):

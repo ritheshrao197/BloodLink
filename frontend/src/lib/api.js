@@ -17,8 +17,13 @@ async function request(path, { method = 'GET', body, params } = {}) {
     const d = data.detail;
     const msg = Array.isArray(d)
       ? d.map((e) => `${e.loc?.slice(-1)[0]}: ${String(e.msg).replace('Value error, ', '')}`).join('; ')
-      : d;
-    throw new Error(msg || `Request failed (${res.status})`);
+      : typeof d === 'object' && d
+        ? d.message
+        : d;
+    const err = new Error(msg || `Request failed (${res.status})`);
+    err.status = res.status;
+    err.data = typeof d === 'object' && !Array.isArray(d) ? d : null; // e.g. { eligibility } on a 409
+    throw err;
   }
   return data;
 }
@@ -39,9 +44,13 @@ export const api = {
   leaderboard: (limit = 10) => request('/leaderboard', { params: { limit } }),
   requests: (status = 'Active') => request('/requests', { params: { status } }),
   sos: (body) => request('/sos', { method: 'POST', body }),
-  donate: (requestId, userId) =>
-    request(`/donate/${requestId}`, { method: 'POST', body: { user_id: userId, confirmed: true } }),
+  donate: (requestId, userId, screening) =>
+    request(`/donate/${requestId}`, { method: 'POST', body: { user_id: userId, confirmed: true, screening } }),
   rewards: () => request('/rewards'),
+  eligibilityQuestions: (sex) => request('/eligibility/questions', { params: { sex } }),
+  checkEligibility: (userId, screening) => request('/eligibility/check', { method: 'POST', body: { user_id: userId, screening } }),
+  setHealth: (id, body) => request(`/users/${id}/health`, { method: 'PATCH', body }),
+  clearDeferral: (id) => request(`/users/${id}/deferral`, { method: 'DELETE' }),
   achievements: () => request('/achievements'),
   userAchievements: (id) => request(`/users/${id}/achievements`),
   achievementsSeen: (id) => request(`/users/${id}/achievements/seen`, { method: 'POST' }),

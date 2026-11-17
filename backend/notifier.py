@@ -79,6 +79,12 @@ def notify_t(chat_id: str | None, lang: str | None, key: str, **kwargs) -> None:
         notify(chat_id, t(lang, key, **kwargs))
 
 
+def notify_buttons(chat_id: str | None, text: str, buttons: list[list[dict]]) -> None:
+    """Fire-and-forget message with an inline keyboard."""
+    if chat_id:
+        threading.Thread(target=send_message, args=(chat_id, text, buttons), daemon=True).start()
+
+
 def notify(chat_id: str | None, text: str) -> None:
     """Fire-and-forget message so API responses never wait on Telegram."""
     if chat_id:
