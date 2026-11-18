@@ -97,6 +97,16 @@ awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_123
   achievement and on the profile. They share natively on phones (image straight to WhatsApp or Instagram), or via
   WhatsApp/Telegram/X/LinkedIn/Facebook links, or as a download.
 
+### Showcase account
+
+Sign in with demo code **`USER_77777`** (the sign-in panel offers it as a chip while `DEMO_LOGIN=1`) to see everything
+unlocked. **Arjun Hegde** is an AB- donor since 2012 with a full history that genuinely earns all 54 achievements:
+- 53 SOS donations and 3 camp donations, always at least 90 days apart, across five states;
+- 5-minute and 2 AM responses, plus donations on New Year's Day, during Diwali and in the rain;
+- 55 friends referred;
+- verified, Admin's Favorite and a member of The Bloodline Squad, with his location shared;
+- eligible to donate today.
+
 ### Demo data that stays alive
 
 - **Self-healing:** at startup the server seeds an empty database. It refreshes the demo data when `SEED_VERSION` changes, or

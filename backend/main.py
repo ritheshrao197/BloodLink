@@ -202,6 +202,7 @@ def config():
         "telegram_enabled": notifier.enabled(),
         "telegram_login": notifier.enabled(),
         "demo_login": auth.DEMO_LOGIN,
+        "demo_hero_code": "USER_77777" if auth.DEMO_LOGIN else None,  # showcase account with every achievement
         "admin_password_login": bool(auth.ADMIN_PASSWORD),
     }
 

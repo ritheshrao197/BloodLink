@@ -1,4 +1,4 @@
-"""Realistic demo data: a year of simulated network activity.
+﻿"""Realistic demo data: a year of simulated network activity.
 
 Every number is derived from simulated history (registrations, referrals, SOS requests, donations, voucher
 redemptions), so points, badges, leaderboards, referral stats and admin analytics are all mutually consistent.
@@ -14,7 +14,7 @@ import random
 import sys
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine
@@ -25,7 +25,7 @@ import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "8"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "9"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -123,6 +123,8 @@ def seed(db: Session) -> None:
     logs: list[tuple] = []      # (user, amount, reason, when): turned into PointLog rows once ids exist
     vouchers: list[dict] = []
     codes: set[str] = {c for (c,) in db.query(User.referral_code)}
+    hero_code = HERO_CODE if HERO_CODE not in codes else None  # reserved for the showcase account
+    codes.add(HERO_CODE)
 
     def code() -> str:
         while True:
@@ -205,13 +207,13 @@ def seed(db: Session) -> None:
     def respond(req: BloodRequest, donor: User, when: datetime) -> None:
         quick = when - req.created_at <= timedelta(minutes=logic.QUICK_RESPONSE_MINUTES)
         total = logic.POINTS_DONATION
-        earn(donor, logic.POINTS_DONATION, f"Successful donation — request #{req.id}", when)
+        earn(donor, logic.POINTS_DONATION, f"Successful donation â€” request #{req.id}", when)
         if quick:
             total += logic.POINTS_QUICK_RESPONSE
-            earn(donor, logic.POINTS_QUICK_RESPONSE, f"Quick response (< 5 min) — request #{req.id}", when)
+            earn(donor, logic.POINTS_QUICK_RESPONSE, f"Quick response (< 5 min) â€” request #{req.id}", when)
         if donor.last_donation_at and when - donor.last_donation_at >= timedelta(days=logic.STREAK_DAYS):
             total += logic.POINTS_STREAK
-            earn(donor, logic.POINTS_STREAK, f"Streak bonus (3-month return) — request #{req.id}", when)
+            earn(donor, logic.POINTS_STREAK, f"Streak bonus (3-month return) â€” request #{req.id}", when)
         if donor.total_donations == 0 and donor.referral:
             referrer = donor.referral["referrer"]
             earn(referrer, logic.POINTS_REFERRAL_DONATION, f"Referral: {donor.name} donated", when)
@@ -339,12 +341,18 @@ def seed(db: Session) -> None:
             d.available_since = start + (now - start) * rng.uniform(0, 0.5)
         else:
             d.available_since = None
+    hero = seed_hero(db, rng, now, donors, earn, vouchers, hero_code or code())
     db.add_all(Referral(referrer_id=d.referral["referrer"].id, referred_id=d.id, status=d.referral["status"],
                         points_awarded=d.referral["points_awarded"], created_at=d.referral["created_at"])
                for d in donors if d.referral)
     db.flush()
 
     seed_community(db, rng, now, donors, hospitals, earn)
+    from models import Team, TeamMember
+
+    squad = db.query(Team).filter(Team.name == "The Bloodline Squad").first()
+    if squad:
+        db.add(TeamMember(team_id=squad.id, user_id=hero.id, role="member", joined_at=hero.created_at + timedelta(days=30)))
 
     # ---------- achievements, dated to the moment each was earned ----------
     def verified_at(u: User) -> datetime:
@@ -353,6 +361,8 @@ def seed(db: Session) -> None:
     achievements.evaluate(db, donors, now=now, award=earn, timeless_at=verified_at,
                           new_since=now - timedelta(days=7), notify=False)
     standouts = sorted(donors, key=lambda u: -(u.total_donations * 3 + u.zeal))[:4]
+    if hero not in standouts:
+        standouts.append(hero)
     fav = achievements.BY_KEY["admins_favorite"]
     for u in standouts:
         when = now - timedelta(days=rng.uniform(3, 60))
@@ -370,11 +380,122 @@ def seed(db: Session) -> None:
     db.commit()
 
 
+# ---------- the showcase account: every achievement, earned by a believable history ----------
+HERO_CODE = "USER_77777"
+HERO_STATES = [  # (state, district, hospital): donations rotate across five states
+    ("Karnataka", "Bengaluru Urban"), ("Kerala", "Ernakulam"), ("Tamil Nadu", "Chennai"),
+    ("Maharashtra", "Pune"), ("Goa", "North Goa"), ("Karnataka", "Mysuru"), ("Karnataka", "Dakshina Kannada"),
+]
+
+
+def seed_hero(db: Session, rng: random.Random, now: datetime, donors: list[User], earn, vouchers: list, hero_code: str) -> User:
+    """A 14-year AB- veteran whose real history unlocks all 54 achievements (no achievement is granted by hand
+    except Admin's Favorite, which is manual by design)."""
+    from models import Camp, CampRSVP
+
+    # donation dates: every ~91-96 days (always >= 90, the safe interval), ending ~100 days ago so the hero can
+    # donate today; nudged onto New Year's Day 2016 and Diwali 2024 for the date-based achievements
+    anchors = [datetime(2016, 1, 1, 4, 30), datetime(2024, 11, 1, 5, 0)]  # 10:00 / 10:30 IST
+    last = now - timedelta(days=100)
+    dates: list[datetime] = []
+    t = last - timedelta(days=95 * 56)
+    while t <= last:
+        dates.append(t)
+        nxt = t + timedelta(days=rng.randint(91, 96))
+        for a in anchors:
+            if timedelta(days=90) <= a - t <= timedelta(days=150) and a < nxt + timedelta(days=60):
+                nxt = a
+        t = nxt
+    dates = dates[-56:]
+    # daytime India hours by default (anchors keep their exact moment)
+    dates = [d if d in anchors else d.replace(hour=rng.randint(3, 11), minute=rng.choice([0, 15, 30, 45])) for d in dates]
+    special = {i for i, d in enumerate(dates) if d in anchors}
+    camp_slots = set([i for i in (len(dates) - 30, len(dates) - 18, len(dates) - 7, len(dates) - 12, len(dates) - 24) if i not in special][:3])
+
+    hero = User(name="Arjun Hegde", blood_group="AB-", city="Bengaluru Urban", state="Karnataka", language="en",
+                phone="+91 98450 77777", role="donor", referral_code=hero_code, points=0, total_donations=0,
+                is_available=True, is_verified=True, is_demo=True, sex="male", date_of_birth=date(1988, 6, 14), weight_kg=74,
+                lat=12.97, lng=77.6, created_at=dates[0] - timedelta(hours=3))
+    hero.location_at = hero.created_at
+    hero.zeal, hero.referral = 0, None
+    db.add(hero)
+    db.flush()
+    earn(hero, logic.POINTS_REGISTER, "Registration bonus", hero.created_at)
+
+    prev = None
+    for i, when in enumerate(dates):
+        state, district = HERO_STATES[i % len(HERO_STATES)]
+        if i in camp_slots:
+            camp = Camp(title=f"{['Founders', 'Monsoon', 'Republic Day'][len([s for s in camp_slots if s < i])]} Blood Drive {when.year}",
+                        organizer="The Bloodline Squad", venue="Community hall", city=district, state=state,
+                        starts_at=when - timedelta(hours=2), ends_at=when + timedelta(hours=4), expected_donors=80,
+                        status="Completed", created_at=when - timedelta(days=20))
+            db.add(camp)
+            db.flush()
+            db.add(CampRSVP(camp_id=camp.id, user_id=hero.id, status="Attended", created_at=when - timedelta(days=10), attended_at=when))
+            earn(hero, 100, f"Camp donation â€” {camp.title}", when)
+        else:
+            if i % 9 == 4 and i not in special:  # a few answered in the small hours (Night Owl, Midnight Caller)
+                when = when.replace(hour=20, minute=0)  # 01:30 IST next day
+                when += timedelta(minutes=30)
+            fast = i % 3 != 2 or i % 9 == 4
+            created = when - timedelta(minutes=3 if fast else rng.randint(12, 40))
+            hosp = rng.choice(locations.hospitals_for(state, district))
+            centre = geo.DISTRICT_CENTRES.get(district)
+            req = BloodRequest(requester_name=f"{rng.choice(FIRST_F + FIRST_M)} {rng.choice(SURNAMES.get(state, ['Rao']))}",
+                               blood_group=rng.choice(["AB-", "AB+"]), hospital=hosp, city=district, state=state, units_needed=1,
+                               units_fulfilled=1, urgency=rng.choice(["Critical", "High"]), status="Fulfilled", fulfilled_by=hero.name,
+                               is_verified=i % 3 != 1, created_at=created, fulfilled_at=when, is_demo=True, notified_count=rng.randint(4, 30),
+                               lat=centre[0] if centre else None, lng=centre[1] if centre else None)
+            db.add(req)
+            db.flush()
+            total = logic.POINTS_DONATION
+            earn(hero, logic.POINTS_DONATION, f"Successful donation â€” request #{req.id}", when)
+            if fast:
+                total += logic.POINTS_QUICK_RESPONSE
+                earn(hero, logic.POINTS_QUICK_RESPONSE, f"Quick response (< 5 min) â€” request #{req.id}", when)
+            if prev and when - prev >= timedelta(days=logic.STREAK_DAYS):
+                total += logic.POINTS_STREAK
+                earn(hero, logic.POINTS_STREAK, f"Streak bonus (3-month return) â€” request #{req.id}", when)
+            db.add(Donation(request_id=req.id, donor_id=hero.id, points_awarded=total, quick_response=fast,
+                            weather="rain" if i % 7 == 3 else "dry", created_at=when))
+            hero.total_donations += 1
+        prev = when
+    hero.last_donation_at = dates[-1]
+    hero.available_since = dates[-1] + timedelta(days=1)
+
+    # 55 friends joined with the hero's code (Recruiter Platinum, Bloodline Ambassador)
+    first_donation = dict(db.query(Donation.donor_id, func.min(Donation.created_at)).group_by(Donation.donor_id).all())
+    friends = [d for d in donors if d.referral is None][:55]
+    for f in friends:
+        f.referred_by = hero.referral_code
+        earn(f, logic.POINTS_WELCOME_BONUS, f"Welcome bonus (invited by {hero.name})", f.created_at)
+        earn(hero, logic.POINTS_REFERRAL_REGISTER, f"Referral: {f.name} registered", f.created_at)
+        f.referral = {"referrer": hero, "status": "Registered", "points_awarded": logic.POINTS_REFERRAL_REGISTER, "created_at": f.created_at}
+        if f.id in first_donation:
+            when = first_donation[f.id]
+            earn(hero, logic.POINTS_REFERRAL_DONATION, f"Referral: {f.name} donated", when)
+            f.referral["status"] = "Donated"
+            f.referral["points_awarded"] += logic.POINTS_REFERRAL_DONATION
+            vouchers.append({"user": hero, "reward_name": logic.REFERRAL_VOUCHER["name"], "points_cost": 0,
+                             "voucher_code": logic.voucher_code(logic.REFERRAL_VOUCHER["prefix"]), "created_at": when})
+
+    # a few rewards enjoyed along the way
+    for days, rid in ((400, 2), (120, 1), (30, 4)):
+        reward = logic.get_reward(rid)
+        when = now - timedelta(days=days)
+        earn(hero, -reward["cost"], f"Redeemed {reward['name']}", when)
+        vouchers.append({"user": hero, "reward_id": rid, "reward_name": reward["name"], "points_cost": reward["cost"],
+                         "voucher_code": logic.voucher_code(reward["prefix"]), "status": "Used", "created_at": when})
+    donors.append(hero)
+    return hero
+
+
 # ---------- teams and camps ----------
 # Fictional organisations (not real institutions), spread over the demo districts
 TEAMS = [
-    ("Karavali Institute of Technology · CSE", "college", "Karnataka", "Dakshina Kannada"),
-    ("Karavali Institute of Technology · ECE", "college", "Karnataka", "Dakshina Kannada"),
+    ("Karavali Institute of Technology Â· CSE", "college", "Karnataka", "Dakshina Kannada"),
+    ("Karavali Institute of Technology Â· ECE", "college", "Karnataka", "Dakshina Kannada"),
     ("Netravati Arts & Science College", "college", "Karnataka", "Dakshina Kannada"),
     ("Udupi Coastal Engineering College", "college", "Karnataka", "Udupi"),
     ("Mysuru Heritage University", "college", "Karnataka", "Mysuru"),
@@ -428,7 +549,7 @@ def seed_community(db: Session, rng: random.Random, now: datetime, donors: list[
         team, members = teams[team_idx] if team_idx is not None else (None, [])
         hosp = next((h for h in hospitals if h.city == district), None)
         organizer = team.name if team else (hosp.name if hosp else f"District Blood Bank, {district}")
-        venue = (f"Main auditorium, {team.name.split(' · ')[0]}" if team and team.kind == "college"
+        venue = (f"Main auditorium, {team.name.split(' Â· ')[0]}" if team and team.kind == "college"
                  else "Community hall" if team else hosp.name if hosp else f"District Hospital, {district}")
         camp = Camp(title=title, organizer=organizer, team_id=team.id if team else None, venue=venue, city=district, state=state,
                     starts_at=starts, ends_at=starts + timedelta(hours=7), expected_donors=expected,
@@ -447,7 +568,7 @@ def seed_community(db: Session, rng: random.Random, now: datetime, donors: list[
             rsvp = CampRSVP(camp_id=camp.id, user_id=u.id, created_at=camp.created_at + timedelta(days=rng.uniform(0, 9)))
             if days < 0 and rng.random() < 0.8:
                 rsvp.status, rsvp.attended_at = "Attended", starts + timedelta(hours=rng.uniform(0.5, 6.5))
-                earn(u, 100, f"Camp donation — {title}", rsvp.attended_at)
+                earn(u, 100, f"Camp donation â€” {title}", rsvp.attended_at)
                 times.append(rsvp.attended_at)
                 donation_times[u.id] = times
                 u.last_donation_at = max(u.last_donation_at or rsvp.attended_at, rsvp.attended_at)
@@ -572,7 +693,7 @@ if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")  # Windows consoles default to cp1252
     if "--reset" in sys.argv:
         reset_and_seed()
-        print("✅ Database reset and seed data inserted!")
+        print("âœ… Database reset and seed data inserted!")
     else:
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
@@ -581,12 +702,12 @@ if __name__ == "__main__":
                 n = clear_demo(db)
                 seed(db)
                 mark_seeded(db)
-                print(f"✅ Replaced {n} demo accounts with fresh demo data (Telegram-linked accounts kept).")
+                print(f"âœ… Replaced {n} demo accounts with fresh demo data (Telegram-linked accounts kept).")
             elif db.query(User).count():
                 print("Database already has data. Use --refresh or --reset.")
             else:
                 seed(db)
                 mark_seeded(db)
-                print("✅ Seed data inserted!")
+                print("âœ… Seed data inserted!")
         finally:
             db.close()
