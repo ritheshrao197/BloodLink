@@ -1114,4 +1114,6 @@ if DIST.is_dir():
         file = (DIST / path).resolve()
         if path and file.is_file() and DIST in file.parents:
             return FileResponse(file)
-        return FileResponse(DIST / "index.html")  # client-side routes like /sos, /profile
+        # client-side routes like /sos, /profile. Never cache the page itself: it names the current build's
+        # hashed bundles, so a stale copy keeps showing the old app after a deploy.
+        return FileResponse(DIST / "index.html", headers={"Cache-Control": "no-cache"})
