@@ -97,15 +97,27 @@ awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_123
   achievement and on the profile. They share natively on phones (image straight to WhatsApp or Instagram), or via
   WhatsApp/Telegram/X/LinkedIn/Facebook links, or as a download.
 
-### Showcase account
+### Showcase accounts
 
-Sign in with demo code **`USER_77777`** (the sign-in panel offers it as a chip while `DEMO_LOGIN=1`) to see everything
-unlocked. **Sinchana** is an AB- donor since 2012 with a full history that genuinely earns all 54 achievements:
-- 53 SOS donations and 3 camp donations, always at least 90 days apart, across five states;
-- 5-minute and 2 AM responses, plus donations on New Year's Day, during Diwali and in the rain;
-- 55 friends referred;
-- verified, Admin's Favorite and a member of The Bloodline Squad, with his location shared;
-- eligible to donate today.
+Four long-time donors whose real histories earn (almost) every achievement. While `DEMO_LOGIN=1` the sign-in panel offers
+each one as a chip, showing their live achievement count:
+
+| Code | Donor | Blood | Achievements | Missing |
+|---|---|---|---|---|
+| `USER_77777` | **Sinchana** | AB- | 54/54 | nothing (90-day interval: two years of unbroken quarters) |
+| `USER_77701` | **Sanjana** | O- | 51/54 | Iron Will, Hot Streak Platinum, The Unicorn (not AB-) |
+| `USER_77702` | **Varsha** | AB- | 51/54 | Iron Will, Hot Streak Platinum, Bloodline Ambassador (40 referrals) |
+| `USER_77703` | **Vrusha** | B+ | 50/54 | Iron Will, Hot Streak Platinum, The Unicorn, Bloodline Royalty (42 donations) |
+
+All four have:
+- donations at least the safe interval apart (90 days for Sinchana, 120 for the others), across five states;
+- 5-minute and 2 AM responses, donations on New Year's Day, at a festival and in the rain, and 3 camp donations;
+- verified status and Admin's Favorite;
+- membership of The Bloodline Squad and a shared location;
+- eligibility to donate today.
+
+With a 120-day interval you can't donate in eight quarters in a row, so Iron Will is out of reach. Sanjana, Varsha and Vrusha each still
+have one perfect year (January, May, August, December) for Unstoppable.
 
 ### Demo data that stays alive
 

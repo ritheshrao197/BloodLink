@@ -78,7 +78,7 @@ function FlowStatus({ state }) {
 /** Sign-in panel: Telegram (real accounts) and, while the server allows it, demo-account codes. */
 export default function SignInByCode({ onSignedIn, demo = true }) {
   const { signIn, config } = useSession();
-  const { t } = useI18n();
+  const { t, num } = useI18n();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -130,15 +130,20 @@ export default function SignInByCode({ onSignedIn, demo = true }) {
             </button>
           </div>
           <p className="text-[11px] text-slate-500">{t('auth.demoHint')}</p>
-          {config.demo_hero_code && (
-            <button
-              type="button"
-              onClick={() => setCode(config.demo_hero_code)}
-              className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1 font-mono text-xs font-bold text-amber-500 hover:bg-amber-500/20"
-              title="Sinchana · 54/54"
-            >
-              ⭐ {config.demo_hero_code} · 54/54 🏅
-            </button>
+          {config.demo_heroes?.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {config.demo_heroes.map((h) => (
+                <button
+                  key={h.code}
+                  type="button"
+                  onClick={() => setCode(h.code)}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-500 hover:bg-amber-500/20"
+                  title={`${h.code} · ${h.achievements}/${h.total}`}
+                >
+                  ⭐ {h.name} · {num(h.achievements)}/{num(h.total)} 🏅
+                </button>
+              ))}
+            </div>
           )}
           <ErrorBox error={error} />
         </form>

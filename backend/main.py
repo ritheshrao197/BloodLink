@@ -187,7 +187,17 @@ def health():
 
 
 @app.get("/api/config")
-def config():
+def config(db: Session = Depends(get_db)):
+    heroes = []
+    if auth.DEMO_LOGIN:  # showcase accounts, each with (almost) every achievement
+        import seed_data
+        codes = [h["code"] for h in seed_data.HEROES]
+        counts = dict(db.query(User.referral_code, func.count(UserAchievement.id))
+                      .join(UserAchievement, UserAchievement.user_id == User.id)
+                      .filter(User.referral_code.in_(codes), User.is_demo.is_(True)).group_by(User.referral_code).all())
+        names = dict(db.query(User.referral_code, User.name).filter(User.referral_code.in_(codes), User.is_demo.is_(True)).all())
+        heroes = [{"code": c, "name": names[c], "achievements": counts.get(c, 0), "total": len(achievements.CATALOG)}
+                  for c in codes if c in names]
     return {
         "blood_groups": logic.BLOOD_GROUPS,
         "compatibility": logic.COMPATIBILITY,
@@ -202,7 +212,8 @@ def config():
         "telegram_enabled": notifier.enabled(),
         "telegram_login": notifier.enabled(),
         "demo_login": auth.DEMO_LOGIN,
-        "demo_hero_code": "USER_77777" if auth.DEMO_LOGIN else None,  # showcase account with every achievement
+        "demo_hero_code": heroes[0]["code"] if heroes else None,  # kept for older clients
+        "demo_heroes": heroes,
         "admin_password_login": bool(auth.ADMIN_PASSWORD),
     }
 
