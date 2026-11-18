@@ -97,6 +97,20 @@ awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_123
   achievement and on the profile. They share natively on phones (image straight to WhatsApp or Instagram), or via
   WhatsApp/Telegram/X/LinkedIn/Facebook links, or as a download.
 
+### Demo data that stays alive
+
+- **Self-healing:** at startup the server seeds an empty database. It refreshes the demo data when `SEED_VERSION` changes, or
+  whenever demo data is missing (fewer than 50 demo donors). The refresh runs in **one transaction**, so the site is never seen
+  empty, and a failure leaves the old data in place. Only rows flagged `is_demo` are replaced; real accounts (Telegram,
+  web-registered, admin) and real SOS requests are kept.
+- **Demo activity** (on while `DEMO_LOGIN=1`; `DEMO_PULSE=0` turns it off):
+  - a new realistic SOS appears every 15–35 minutes;
+  - demo donors pledge at realistic speeds (Critical fastest);
+  - stale requests close after about a day.
+
+  Simulated requests never message anyone on Telegram and never escalate.
+- **Live activity strip** on the home page: the latest pledges, shown as first name and surname initial only.
+
 ### Nearest donors first
 
 - **Opt-in location:** donors share their location once (the profile's "Nearby alerts" card, or Telegram's 📍 button). It's

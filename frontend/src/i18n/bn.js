@@ -131,6 +131,8 @@ export default {
     registerDonor: 'রক্তদাতা হিসেবে নিবন্ধন করুন',
     haveCode: 'আমার কাছে ইতিমধ্যে একটি কোড আছে',
     topHeroes: 'শীর্ষ নায়করা',
+    activityTitle: "লাইভ কার্যকলাপ",
+    activityLine: "{name} {hospital}-এ রক্তদানের অঙ্গীকার করেছেন",
   },
   request: {
     needed: '{group} প্রয়োজন',

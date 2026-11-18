@@ -112,6 +112,8 @@ export default {
     registerDonor: 'ದಾನಿಯಾಗಿ ನೋಂದಾಯಿಸಿ',
     haveCode: 'ನನ್ನ ಬಳಿ ಈಗಾಗಲೇ ಕೋಡ್ ಇದೆ',
     topHeroes: 'ಅಗ್ರ ವೀರರು',
+    activityTitle: "ಲೈವ್ ಚಟುವಟಿಕೆ",
+    activityLine: "{name} {hospital} ನಲ್ಲಿ ದಾನಕ್ಕೆ ಮುಂದಾದರು",
   },
   request: {
     needed: '{group} ಬೇಕಾಗಿದೆ',

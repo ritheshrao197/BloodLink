@@ -67,6 +67,7 @@ class BloodRequest(Base):
     notified_count = Column(Integer, default=0)
     lat = Column(Float, nullable=True)  # hospital / requester location (or district centre)
     lng = Column(Float, nullable=True)
+    is_demo = Column(Boolean, default=False)  # simulated demo traffic: never alerts anyone on Telegram
     alert_ring = Column(Integer, default=0)  # widest alert circle sent so far
     next_ring_at = Column(DateTime, nullable=True)  # when to widen if still unfulfilled (None = done)
     created_at = Column(DateTime, default=utcnow)

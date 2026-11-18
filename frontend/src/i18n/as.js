@@ -131,6 +131,8 @@ export default {
     registerDonor: 'ৰক্তদাতা হিচাপে পঞ্জীয়ন কৰক',
     haveCode: 'মোৰ ওচৰত ইতিমধ্যে এটা ক’ড আছে',
     topHeroes: 'শীৰ্ষ নায়কসকল',
+    activityTitle: "লাইভ কাৰ্যকলাপ",
+    activityLine: "{name}এ {hospital}ত ৰক্তদানৰ প্ৰতিশ্ৰুতি দিলে",
   },
   request: {
     needed: '{group} প্ৰয়োজন',

@@ -112,6 +112,8 @@ export default {
     registerDonor: 'डोनर के रूप में रजिस्टर करें',
     haveCode: 'मेरे पास पहले से कोड है',
     topHeroes: 'टॉप हीरो',
+    activityTitle: "लाइव गतिविधि",
+    activityLine: "{name} ने {hospital} में रक्तदान का वादा किया",
   },
   request: {
     needed: '{group} चाहिए',

@@ -25,7 +25,7 @@ import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "7"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "8"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -250,7 +250,8 @@ def seed(db: Session) -> None:
                            city=district, state=state, units_needed=units, units_fulfilled=0, urgency=urgency,
                            status="Active", is_verified=by_hospital or rng.random() < 0.55,
                            contact_phone=local_h[0].phone if by_hospital else phone(rng),
-                           requester_language=pick(rng, LANG_BY_STATE.get(state, {"en": 1})), created_at=created)
+                           requester_language=pick(rng, LANG_BY_STATE.get(state, {"en": 1})), created_at=created,
+                           is_demo=True)
         centre = geo.DISTRICT_CENTRES.get(district)
         if centre:  # hospitals sit near the district's main town
             req.lat = geo.round_coord(centre[0] + rng.gauss(0, 0.02))
@@ -478,12 +479,27 @@ def mark_seeded(db: Session) -> None:
     db.commit()
 
 
-def clear_demo(db: Session) -> int:
-    """Delete demo data. Accounts linked to Telegram, and SOS requests made from Telegram, are real and kept."""
-    demo_users = [i for (i,) in db.query(User.id).filter(User.telegram_id.is_(None))]
-    demo_reqs = [i for (i,) in db.query(BloodRequest.id).filter(BloodRequest.requester_telegram_id.is_(None))]
-    from models import SosAlert
+def clear_demo(db: Session, commit: bool = True) -> int:
+    """Delete demo data only. Real accounts (Telegram-linked, web-registered, admin) and real SOS requests are kept.
 
+    Demo rows are flagged is_demo. Databases seeded before that flag existed fall back to the old rule
+    (no Telegram link), still sparing admins and anyone who has signed in.
+    """
+    from models import AuthSession, LoginRequest, SosAlert
+
+    if db.query(User.id).filter(User.is_demo.is_(True)).first():
+        demo_users = [i for (i,) in db.query(User.id).filter(User.is_demo.is_(True))]
+    else:
+        signed_in = {i for (i,) in db.query(AuthSession.user_id)}
+        demo_users = [i for (i,) in db.query(User.id).filter(User.telegram_id.is_(None), User.is_admin.isnot(True))
+                      if i not in signed_in]
+    if db.query(BloodRequest.id).filter(BloodRequest.is_demo.is_(True)).first():
+        demo_reqs = [i for (i,) in db.query(BloodRequest.id).filter(BloodRequest.is_demo.is_(True))]
+    else:
+        demo_reqs = [i for (i,) in db.query(BloodRequest.id).filter(BloodRequest.requester_telegram_id.is_(None))]
+
+    db.query(AuthSession).filter(AuthSession.user_id.in_(demo_users)).delete(synchronize_session=False)
+    db.query(LoginRequest).filter(LoginRequest.user_id.in_(demo_users)).delete(synchronize_session=False)
     db.query(SosAlert).filter(or_(SosAlert.user_id.in_(demo_users), SosAlert.request_id.in_(demo_reqs))).delete(synchronize_session=False)
     db.query(Donation).filter(or_(Donation.donor_id.in_(demo_users), Donation.request_id.in_(demo_reqs))) \
         .delete(synchronize_session=False)
@@ -506,21 +522,38 @@ def clear_demo(db: Session) -> int:
     db.query(User).filter(User.id.in_(demo_users)).delete(synchronize_session=False)
     for u in db.query(User):  # kept accounts may have pledged to demo requests that are now gone
         u.total_donations = db.query(Donation).filter(Donation.donor_id == u.id).count()
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     return len(demo_users)
 
 
+MIN_DEMO_DONORS = 50  # fewer than this at startup = demo data is missing or broken: re-seed
+
+
 def auto_seed(db: Session) -> str | None:
-    """Startup hook: seed an empty database, or refresh demo data once when SEED_VERSION changes."""
+    """Startup hook: make sure the demo network is there.
+
+    Seeds an empty database; refreshes demo data when SEED_VERSION changes or when it is missing (self-healing).
+    The refresh runs in ONE transaction (delete + re-create + commit), so visitors never see an empty site.
+    """
     if db.query(User).count() == 0:
         seed(db)
         mark_seeded(db)
         return "seeded empty database"
-    if seed_version(db) != SEED_VERSION:
-        removed = clear_demo(db)
-        seed(db)
+    demo_donors = db.query(User).filter(User.is_demo.is_(True), User.role == "donor").count()
+    outdated = seed_version(db) != SEED_VERSION
+    if outdated or demo_donors < MIN_DEMO_DONORS:
+        try:
+            removed = clear_demo(db, commit=False)
+            seed(db)  # commits the whole replacement at once
+        except Exception:
+            db.rollback()  # leave the previous data untouched
+            raise
         mark_seeded(db)
-        return f"refreshed demo data to v{SEED_VERSION} (replaced {removed} demo accounts, kept Telegram-linked ones)"
+        why = f"new version v{SEED_VERSION}" if outdated else f"only {demo_donors} demo donors found"
+        return f"refreshed demo data ({why}; replaced {removed} demo accounts, real accounts kept)"
     return None
 
 

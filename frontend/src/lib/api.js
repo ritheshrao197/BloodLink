@@ -60,6 +60,7 @@ export const api = {
   register: (body) => request('/register', { method: 'POST', body }),
   user: (id) => request(`/users/${id}`),
   stats: () => request('/stats'),
+  recentActivity: () => request('/activity/recent'),
   setLocation: (id, pos) => request(`/users/${id}/location`, { method: 'PATCH', body: pos }),
   clearLocation: (id) => request(`/users/${id}/location`, { method: 'DELETE' }),
   auth: {

@@ -131,6 +131,8 @@ export default {
     registerDonor: 'கொடையாளராகப் பதிவு செய்க',
     haveCode: 'என்னிடம் ஏற்கனவே குறியீடு உள்ளது',
     topHeroes: 'சிறந்த நாயகர்கள்',
+    activityTitle: "நேரலை செயல்பாடு",
+    activityLine: "{name} {hospital} இல் தானம் செய்ய முன்வந்தார்",
   },
   request: {
     needed: '{group} தேவை',

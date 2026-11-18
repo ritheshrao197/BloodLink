@@ -23,6 +23,7 @@ export default function Home() {
   const stats = usePoll(() => api.stats(), 15000);
   const board = usePoll(() => api.leaderboard(5), 15000);
   const catalog = usePoll(() => api.achievements(), 0);
+  const activity = usePoll(() => api.recentActivity(), 10000);
 
   const requests = (feed.data || []).filter((r) =>
     filter === 'All' ? true : filter === 'Mine' ? user && canDonate(user.blood_group, r.blood_group) : r.blood_group === filter,
@@ -202,6 +203,7 @@ export default function Home() {
 
         <aside className="space-y-4 lg:pt-14">
           {user ? <ProfileWidget user={user} /> : <JoinWidget />}
+          <LiveActivity data={activity.data} />
           <TopHeroes data={board.data} loading={board.loading} me={user?.id} />
         </aside>
       </div>
@@ -302,6 +304,35 @@ function ProfileWidget({ user }) {
           {t('home.fromBlp')} <ChevronRight className="h-4 w-4 text-slate-500" aria-hidden />
         </span>
       </Link>
+    </div>
+  );
+}
+
+function LiveActivity({ data }) {
+  const { t, ago } = useI18n();
+  if (!data?.length) return null;
+  return (
+    <div className="card p-5">
+      <p className="overline flex items-center gap-2">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+        {t('home.activityTitle')}
+      </p>
+      <ul className="mt-3 space-y-2.5">
+        {data.slice(0, 5).map((a, i) => (
+          <li key={`${a.created_at}-${i}`} className="flex gap-2.5 text-sm">
+            <BloodTag group={a.blood_group} size="sm" />
+            <span className="min-w-0">
+              <span className="block truncate text-slate-300">{t('home.activityLine', { name: a.name, hospital: a.hospital })}</span>
+              <span className="text-xs text-slate-500">
+                {a.city} · {ago(a.created_at)}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

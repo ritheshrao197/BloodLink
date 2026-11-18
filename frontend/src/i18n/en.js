@@ -112,6 +112,8 @@ export default {
     registerDonor: 'Register as a donor',
     haveCode: 'I already have a code',
     topHeroes: 'Top heroes',
+    activityTitle: "Live activity",
+    activityLine: "{name} pledged at {hospital}",
   },
   request: {
     needed: '{group} Needed',

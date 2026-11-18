@@ -16,6 +16,7 @@ import database  # noqa: F401  (loads .env before notifier reads the token)
 import achievements
 import auth
 import community
+import demo_pulse
 import eligibility
 import geo
 import reminders
@@ -41,7 +42,7 @@ def migrate() -> None:
                              "is_admin": "BOOLEAN DEFAULT FALSE", "is_demo": "BOOLEAN DEFAULT FALSE",
                              "lat": "FLOAT", "lng": "FLOAT", "location_at": "TIMESTAMP"},
                    "requests": {"state": "VARCHAR", "requester_language": "VARCHAR", "lat": "FLOAT", "lng": "FLOAT",
-                                "alert_ring": "INTEGER DEFAULT 0", "next_ring_at": "TIMESTAMP"},
+                                "alert_ring": "INTEGER DEFAULT 0", "next_ring_at": "TIMESTAMP", "is_demo": "BOOLEAN DEFAULT FALSE"},
                    "donations": {"weather": "VARCHAR"}}
     insp = inspect(engine)
     with engine.begin() as conn:
@@ -74,6 +75,8 @@ async def lifespan(_app: FastAPI):
 
             if done := auto_seed(db):
                 log.info("Demo data: %s (set AUTO_SEED=0 to disable)", done)
+        except Exception:  # noqa: BLE001  (never block startup: the previous data stays in place)
+            log.exception("Demo data refresh failed; keeping existing data")
         finally:
             db.close()
     db = SessionLocal()
@@ -93,6 +96,7 @@ async def lifespan(_app: FastAPI):
     log.info("Telegram notifications %s", "ENABLED" if notifier.enabled() else "DISABLED (no TELEGRAM_BOT_TOKEN)")
     reminders.start()
     threading.Thread(target=_escalation_loop, name="sos-escalation", daemon=True).start()
+    demo_pulse.start()
     yield
 
 
@@ -522,7 +526,8 @@ def send_rings(db: Session, req: BloodRequest, upto: int) -> int:
     for u, r, d in batch:
         db.add(SosAlert(request_id=req.id, user_id=u.id, ring=r, distance_km=round(d, 2) if d is not None else None))
     db.commit()
-    targets = [{"telegram_id": u.telegram_id, "language": u.language, "km": geo.shown_km(d)} for u, _, d in batch if u.telegram_id]
+    targets = [] if req.is_demo else [  # simulated demo requests never message real people
+        {"telegram_id": u.telegram_id, "language": u.language, "km": geo.shown_km(d)} for u, _, d in batch if u.telegram_id]
     sent = notifier.broadcast_sos(request_out(req), targets) if targets else 0
     req.notified_count = (req.notified_count or 0) + sent
     db.commit()
@@ -802,6 +807,20 @@ def redeem(reward_id: int, body: RedeemBody, db: Session = Depends(get_db), a: a
     notifier.notify_t(user.telegram_id, user.language, "redeemed", reward=notifier.esc(reward["name"]), code=code)
     return {"status": "success", "voucher_code": code, "reward": reward["name"],
             "points_remaining": user.points, "badge": user.badge}
+
+
+@app.get("/api/activity/recent")
+def recent_activity(limit: int = 8, db: Session = Depends(get_db)):
+    """Latest pledges for the home page ticker (first name + initial only)."""
+    rows = (db.query(Donation, BloodRequest, User).join(BloodRequest, Donation.request_id == BloodRequest.id)
+            .join(User, Donation.donor_id == User.id).order_by(Donation.created_at.desc()).limit(min(limit, 20)).all())
+
+    def short(name: str) -> str:
+        parts = name.split()
+        return f"{parts[0]} {parts[-1][0]}." if len(parts) > 1 else parts[0]
+
+    return [{"name": short(u.name), "blood_group": u.blood_group, "hospital": r.hospital, "city": r.city,
+             "badge": u.badge, "created_at": iso(d.created_at)} for d, r, u in rows]
 
 
 # ---------------------------------------------------------------- public stats (home page)

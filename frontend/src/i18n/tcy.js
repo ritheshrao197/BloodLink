@@ -112,6 +112,8 @@ export default {
     registerDonor: 'ದಾನಿಯಾದ್ ನೋಂದಣಿ ಮಲ್ಪುಲೆ',
     haveCode: 'ಎನಡ ಇತ್ತೆನೇ ಕೋಡ್ ಉಂಡು',
     topHeroes: 'ಅಗ್ರ ವೀರೆರ್',
+    activityTitle: "ಲೈವ್ ಚಟುವಟಿಕೆ",
+    activityLine: "{name} {hospital} ಡ್ ದಾನೊಗು ಮುಂದೆ ಬತ್ತೆರ್",
   },
   request: {
     needed: '{group} ಬೋಡಾತ್ಂಡ್',

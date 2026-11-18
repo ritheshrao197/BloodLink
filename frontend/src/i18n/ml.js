@@ -112,6 +112,8 @@ export default {
     registerDonor: 'ദാതാവായി രജിസ്റ്റർ ചെയ്യുക',
     haveCode: 'എന്റെ പക്കൽ ഇതിനകം കോഡ് ഉണ്ട്',
     topHeroes: 'മികച്ച നായകന്മാർ',
+    activityTitle: "തത്സമയ പ്രവർത്തനം",
+    activityLine: "{name} {hospital}-ൽ ദാനം വാഗ്ദാനം ചെയ്തു",
   },
   request: {
     needed: '{group} ആവശ്യമുണ്ട്',

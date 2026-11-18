@@ -112,6 +112,8 @@ export default {
     registerDonor: 'रक्तदातो म्हणून नोंदणी करात',
     haveCode: 'म्हजे कडेन पयलींच कोड आसा',
     topHeroes: 'मुखेल हिरो',
+    activityTitle: "लायव्ह हालचाल",
+    activityLine: "{name} हांणी {hospital} हांगा दान करपाचें उतर दिलें",
   },
   request: {
     needed: '{group} जाय',
