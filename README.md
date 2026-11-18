@@ -97,6 +97,21 @@ awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_123
   achievement and on the profile. They share natively on phones (image straight to WhatsApp or Instagram), or via
   WhatsApp/Telegram/X/LinkedIn/Facebook links, or as a download.
 
+### Sign-in and security
+
+- **Log in with Telegram.** The site gets a one-time link (`t.me/<bot>?start=login_<nonce>`), you tap Start, the bot
+  confirms who you are (Telegram vouches for the id), and the browser receives a session token. There are no passwords to leak.
+- **Sessions:** random 256-bit tokens, stored only as SHA-256, valid for 30 days, and revoked on sign-out. Registering on the
+  web signs you in straight away. Link Telegram afterwards (a one-time `link_<nonce>`) to sign in on other devices.
+- **Every action is checked on the server.** You can only donate, redeem, RSVP, change settings or read private data as
+  yourself. The bot is a trusted service (header `X-Bot-Secret`, derived from the bot token) and acts only for the Telegram user
+  who is messaging it.
+- **Admin portal:** sign in with `ADMIN_PASSWORD`, or with a Telegram account listed in `ADMIN_TELEGRAM_IDS`. A hospital account
+  can verify, fulfil or cancel requests at its own hospital.
+- **Demo mode:** with `DEMO_LOGIN=1`, *seeded demo accounts* can be opened by their code so judges can explore. Real accounts
+  never can, because referral codes are public invite codes. Set `DEMO_LOGIN=0` for real-world use.
+- Code: [backend/auth.py](backend/auth.py).
+
 ### Teams and donation camps
 
 - **Teams** (`/teams`): colleges, companies, communities and friend groups. Create a team, share its invite code, and climb the

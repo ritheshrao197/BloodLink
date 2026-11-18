@@ -1,74 +1,59 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { api } from './api';
+import { api, hasToken, setToken } from './api';
 
-const KEY = 'bloodlink_user_id';
 const SessionContext = createContext(null);
 
-function readId() {
-  try {
-    return Number(localStorage.getItem(KEY)) || null;
-  } catch {
-    return null;
-  }
-}
-function writeId(id) {
-  try {
-    if (id) localStorage.setItem(KEY, String(id));
-    else localStorage.removeItem(KEY);
-  } catch {
-    /* storage unavailable: session lasts for this tab only */
-  }
-}
-
-/** No passwords in the hackathon build: the "session" is just the selected user id. */
+/** The signed-in user, backed by a session token (Telegram login, registration, demo code or admin password). */
 export function SessionProvider({ children }) {
-  const [userId, setUserId] = useState(readId);
   const [user, setUser] = useState(null);
+  const [ready, setReady] = useState(!hasToken());
   const [config, setConfig] = useState(null);
 
   useEffect(() => {
     api.config().then(setConfig).catch(() => {});
+    try {
+      localStorage.removeItem('bloodlink_user_id'); // pre-login builds stored only an id: no longer trusted
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!userId) {
+    if (!hasToken()) {
       setUser(null);
+      setReady(true);
       return null;
     }
     try {
-      const u = await api.user(userId);
+      const u = await api.auth.me();
       setUser(u);
       return u;
     } catch (e) {
-      if (/not found/i.test(e.message)) {
-        writeId(null);
-        setUserId(null);
+      if (e.status === 401) {
+        setToken(null);
         setUser(null);
       }
       return null;
+    } finally {
+      setReady(true);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  const signIn = (u) => {
-    writeId(u.id);
-    setUserId(u.id);
+  const signIn = (u, token) => {
+    if (token) setToken(token);
     setUser(u);
   };
   const signOut = () => {
-    writeId(null);
-    setUserId(null);
+    api.auth.logout().catch(() => {});
+    setToken(null);
     setUser(null);
   };
 
-  return (
-    <SessionContext.Provider value={{ user, setUser, refresh, signIn, signOut, config }}>
-      {children}
-    </SessionContext.Provider>
-  );
+  return <SessionContext.Provider value={{ user, setUser, refresh, signIn, signOut, config, ready }}>{children}</SessionContext.Provider>;
 }
 
 export const useSession = () => useContext(SessionContext);

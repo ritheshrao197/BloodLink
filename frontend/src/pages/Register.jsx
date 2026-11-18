@@ -6,7 +6,7 @@ import { useSession } from '../lib/session';
 import { BLOOD_GROUPS, cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 import { CopyField, ErrorBox, PageHeader, Spinner } from '../components/ui';
-import SignInByCode from '../components/SignInByCode';
+import SignInByCode, { TelegramLinkButton } from '../components/SignInByCode';
 import LocationPicker from '../components/LocationPicker';
 
 export default function Register() {
@@ -27,7 +27,7 @@ export default function Register() {
     try {
       // the account remembers the language it was created in (used for Telegram alerts)
       const res = await api.register({ ...form, language: lang, referred_by: form.referred_by.trim() || null, phone: form.phone.trim() || null });
-      signIn(res.user);
+      signIn(res.user, res.token);
       setCreated(res.user);
     } catch (err) {
       setError(err);
@@ -58,9 +58,10 @@ export default function Register() {
             <CopyField label={t('register.tgInvite')} value={created.referral_link} />
             <CopyField label={t('register.webInvite')} value={created.web_referral_link} />
           </div>
-          <a href={created.telegram_link_url} target="_blank" rel="noreferrer" className="btn-primary mt-6 w-full from-sky-600 to-sky-700 shadow-sky-900/40">
-            <Send className="h-4 w-4" /> {t('register.linkTelegram')}
-          </a>
+          <div className="mt-6 text-left">
+            <TelegramLinkButton className="w-full" />
+            <p className="mt-2 text-xs text-slate-400">{t('auth.keepSafe')}</p>
+          </div>
           <Link to="/profile" className="btn-ghost mt-3 w-full">
             {t('register.dashboard')}
           </Link>

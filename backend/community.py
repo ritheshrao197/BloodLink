@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 import achievements
+import auth
 import eligibility
 import locations
 import logic
@@ -32,10 +33,12 @@ def iso(dt):
     return dt.isoformat() + "Z" if dt else None
 
 
-def _user(db: Session, user_id: int | None) -> User:
+def _user(db: Session, user_id: int | None, a: "auth.Actor | None" = None) -> User:
     user = db.get(User, user_id) if user_id else None
     if not user:
         raise HTTPException(404, "User not found. Sign in first.")
+    if a is not None:
+        auth.require_self(a, user)
     return user
 
 
@@ -116,8 +119,8 @@ def list_teams(kind: str | None = None, user_id: int | None = None, limit: int =
 
 
 @router.post("/teams")
-def create_team(body: TeamCreate, db: Session = Depends(get_db)):
-    user = _user(db, body.user_id)
+def create_team(body: TeamCreate, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    user = _user(db, body.user_id, a)
     if body.kind not in TEAM_KINDS:
         raise HTTPException(400, f"kind must be one of {', '.join(TEAM_KINDS)}")
     name = body.name.strip()
@@ -133,8 +136,8 @@ def create_team(body: TeamCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/teams/join")
-def join_team(body: TeamJoin, db: Session = Depends(get_db)):
-    user = _user(db, body.user_id)
+def join_team(body: TeamJoin, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    user = _user(db, body.user_id, a)
     team = db.query(Team).filter(Team.invite_code == body.invite_code.strip().upper()).first()
     if not team:
         raise HTTPException(404, "No team with that invite code.")
@@ -145,7 +148,8 @@ def join_team(body: TeamJoin, db: Session = Depends(get_db)):
 
 
 @router.post("/teams/{team_id}/leave")
-def leave_team(team_id: int, body: UserOnly, db: Session = Depends(get_db)):
+def leave_team(team_id: int, body: UserOnly, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    _user(db, body.user_id, a)
     db.query(TeamMember).filter_by(team_id=team_id, user_id=body.user_id).delete()
     db.commit()
     return {"status": "success"}
@@ -237,7 +241,10 @@ def _refresh_status(db: Session) -> None:
 
 
 @router.get("/camps")
-def list_camps(when: str = "upcoming", state: str | None = None, user_id: int | None = None, db: Session = Depends(get_db)):
+def list_camps(when: str = "upcoming", state: str | None = None, user_id: int | None = None, db: Session = Depends(get_db),
+               a: auth.Actor = Depends(auth.actor)):
+    if user_id and not (a.is_bot or (a.user and a.user.id == user_id)):
+        user_id = None
     _refresh_status(db)
     q = db.query(Camp)
     q = q.filter(Camp.status == "Upcoming").order_by(Camp.starts_at) if when == "upcoming" else \
@@ -252,8 +259,8 @@ def list_camps(when: str = "upcoming", state: str | None = None, user_id: int | 
 
 
 @router.post("/camps")
-def create_camp(body: CampCreate, db: Session = Depends(get_db)):
-    user = _user(db, body.user_id)
+def create_camp(body: CampCreate, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    user = _user(db, body.user_id, a)
     starts = body.starts_at.replace(tzinfo=None) if body.starts_at.tzinfo is None else \
         (body.starts_at - body.starts_at.utcoffset()).replace(tzinfo=None)
     if starts < utcnow():
@@ -283,9 +290,9 @@ def _rsvp_block(user: User, camp: Camp) -> list[dict]:
 
 
 @router.post("/camps/{camp_id}/rsvp")
-def rsvp(camp_id: int, body: UserOnly, db: Session = Depends(get_db)):
+def rsvp(camp_id: int, body: UserOnly, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     """Toggle the user's RSVP."""
-    user = _user(db, body.user_id)
+    user = _user(db, body.user_id, a)
     camp = db.get(Camp, camp_id)
     if not camp or camp.status != "Upcoming":
         raise HTTPException(404, "This camp is not open for registration.")
@@ -310,7 +317,8 @@ def rsvp(camp_id: int, body: UserOnly, db: Session = Depends(get_db)):
 
 
 @router.get("/camps/{camp_id}/attendees")
-def attendees(camp_id: int, user_id: int, db: Session = Depends(get_db)):
+def attendees(camp_id: int, user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    _user(db, user_id, a)
     camp = db.get(Camp, camp_id)
     if not camp:
         raise HTTPException(404, "Camp not found")
@@ -322,7 +330,8 @@ def attendees(camp_id: int, user_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/camps/{camp_id}/attend")
-def mark_attended(camp_id: int, body: Attend, db: Session = Depends(get_db)):
+def mark_attended(camp_id: int, body: Attend, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    _user(db, body.user_id, a)
     """Organiser confirms a donor donated at the camp: records the donation and awards points."""
     camp = db.get(Camp, camp_id)
     if not camp:
@@ -347,7 +356,8 @@ def mark_attended(camp_id: int, body: Attend, db: Session = Depends(get_db)):
 
 
 @router.get("/users/{user_id}/camps")
-def my_camps(user_id: int, db: Session = Depends(get_db)):
+def my_camps(user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    _user(db, user_id, a)
     rows = (db.query(CampRSVP, Camp).join(Camp, CampRSVP.camp_id == Camp.id)
             .filter(CampRSVP.user_id == user_id, CampRSVP.status != "Cancelled").order_by(Camp.starts_at.desc()).all())
     counts = _camp_counts(db, [c.id for _, c in rows])

@@ -20,3 +20,9 @@ services:
         sync: false
       - key: AUTO_SEED
         value: "1"
+      - key: ADMIN_PASSWORD # admin portal sign-in (choose a long random password)
+        sync: false
+      - key: ADMIN_TELEGRAM_IDS # optional: comma-separated Telegram user ids that are admins
+        sync: false
+      - key: DEMO_LOGIN # 1 = demo accounts can be opened by code; set 0 for real-world use
+        value: "1"

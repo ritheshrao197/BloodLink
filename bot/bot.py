@@ -9,6 +9,7 @@ donor's language; the "🩸 I Can Donate" button on them is handled here.
 """
 
 import html
+import hashlib
 import logging
 import os
 import re
@@ -76,10 +77,15 @@ class ApiError(Exception):
         self.data = data or {}
 
 
+# The backend trusts the bot as a service (it has already verified who the Telegram user is)
+BOT_SECRET = hashlib.sha256(f"bloodlink-bot:{TOKEN}".encode()).hexdigest() if TOKEN else ""
+
+
 async def api(method: str, path: str, **kwargs):
+    headers = {**kwargs.pop("headers", {}), "X-Bot-Secret": BOT_SECRET}
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.request(method, f"{API_URL}{path}", **kwargs)
+            r = await client.request(method, f"{API_URL}{path}", headers=headers, **kwargs)
     except httpx.HTTPError as exc:
         raise ApiError("server_down") from exc
     data = r.json() if r.content else {}
@@ -306,14 +312,24 @@ async def do_start(update: Update, context: ContextTypes.DEFAULT_TYPE, arg: str 
     lang = L(context)
     tg = update.effective_user
 
-    if arg and arg.startswith("link_"):  # deep link from the web dashboard
+    if arg and arg.startswith(("login_", "link_")):  # one-time sign-in / link links from the website
         try:
-            res = await api("POST", "/users/link-telegram", json={
-                "referral_code": arg[5:], "telegram_id": str(tg.id), "telegram_username": tg.username})
-            await api("PATCH", f"/users/by-telegram/{tg.id}/language", json={"language": lang})
-            await show_menu(update, context, t(lang, "linked", name=esc(res["user"]["name"])))
+            res = await api("POST", "/auth/telegram/confirm", json={
+                "nonce": arg.split("_", 1)[1], "telegram_id": str(tg.id), "telegram_username": tg.username})
         except ApiError as e:
-            await reply(update, err_text(lang, e))
+            return await reply(update, err_text(lang, e))
+        status = res["status"]
+        if status == "ok":
+            await show_menu(update, context, t(lang, "login_ok", name=esc(res["name"])))
+        elif status == "linked":
+            await api("PATCH", f"/users/by-telegram/{tg.id}/language", json={"language": lang})
+            await show_menu(update, context, t(lang, "linked", name=esc(res["name"])))
+        elif status == "taken":
+            await reply(update, t(lang, "link_taken", name=esc(res["name"])))
+        elif status == "not_registered":
+            await not_registered(update, context)
+        else:
+            await reply(update, t(lang, "login_expired"))
         return
 
     user = await current_user(update)

@@ -415,6 +415,24 @@ export default {
     achievement: 'Achievement unlocked: {name}',
     seed: 'Starting balance',
   },
+  // sign-in
+  auth: {
+    telegram: "Log in with Telegram",
+    waiting: "Waiting for Telegram… tap Start in the bot.",
+    openAgain: "Open Telegram again",
+    notRegistered: "This Telegram account isn't registered yet. Register first, then link Telegram.",
+    expired: "The sign-in link expired. Please try again.",
+    linkTaken: "That Telegram account is already linked to another BloodLink account.",
+    demoTitle: "Demo account",
+    demoHint: "Demo accounts only: use a demo donor's code.",
+    linkBtn: "Link Telegram",
+    keepSafe: "Link Telegram so you can sign in again on any device and get SOS alerts.",
+    adminTitle: "Admin sign-in",
+    adminHint: "Sign in with the admin password, or with a Telegram account listed as an admin on the server.",
+    adminPassword: "Admin password",
+    adminBtn: "Sign in as admin",
+    adminDenied: "This account is not an admin.",
+  },
   // teams and donation camps
   teams: {
     title: "Teams",

@@ -17,7 +17,7 @@ export default function Home() {
   const [filter, setFilter] = useState('All');
   const [respondTo, setRespondTo] = useState(null);
   const feed = usePoll(() => api.requests('Active'), 4000);
-  const stats = usePoll(() => api.admin.stats(), 15000);
+  const stats = usePoll(() => api.stats(), 15000);
   const board = usePoll(() => api.leaderboard(5), 15000);
   const catalog = usePoll(() => api.achievements(), 0);
 

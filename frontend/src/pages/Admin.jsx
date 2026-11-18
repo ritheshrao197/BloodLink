@@ -5,6 +5,8 @@ import { usePoll } from '../lib/usePoll';
 import { URGENCY, cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 import { useToast } from '../components/Toast';
+import { useSession } from '../lib/session';
+import { AdminSignIn } from '../components/SignInByCode';
 import { BadgeChip, BloodTag, ErrorBox, Loading, PageHeader, StatCard } from '../components/ui';
 
 const TABS = [
@@ -16,11 +18,20 @@ const TABS = [
 
 export default function Admin() {
   const { t } = useI18n();
+  const { user, ready } = useSession();
   const [tab, setTab] = useState('overview');
+  if (!ready) return <Loading />;
+  if (!user?.is_admin)
+    return (
+      <div>
+        <PageHeader icon={Shield} title={t('admin.title')} subtitle={t('admin.subtitle')} />
+        <AdminSignIn />
+      </div>
+    );
   return (
     <div>
       <PageHeader icon={Shield} title={t('admin.title')} subtitle={t('admin.subtitle')}>
-        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs text-amber-300">{t('admin.demo')}</span>
+        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">🔒 {user.name}</span>
       </PageHeader>
       <div className="mb-6 flex flex-wrap gap-1 rounded-xl bg-slate-900 p-1" role="tablist">
         {TABS.map(([key, Icon]) => (

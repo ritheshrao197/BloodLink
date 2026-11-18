@@ -1,12 +1,36 @@
+const TOKEN_KEY = 'bloodlink_token';
+let token = (() => {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+})();
+
+/** Session token for this browser (sent as a Bearer token). */
+export function setToken(value) {
+  token = value || null;
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage blocked: the session lasts for this tab */
+  }
+}
+export const hasToken = () => !!token;
+
 async function request(path, { method = 'GET', body, params } = {}) {
   const query = params
     ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString()
     : '';
   let res;
+  const headers = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  if (token) headers.Authorization = `Bearer ${token}`;
   try {
     res = await fetch(`/api${path}${query}`, {
       method,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
@@ -35,7 +59,15 @@ export const api = {
   locations: () => request('/locations'),
   register: (body) => request('/register', { method: 'POST', body }),
   user: (id) => request(`/users/${id}`),
-  userByCode: (code) => request(`/users/by-code/${enc(code)}`),
+  stats: () => request('/stats'),
+  auth: {
+    me: () => request('/auth/me'),
+    telegramStart: (purpose = 'login') => request('/auth/telegram/start', { method: 'POST', body: { purpose } }),
+    telegramPoll: (nonce) => request(`/auth/telegram/poll/${enc(nonce)}`),
+    demo: (code) => request('/auth/demo', { method: 'POST', body: { code } }),
+    admin: (password) => request('/auth/admin', { method: 'POST', body: { password } }),
+    logout: () => request('/auth/logout', { method: 'POST' }),
+  },
   activity: (id) => request(`/users/${id}/activity`),
   setLanguage: (id, language) => request(`/users/${id}/language`, { method: 'PATCH', body: { language } }),
   setAvailability: (id, isAvailable) =>

@@ -24,7 +24,7 @@ import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "5"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "6"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -156,7 +156,7 @@ def seed(db: Session) -> None:
         u = User(name=p["name"], blood_group=pick(rng, DONOR_GROUPS), city=p["district"], state=p["state"],
                  language=pick(rng, LANG_BY_STATE.get(p["state"], {"en": 1})), phone=phone(rng), role="donor",
                  referral_code=code(), points=0, total_donations=0, is_available=True,
-                 created_at=p["joined"], sex="female" if p["female"] else "male",
+                 created_at=p["joined"], sex="female" if p["female"] else "male", is_demo=True,
                  # most donors are 18-45; weights are realistic for eligible adults
                  date_of_birth=date(now.year - int(min(62, max(18, rng.gauss(29, 8)))), rng.randint(1, 12), rng.randint(1, 28)),
                  weight_kg=int(max(46, rng.gauss(58 if p["female"] else 70, 9))))
@@ -186,7 +186,7 @@ def seed(db: Session) -> None:
             if not name.startswith("Govt. District Hospital"):
                 hospitals.append(User(name=name, blood_group="O+", city=district, state=state, role="hospital",
                                       phone=f"+91 {rng.randint(20, 99)} {rng.randint(2000, 9999)} {rng.randint(1000, 9999)}",
-                                      referral_code=code(), points=0, is_verified=True, is_available=True,
+                                      referral_code=code(), points=0, is_verified=True, is_available=True, is_demo=True,
                                       created_at=now - timedelta(days=rng.randint(200, HISTORY_DAYS + 20))))
     db.add_all(hospitals)
 

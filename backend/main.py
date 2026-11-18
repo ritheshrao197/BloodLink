@@ -8,11 +8,13 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
 import database  # noqa: F401  (loads .env before notifier reads the token)
 import achievements
+import auth
 import community
 import eligibility
 import reminders
@@ -20,10 +22,11 @@ from database import Base, SessionLocal, engine, get_db
 import locations
 import logic
 import notifier
+import secrets
 import threading
 import weather
-from models import BloodRequest, Donation, PointLog, Referral, Reward, User, UserAchievement, utcnow
-from schemas import (AvailabilityBody, DonateBody, EligibilityBody, HealthBody, LanguageBody, LinkTelegramBody, RedeemBody, SOSCreate,
+from models import AuthSession, BloodRequest, Donation, LoginRequest, PointLog, Referral, Reward, User, UserAchievement, utcnow
+from schemas import (AvailabilityBody, DonateBody, EligibilityBody, HealthBody, LanguageBody, RedeemBody, SOSCreate,
                      UserCreate)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -33,7 +36,8 @@ log = logging.getLogger("bloodlink")
 def migrate() -> None:
     """Add columns introduced after v2.0 to existing SQLite files and map old city names to districts."""
     new_columns = {"users": {"state": "VARCHAR", "language": "VARCHAR DEFAULT 'en'", "available_since": "TIMESTAMP",
-                             "sex": "VARCHAR", "date_of_birth": "DATE", "weight_kg": "INTEGER", "deferred_until": "TIMESTAMP"},
+                             "sex": "VARCHAR", "date_of_birth": "DATE", "weight_kg": "INTEGER", "deferred_until": "TIMESTAMP",
+                             "is_admin": "BOOLEAN DEFAULT FALSE", "is_demo": "BOOLEAN DEFAULT FALSE"},
                    "requests": {"state": "VARCHAR", "requester_language": "VARCHAR"},
                    "donations": {"weather": "VARCHAR"}}
     insp = inspect(engine)
@@ -69,6 +73,12 @@ async def lifespan(_app: FastAPI):
                 log.info("Demo data: %s (set AUTO_SEED=0 to disable)", done)
         finally:
             db.close()
+    db = SessionLocal()
+    try:
+        if n := auth.promote_admins(db):
+            log.info("Admins from ADMIN_TELEGRAM_IDS: %d", n)
+    finally:
+        db.close()
     db = SessionLocal()
     try:  # award anything already earned (existing users after an upgrade, time-based ones like The Constant)
         unlocked = achievements.evaluate(db, db.query(User).filter(User.role == "donor").all())
@@ -129,7 +139,8 @@ def user_private(db: Session, u: User) -> dict:
         "extra_badges": extra_badges,
         "referral_link": f"https://t.me/{bot}?start={u.referral_code}",
         "web_referral_link": f"{WEB_URL}/register?ref={u.referral_code}",
-        "telegram_link_url": f"https://t.me/{bot}?start=link_{u.referral_code}",
+        "is_admin": bool(u.is_admin),
+        "is_demo": bool(u.is_demo),
         "referrals": stats,
         "achievements": achievements.showcase(db, [u.id])[u.id],
         "eligibility": eligibility.status(u) if u.role == "donor" else None,
@@ -179,6 +190,9 @@ def config():
         },
         "bot_username": notifier.bot_username(),
         "telegram_enabled": notifier.enabled(),
+        "telegram_login": notifier.enabled(),
+        "demo_login": auth.DEMO_LOGIN,
+        "admin_password_login": bool(auth.ADMIN_PASSWORD),
     }
 
 
@@ -199,7 +213,9 @@ def get_compatible(blood_group: str):
 
 # ---------------------------------------------------------------- users
 @app.post("/api/register")
-def register_user(body: UserCreate, db: Session = Depends(get_db)):
+def register_user(body: UserCreate, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    if body.telegram_id and not a.is_bot:
+        raise HTTPException(403, "Telegram accounts are linked through the bot.")
     if body.telegram_id and db.query(User).filter(User.telegram_id == body.telegram_id).first():
         raise HTTPException(409, "This Telegram account is already registered.")
 
@@ -232,19 +248,24 @@ def register_user(body: UserCreate, db: Session = Depends(get_db)):
                           name=notifier.esc(user.name), points=logic.POINTS_REFERRAL_REGISTER)
         db.flush()
         achievements.evaluate(db, [referrer])
+    token = None if a.is_bot else auth.new_session(db, user)  # the web registrant is signed in straight away
     db.commit()
     db.refresh(user)
     return {"status": "success", "user_id": user.id, "referral_code": user.referral_code,
-            "points": user.points, "user": user_private(db, user)}
+            "points": user.points, "user": user_private(db, user), "token": token}
 
 
 @app.get("/api/users/{user_id}")
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    return user_private(db, find_user(db, user_id=user_id))
+def get_user(user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    user = find_user(db, user_id=user_id)
+    if a.is_bot or a.is_admin or (a.user and a.user.id == user.id):
+        return user_private(db, user)
+    return user_public(user)
 
 
 @app.get("/api/users/by-code/{code}")
-def get_user_by_code(code: str, db: Session = Depends(get_db)):
+def get_user_by_code(code: str, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_admin(a)
     user = db.query(User).filter(func.upper(User.referral_code) == code.strip().upper()).first()
     if not user:
         raise HTTPException(404, "No user with that code")
@@ -252,13 +273,15 @@ def get_user_by_code(code: str, db: Session = Depends(get_db)):
 
 
 @app.get("/api/users/by-telegram/{telegram_id}")
-def get_user_by_telegram(telegram_id: str, db: Session = Depends(get_db)):
+def get_user_by_telegram(telegram_id: str, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_bot(a)
     return user_private(db, find_user(db, telegram_id=telegram_id))
 
 
 @app.get("/api/users/{user_id}/activity")
-def user_activity(user_id: int, db: Session = Depends(get_db)):
+def user_activity(user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
     logs = db.query(PointLog).filter(PointLog.user_id == user.id).order_by(PointLog.id.desc()).limit(30).all()
     donations = (
         db.query(Donation, BloodRequest).join(BloodRequest, Donation.request_id == BloodRequest.id)
@@ -282,20 +305,6 @@ def user_activity(user_id: int, db: Session = Depends(get_db)):
     }
 
 
-@app.post("/api/users/link-telegram")
-def link_telegram(body: LinkTelegramBody, db: Session = Depends(get_db)):
-    user = db.query(User).filter(func.upper(User.referral_code) == body.referral_code.strip().upper()).first()
-    if not user:
-        raise HTTPException(404, "No account with that code")
-    other = db.query(User).filter(User.telegram_id == body.telegram_id, User.id != user.id).first()
-    if other:
-        raise HTTPException(409, f"This Telegram account is already linked to {other.name}.")
-    user.telegram_id = body.telegram_id
-    user.telegram_username = body.telegram_username
-    db.commit()
-    return {"status": "success", "user": user_private(db, user)}
-
-
 def set_available(user: User, value: bool) -> None:
     if value and not user.is_available:
         user.available_since = utcnow()
@@ -305,15 +314,17 @@ def set_available(user: User, value: bool) -> None:
 
 
 @app.patch("/api/users/{user_id}/availability")
-def set_availability(user_id: int, body: AvailabilityBody, db: Session = Depends(get_db)):
+def set_availability(user_id: int, body: AvailabilityBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
     set_available(user, body.is_available)
     db.commit()
     return user_private(db, user)
 
 
 @app.patch("/api/users/by-telegram/{telegram_id}/availability")
-def set_availability_tg(telegram_id: str, body: AvailabilityBody, db: Session = Depends(get_db)):
+def set_availability_tg(telegram_id: str, body: AvailabilityBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_bot(a)
     user = find_user(db, telegram_id=telegram_id)
     set_available(user, body.is_available)
     db.commit()
@@ -321,16 +332,18 @@ def set_availability_tg(telegram_id: str, body: AvailabilityBody, db: Session = 
 
 
 @app.patch("/api/users/{user_id}/language")
-def set_language(user_id: int, body: LanguageBody, db: Session = Depends(get_db)):
+def set_language(user_id: int, body: LanguageBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     """Web language choice; Telegram messages follow it too."""
     user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
     user.language = body.language
     db.commit()
     return user_private(db, user)
 
 
 @app.patch("/api/users/by-telegram/{telegram_id}/language")
-def set_language_tg(telegram_id: str, body: LanguageBody, db: Session = Depends(get_db)):
+def set_language_tg(telegram_id: str, body: LanguageBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_bot(a)
     user = find_user(db, telegram_id=telegram_id)
     user.language = body.language
     db.commit()
@@ -354,9 +367,10 @@ def eligibility_questions(sex: str | None = None):
 
 
 @app.post("/api/eligibility/check")
-def eligibility_check(body: EligibilityBody, db: Session = Depends(get_db)):
+def eligibility_check(body: EligibilityBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     """Run the pre-donation check without donating (records any deferral)."""
     user = find_user(db, user_id=body.user_id, telegram_id=body.telegram_id)
+    auth.require_self(a, user)
     _save_health(user, body.screening.health)
     result = eligibility.check(user, body.screening.model_dump())
     db.commit()
@@ -364,17 +378,19 @@ def eligibility_check(body: EligibilityBody, db: Session = Depends(get_db)):
 
 
 @app.patch("/api/users/{user_id}/health")
-def set_health(user_id: int, body: HealthBody, db: Session = Depends(get_db)):
+def set_health(user_id: int, body: HealthBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
     _save_health(user, body)
     db.commit()
     return user_private(db, user)
 
 
 @app.delete("/api/users/{user_id}/deferral")
-def clear_deferral(user_id: int, db: Session = Depends(get_db)):
+def clear_deferral(user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     """The donor answered a screening question by mistake: lift the self-reported deferral."""
     user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
     user.deferred_until = None
     db.commit()
     return user_private(db, user)
@@ -402,7 +418,7 @@ def search_donors(
 
 @app.get("/api/leaderboard")
 def leaderboard(limit: int = 10, db: Session = Depends(get_db)):
-    users = db.query(User).order_by(User.points.desc(), User.id).limit(min(limit, 100)).all()
+    users = db.query(User).filter(User.role != "admin").order_by(User.points.desc(), User.id).limit(min(limit, 100)).all()
     counts = dict(
         db.query(Referral.referrer_id, func.count(Referral.id)).group_by(Referral.referrer_id).all()
     )
@@ -481,7 +497,7 @@ def get_request(request_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/donate/{request_id}")
-def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db)):
+def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     if not body.confirmed:
         raise HTTPException(400, "Please confirm this donation is real.")
     req = db.get(BloodRequest, request_id)
@@ -490,6 +506,7 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db)):
     if req.status != "Active":
         raise HTTPException(400, f"This request is already {req.status.lower()}. Thank you anyway! 🙏")
     donor = find_user(db, user_id=body.user_id, telegram_id=body.donor_telegram_id)
+    auth.require_self(a, donor)
     if not logic.can_donate(donor.blood_group, req.blood_group):
         raise HTTPException(400, f"{donor.blood_group} cannot donate to a {req.blood_group} patient. "
                                  f"Compatible groups: {', '.join(logic.compatible_donor_groups(req.blood_group))}.")
@@ -603,18 +620,22 @@ def _collection(db: Session, user: User) -> dict:
 
 
 @app.get("/api/users/{user_id}/achievements")
-def user_achievements(user_id: int, db: Session = Depends(get_db)):
-    return _collection(db, find_user(db, user_id=user_id))
+def user_achievements(user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
+    return _collection(db, user)
 
 
 @app.get("/api/users/by-telegram/{telegram_id}/achievements")
-def user_achievements_tg(telegram_id: str, db: Session = Depends(get_db)):
+def user_achievements_tg(telegram_id: str, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_bot(a)
     return _collection(db, find_user(db, telegram_id=telegram_id))
 
 
 @app.post("/api/users/{user_id}/achievements/seen")
-def achievements_seen(user_id: int, db: Session = Depends(get_db)):
+def achievements_seen(user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
     db.query(UserAchievement).filter(UserAchievement.user_id == user.id).update({"is_new": False})
     db.commit()
     return {"status": "success"}
@@ -627,11 +648,12 @@ def rewards():
 
 
 @app.post("/api/redeem/{reward_id}")
-def redeem(reward_id: int, body: RedeemBody, db: Session = Depends(get_db)):
+def redeem(reward_id: int, body: RedeemBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     reward = logic.get_reward(reward_id)
     if not reward:
         raise HTTPException(404, "Reward not found")
     user = find_user(db, user_id=body.user_id, telegram_id=body.telegram_id)
+    auth.require_self(a, user)
     if user.points < reward["cost"]:
         raise HTTPException(400, f"Not enough BLP: {reward['name']} costs {reward['cost']}, you have {user.points}.")
     logic.award(db, user, -reward["cost"], f"Redeemed {reward['name']}")
@@ -644,9 +666,22 @@ def redeem(reward_id: int, body: RedeemBody, db: Session = Depends(get_db)):
             "points_remaining": user.points, "badge": user.badge}
 
 
-# ---------------------------------------------------------------- admin (no auth in hackathon build)
+# ---------------------------------------------------------------- public stats (home page)
+@app.get("/api/stats")
+def public_stats(db: Session = Depends(get_db)):
+    s = _stats(db)
+    return {"totals": {k: v for k, v in s["totals"].items() if k != "points_in_circulation"},
+            "avg_response_minutes": s["avg_response_minutes"]}
+
+
+# ---------------------------------------------------------------- admin (admin sign-in required)
 @app.get("/api/admin/stats")
-def admin_stats(db: Session = Depends(get_db)):
+def admin_stats(db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_admin(a)
+    return _stats(db)
+
+
+def _stats(db: Session) -> dict:
     def by_group(rows):
         d = dict(rows)
         return [{"blood_group": g, "count": d.get(g, 0)} for g in logic.BLOOD_GROUPS]
@@ -669,6 +704,8 @@ def admin_stats(db: Session = Depends(get_db)):
         "totals": {
             "users": db.query(User).count(),
             "donors": db.query(User).filter(User.role == "donor").count(),
+            "teams": db.query(community.Team).count(),
+            "upcoming_camps": db.query(community.Camp).filter(community.Camp.status == "Upcoming").count(),
             "available_donors": db.query(User).filter(User.role == "donor", User.is_available.is_(True)).count(),
             "hospitals": db.query(User).filter(User.role == "hospital").count(),
             "telegram_linked": db.query(User).filter(User.telegram_id.isnot(None)).count(),
@@ -689,13 +726,15 @@ def admin_stats(db: Session = Depends(get_db)):
 
 
 @app.get("/api/admin/users")
-def admin_users(db: Session = Depends(get_db)):
+def admin_users(db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_admin(a)
     return [{**user_public(u), "phone": u.phone, "referral_code": u.referral_code}
             for u in db.query(User).order_by(User.id.desc()).all()]
 
 
 @app.post("/api/admin/users/{user_id}/verify")
-def admin_verify_user(user_id: int, verified: bool = True, db: Session = Depends(get_db)):
+def admin_verify_user(user_id: int, verified: bool = True, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_admin(a)
     user = find_user(db, user_id=user_id)
     user.is_verified = verified
     db.flush()
@@ -705,14 +744,16 @@ def admin_verify_user(user_id: int, verified: bool = True, db: Session = Depends
 
 
 @app.post("/api/admin/reminders/run")
-def admin_run_reminders():
+def admin_run_reminders(a: auth.Actor = Depends(auth.actor)):
     """Send any donation reminders that are due right now (they also run hourly in the background)."""
+    auth.require_admin(a)
     return {"sent": reminders.run_once(), "telegram": notifier.enabled()}
 
 
 @app.post("/api/admin/users/{user_id}/favorite")
-def admin_favorite(user_id: int, db: Session = Depends(get_db)):
+def admin_favorite(user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     """Award the hand-picked "Admin's Favorite" achievement."""
+    auth.require_admin(a)
     user = find_user(db, user_id=user_id)
     if user.role != "donor":
         raise HTTPException(400, "Only donors can receive achievements")
@@ -722,10 +763,11 @@ def admin_favorite(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/admin/requests/{request_id}/verify")
-def admin_verify_request(request_id: int, verified: bool = True, db: Session = Depends(get_db)):
+def admin_verify_request(request_id: int, verified: bool = True, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     req = db.get(BloodRequest, request_id)
     if not req:
         raise HTTPException(404, "Request not found")
+    _require_admin_or_hospital(a, req)
     req.is_verified = verified
     db.flush()
     donor_ids = [d for (d,) in db.query(Donation.donor_id).filter(Donation.request_id == req.id)]
@@ -735,10 +777,11 @@ def admin_verify_request(request_id: int, verified: bool = True, db: Session = D
 
 
 @app.post("/api/admin/requests/{request_id}/status")
-def admin_set_status(request_id: int, status: str, db: Session = Depends(get_db)):
+def admin_set_status(request_id: int, status: str, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     req = db.get(BloodRequest, request_id)
     if not req:
         raise HTTPException(404, "Request not found")
+    _require_admin_or_hospital(a, req)
     status = status.title()
     if status not in ("Active", "Fulfilled", "Cancelled"):
         raise HTTPException(400, "status must be Active, Fulfilled or Cancelled")
@@ -749,10 +792,145 @@ def admin_set_status(request_id: int, status: str, db: Session = Depends(get_db)
 
 
 @app.get("/api/admin/vouchers")
-def admin_vouchers(db: Session = Depends(get_db)):
+def admin_vouchers(db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_admin(a)
     rows = db.query(Reward, User).join(User, Reward.user_id == User.id).order_by(Reward.id.desc()).all()
     return [{"id": r.id, "user": u.name, "reward_name": r.reward_name, "points_cost": r.points_cost,
              "voucher_code": r.voucher_code, "status": r.status, "created_at": iso(r.created_at)} for r, u in rows]
+
+
+def _require_admin_or_hospital(a: auth.Actor, req: BloodRequest) -> None:
+    """Admins manage every request; a hospital account manages requests at its own hospital."""
+    if a.is_admin or (a.user and a.user.role == "hospital" and a.user.name.strip().lower() == req.hospital.strip().lower()):
+        return
+    auth.require_admin(a)
+
+
+# ---------------------------------------------------------------- sign-in
+class _Nonce(BaseModel):
+    nonce: str
+
+
+class _TelegramStart(BaseModel):
+    purpose: str = "login"  # login | link
+
+
+class _TelegramConfirm(BaseModel):
+    nonce: str
+    telegram_id: str
+    telegram_username: str | None = None
+
+
+class _Code(BaseModel):
+    code: str
+
+
+class _Password(BaseModel):
+    password: str
+
+
+@app.post("/api/auth/telegram/start")
+def telegram_start(body: _TelegramStart, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    """Begin a Telegram login (or, when signed in, linking Telegram to this account)."""
+    if not notifier.enabled():
+        raise HTTPException(503, "Telegram login is not configured on this server.")
+    purpose = "link" if body.purpose == "link" else "login"
+    if purpose == "link" and not a.user:
+        raise HTTPException(401, "Sign in first to link Telegram.")
+    nonce = secrets.token_urlsafe(18)
+    db.add(LoginRequest(nonce=nonce, purpose=purpose, user_id=a.user.id if purpose == "link" else None,
+                        expires_at=utcnow() + timedelta(minutes=auth.LOGIN_MINUTES)))
+    db.commit()
+    return {"nonce": nonce, "url": f"https://t.me/{notifier.bot_username()}?start={purpose}_{nonce}",
+            "expires_in": auth.LOGIN_MINUTES * 60}
+
+
+@app.post("/api/auth/telegram/confirm")
+def telegram_confirm(body: _TelegramConfirm, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    """Called by the bot when someone taps Start on a login/link link. Telegram vouches for telegram_id."""
+    auth.require_bot(a)
+    req = db.query(LoginRequest).filter(LoginRequest.nonce == body.nonce).first()
+    if not req or req.expires_at < utcnow() or req.status != "pending":
+        return {"status": "expired"}
+    tid = str(body.telegram_id)
+    if req.purpose == "link":
+        owner = db.get(User, req.user_id)
+        other = db.query(User).filter(User.telegram_id == tid, User.id != owner.id).first()
+        if other:
+            req.status = "taken"
+            db.commit()
+            return {"status": "taken", "name": other.name}
+        owner.telegram_id, owner.telegram_username = tid, body.telegram_username
+        req.status = "ok"
+        db.commit()
+        return {"status": "linked", "name": owner.name, "language": owner.language}
+    user = db.query(User).filter(User.telegram_id == tid).first()
+    if not user:
+        req.status = "not_registered"
+        db.commit()
+        return {"status": "not_registered"}
+    req.user_id, req.token, req.status = user.id, auth.new_session(db, user), "ok"
+    db.commit()
+    return {"status": "ok", "name": user.name, "language": user.language}
+
+
+@app.get("/api/auth/telegram/poll/{nonce}")
+def telegram_poll(nonce: str, db: Session = Depends(get_db)):
+    """The browser waits here; the session token is handed over exactly once."""
+    req = db.query(LoginRequest).filter(LoginRequest.nonce == nonce).first()
+    if not req or req.expires_at < utcnow():
+        return {"status": "expired"}
+    if req.status == "ok" and req.purpose == "login" and req.token:
+        token, user = req.token, db.get(User, req.user_id)
+        db.delete(req)
+        db.commit()
+        return {"status": "ok", "token": token, "user": user_private(db, user)}
+    if req.status == "ok" and req.purpose == "link":
+        user = db.get(User, req.user_id)
+        db.delete(req)
+        db.commit()
+        return {"status": "linked", "user": user_private(db, user)}
+    return {"status": req.status}
+
+
+@app.post("/api/auth/demo")
+def demo_login(body: _Code, db: Session = Depends(get_db)):
+    """Demo accounts (no Telegram) can be opened by code while DEMO_LOGIN=1. Real accounts must use Telegram."""
+    if not auth.DEMO_LOGIN:
+        raise HTTPException(403, "Demo sign-in is disabled. Use Telegram.")
+    user = db.query(User).filter(func.upper(User.referral_code) == body.code.strip().upper()).first()
+    if not user or not user.is_demo:  # real accounts (even web-only ones) can never be opened by their public code
+        raise HTTPException(404, "No demo account with that code.")
+    if user.telegram_id:
+        raise HTTPException(403, "This account is linked to Telegram: please sign in with Telegram.")
+    token = auth.new_session(db, user)
+    db.commit()
+    return {"token": token, "user": user_private(db, user)}
+
+
+@app.post("/api/auth/admin")
+def admin_login(body: _Password, db: Session = Depends(get_db)):
+    if not auth.check_admin_password(body.password):
+        raise HTTPException(401, "Wrong admin password." if auth.ADMIN_PASSWORD else "Admin password sign-in is not configured.")
+    user = auth.admin_user(db)
+    token = auth.new_session(db, user)
+    db.commit()
+    return {"token": token, "user": user_private(db, user)}
+
+
+@app.get("/api/auth/me")
+def me(db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    if not a.user:
+        raise HTTPException(401, "Not signed in.")
+    return user_private(db, a.user)
+
+
+@app.post("/api/auth/logout")
+def logout(db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    if a.token_hash:
+        db.query(AuthSession).filter(AuthSession.token_hash == a.token_hash).delete()
+        db.commit()
+    return {"status": "success"}
 
 
 # --- Production: serve the built React app (frontend/dist) from the same origin as the API ---

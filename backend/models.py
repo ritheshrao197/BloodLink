@@ -35,6 +35,8 @@ class User(Base):
     date_of_birth = Column(Date, nullable=True)
     weight_kg = Column(Integer, nullable=True)
     deferred_until = Column(DateTime, nullable=True)  # self-reported temporary deferral (fever, tattoo, ...)
+    is_admin = Column(Boolean, default=False)
+    is_demo = Column(Boolean, default=False)  # seeded demo account (may be opened by code while DEMO_LOGIN=1)
     is_verified = Column(Boolean, default=False)
     last_donation_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow)
@@ -124,6 +126,33 @@ class ReminderLog(Base):
     kind = Column(String, nullable=False)  # soon | eligible | nudge
     cycle = Column(String, nullable=False)  # date of the donation that started this cycle
     sent_at = Column(DateTime, default=utcnow)
+
+
+class AuthSession(Base):
+    """A signed-in browser. Only the SHA-256 of the token is stored."""
+
+    __tablename__ = "auth_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token_hash = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+
+class LoginRequest(Base):
+    """A pending Telegram login/link: the site polls it until the bot confirms who tapped Start."""
+
+    __tablename__ = "login_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nonce = Column(String, unique=True, index=True, nullable=False)
+    purpose = Column(String, default="login")  # login | link
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # link: the signed-in owner; login: set on confirm
+    token = Column(String, nullable=True)  # raw session token, handed over once to the polling browser, then deleted
+    status = Column(String, default="pending")  # pending | ok | not_registered | taken
+    created_at = Column(DateTime, default=utcnow)
+    expires_at = Column(DateTime, nullable=False)
 
 
 class Team(Base):

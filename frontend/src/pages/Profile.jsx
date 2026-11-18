@@ -8,7 +8,7 @@ import { BADGES, cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 import { useToast } from '../components/Toast';
 import { BloodTag, CopyField, PageHeader, StatCard, Toggle } from '../components/ui';
-import SignInByCode from '../components/SignInByCode';
+import SignInByCode, { TelegramLinkButton } from '../components/SignInByCode';
 import { Showcase } from '../components/Achievements';
 import { EligibilityCard } from '../components/Eligibility';
 import ShareCardModal from '../components/ShareCard';
@@ -149,9 +149,9 @@ export default function Profile() {
           ) : (
             <>
               <p className="mt-2 text-sm text-slate-400">{t('profile.linkPrompt')}</p>
-              <a href={user.telegram_link_url} target="_blank" rel="noreferrer" className="btn-primary mt-3 from-sky-600 to-sky-700 shadow-sky-900/40">
-                <Send className="h-4 w-4" /> {t('profile.linkBtn')}
-              </a>
+              <div className="mt-3">
+                <TelegramLinkButton />
+              </div>
             </>
           )}
         </div>
