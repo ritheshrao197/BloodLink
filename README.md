@@ -100,7 +100,7 @@ awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_123
 ### Showcase account
 
 Sign in with demo code **`USER_77777`** (the sign-in panel offers it as a chip while `DEMO_LOGIN=1`) to see everything
-unlocked. **Arjun Hegde** is an AB- donor since 2012 with a full history that genuinely earns all 54 achievements:
+unlocked. **Sinchana** is an AB- donor since 2012 with a full history that genuinely earns all 54 achievements:
 - 53 SOS donations and 3 camp donations, always at least 90 days apart, across five states;
 - 5-minute and 2 AM responses, plus donations on New Year's Day, during Diwali and in the rain;
 - 55 friends referred;

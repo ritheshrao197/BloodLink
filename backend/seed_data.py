@@ -1,4 +1,4 @@
-﻿"""Realistic demo data: a year of simulated network activity.
+"""Realistic demo data: a year of simulated network activity.
 
 Every number is derived from simulated history (registrations, referrals, SOS requests, donations, voucher
 redemptions), so points, badges, leaderboards, referral stats and admin analytics are all mutually consistent.
@@ -412,7 +412,7 @@ def seed_hero(db: Session, rng: random.Random, now: datetime, donors: list[User]
     special = {i for i, d in enumerate(dates) if d in anchors}
     camp_slots = set([i for i in (len(dates) - 30, len(dates) - 18, len(dates) - 7, len(dates) - 12, len(dates) - 24) if i not in special][:3])
 
-    hero = User(name="Arjun Hegde", blood_group="AB-", city="Bengaluru Urban", state="Karnataka", language="en",
+    hero = User(name="Sinchana", blood_group="AB-", city="Bengaluru Urban", state="Karnataka", language="en",
                 phone="+91 98450 77777", role="donor", referral_code=hero_code, points=0, total_donations=0,
                 is_available=True, is_verified=True, is_demo=True, sex="male", date_of_birth=date(1988, 6, 14), weight_kg=74,
                 lat=12.97, lng=77.6, created_at=dates[0] - timedelta(hours=3))

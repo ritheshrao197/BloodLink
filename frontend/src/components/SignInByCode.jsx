@@ -135,7 +135,7 @@ export default function SignInByCode({ onSignedIn, demo = true }) {
               type="button"
               onClick={() => setCode(config.demo_hero_code)}
               className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1 font-mono text-xs font-bold text-amber-500 hover:bg-amber-500/20"
-              title="Arjun Hegde · 54/54"
+              title="Sinchana · 54/54"
             >
               ⭐ {config.demo_hero_code} · 54/54 🏅
             </button>
