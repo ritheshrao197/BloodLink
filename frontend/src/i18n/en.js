@@ -29,6 +29,7 @@ export default {
     achievements: 'Achievements',
     teams: "Teams",
     camps: "Camps",
+    me: "Profile",
     rewards: 'Rewards',
     admin: 'Admin',
     sos: 'SOS',

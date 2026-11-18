@@ -29,6 +29,7 @@ export default {
     achievements: 'অর্জনসমূহ',
     teams: "দল",
     camps: "ক্যাম্প",
+    me: "প্রোফাইল",
     rewards: 'পুরস্কার',
     admin: 'অ্যাডমিন',
     sos: 'SOS',

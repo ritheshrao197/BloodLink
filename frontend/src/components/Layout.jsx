@@ -19,6 +19,44 @@ const NAV = [
 
 const THEME_ICON = { light: Sun, dark: Moon, system: Monitor };
 
+/** Phone tab bar: the main sections within thumb reach, with SOS always one tap away in the middle. */
+function BottomBar({ path }) {
+  const { t } = useI18n();
+  const tab = (to, key, Icon) => {
+    const active = to === '/' ? path === '/' : path.startsWith(to);
+    return (
+      <Link
+        to={to}
+        aria-current={active ? 'page' : undefined}
+        className={cx('flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold', active ? 'text-blood-600 dark:text-blood-400' : 'text-slate-400')}
+      >
+        <Icon className="h-6 w-6" aria-hidden />
+        <span className="max-w-full truncate px-1">{t(key)}</span>
+      </Link>
+    );
+  };
+  return (
+    <nav
+      aria-label={t('nav.main')}
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800 bg-white/95 backdrop-blur-xl lg:hidden dark:bg-slate-950/95"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="mx-auto flex max-w-lg items-end">
+        {tab('/', 'nav.feed', Droplet)}
+        {tab('/camps', 'nav.camps', Tent)}
+        <Link to="/sos" className="flex flex-1 flex-col items-center" aria-label={t('nav.sosLong')}>
+          <span className={cx('-mt-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blood-500 to-blood-700 text-white shadow-xl shadow-blood-600/40 ring-4 ring-white dark:ring-slate-950', path !== '/sos' && 'animate-pulse-sos')}>
+            <Siren className="h-7 w-7" />
+          </span>
+          <span className="pb-2 pt-0.5 text-[11px] font-extrabold text-blood-600 dark:text-blood-400">{t('nav.sos')}</span>
+        </Link>
+        {tab('/achievements', 'nav.achievements', Award)}
+        {tab('/profile', 'nav.me', UserRound)}
+      </div>
+    </nav>
+  );
+}
+
 function LanguagePicker() {
   const { lang, setLang, t } = useI18n();
   const { user, setUser } = useSession();
@@ -147,7 +185,9 @@ export default function Layout({ children }) {
         {children}
       </main>
 
-      <footer className="border-t border-slate-800/80 py-10 text-center text-xs text-slate-500">
+      <BottomBar path={path} />
+
+      <footer className="border-t border-slate-800/80 pb-28 pt-10 text-center text-xs text-slate-500 lg:pb-10">
         <p className="text-sm font-semibold text-slate-400">{t('footer.tagline')}</p>
         <p className="mx-auto mt-2 max-w-2xl px-4">{t('footer.disclaimer')}</p>
         <Link to="/admin" className="mt-3 inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-300">

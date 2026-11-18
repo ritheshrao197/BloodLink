@@ -29,6 +29,7 @@ export default {
     achievements: 'சாதனைகள்',
     teams: "அணிகள்",
     camps: "முகாம்கள்",
+    me: "சுயவிவரம்",
     rewards: 'வெகுமதிகள்',
     admin: 'நிர்வாகம்',
     sos: 'SOS',

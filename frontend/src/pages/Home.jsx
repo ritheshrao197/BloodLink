@@ -156,14 +156,14 @@ export default function Home() {
               <span className="rounded-full bg-blood-600 px-2.5 py-0.5 text-sm text-white">{feed.data?.length ?? 0}</span>
             </h2>
           </div>
-          <div className="mb-5 flex flex-wrap gap-1.5" role="group" aria-label={t('home.filter')}>
+          <div className="mb-5 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t('home.filter')}>
             {['All', ...(user ? ['Mine'] : []), ...BLOOD_GROUPS].map((g) => (
               <button
                 key={g}
                 onClick={() => setFilter(g)}
                 aria-pressed={filter === g}
                 className={cx(
-                  'min-h-9 rounded-full px-3.5 py-1 text-sm font-semibold transition',
+                  'min-h-9 shrink-0 rounded-full px-3.5 py-1 text-sm font-semibold transition',
                   filter === g ? 'bg-blood-600 text-white shadow-md shadow-blood-600/30' : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
                 )}
               >
@@ -174,7 +174,7 @@ export default function Home() {
               <button
                 onClick={() => setNearest(!nearest)}
                 aria-pressed={nearest}
-                className={cx('min-h-9 rounded-full px-3.5 py-1 text-sm font-semibold transition', nearest ? 'bg-sky-600 text-white' : 'bg-slate-800 text-sky-400 hover:bg-slate-700')}
+                className={cx('min-h-9 shrink-0 rounded-full px-3.5 py-1 text-sm font-semibold transition', nearest ? 'bg-sky-600 text-white' : 'bg-slate-800 text-sky-400 hover:bg-slate-700')}
               >
                 📍 {t('geo.nearest')}
               </button>

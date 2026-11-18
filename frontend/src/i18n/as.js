@@ -29,6 +29,7 @@ export default {
     achievements: 'সফলতাসমূহ',
     teams: "দল",
     camps: "শিবিৰ",
+    me: "প্ৰফাইল",
     rewards: 'পুৰস্কাৰ',
     admin: 'এডমিন',
     sos: 'SOS',

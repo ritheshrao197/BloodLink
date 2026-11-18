@@ -29,6 +29,7 @@ export default {
     achievements: 'ಸಾಧನೆಲು',
     teams: "ತಂಡೊಲು",
     camps: "ಶಿಬಿರೊಲು",
+    me: "ಪ್ರೊಫೈಲ್",
     rewards: 'ಬಹುಮಾನೊಲು',
     admin: 'ಆಡಳಿತ',
     sos: 'SOS',

@@ -90,6 +90,16 @@ export default function DonateModal({ request, onClose, onDone }) {
             {t('donate.headTo', { place: `${request.hospital}, ${request.city}` })}
             {request.contact_phone && <> {t('donate.contact', { phone: request.contact_phone })}</>}
           </p>
+          {request.contact_phone && (
+            <div className="grid grid-cols-2 gap-2">
+              <a href={`tel:${request.contact_phone.replace(/[^\d+]/g, '')}`} className="btn-ghost">
+                📞 {request.contact_phone}
+              </a>
+              <a href={`https://wa.me/${request.contact_phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="btn-ghost text-emerald-500">
+                💬 WhatsApp
+              </a>
+            </div>
+          )}
           <button onClick={() => setSharing(true)} className="btn-primary w-full from-amber-500 to-amber-700 shadow-amber-900/30">
             <Share2 className="h-4 w-4" /> {t('card.cta')}
           </button>

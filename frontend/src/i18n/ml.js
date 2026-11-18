@@ -29,6 +29,7 @@ export default {
     achievements: 'നേട്ടങ്ങൾ',
     teams: "ടീമുകൾ",
     camps: "ക്യാമ്പുകൾ",
+    me: "പ്രൊഫൈൽ",
     rewards: 'സമ്മാനങ്ങൾ',
     admin: 'അഡ്മിൻ',
     sos: 'SOS',

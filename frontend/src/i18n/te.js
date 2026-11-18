@@ -29,6 +29,7 @@ export default {
     achievements: 'విజయాలు',
     teams: "జట్లు",
     camps: "శిబిరాలు",
+    me: "ప్రొఫైల్",
     rewards: 'బహుమతులు',
     admin: 'అడ్మిన్',
     sos: 'SOS',

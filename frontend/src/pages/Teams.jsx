@@ -31,13 +31,13 @@ function TeamList() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <section>
-          <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label={t('teams.kindLabel')}>
+          <div className="mb-4 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t('teams.kindLabel')}>
             {['', ...KINDS].map((k) => (
               <button
                 key={k || 'all'}
                 onClick={() => setKind(k)}
                 aria-pressed={kind === k}
-                className={cx('min-h-9 rounded-full px-3.5 py-1 text-sm font-semibold transition', kind === k ? 'bg-blood-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}
+                className={cx('min-h-9 shrink-0 rounded-full px-3.5 py-1 text-sm font-semibold transition', kind === k ? 'bg-blood-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}
               >
                 {k ? t(`teams.kind.${k}`) : t('common.all')}
               </button>

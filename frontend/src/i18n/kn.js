@@ -29,6 +29,7 @@ export default {
     achievements: 'ಸಾಧನೆಗಳು',
     teams: "ತಂಡಗಳು",
     camps: "ಶಿಬಿರಗಳು",
+    me: "ಪ್ರೊಫೈಲ್",
     rewards: 'ಬಹುಮಾನಗಳು',
     admin: 'ಆಡಳಿತ',
     sos: 'SOS',

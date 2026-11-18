@@ -29,6 +29,7 @@ export default {
     achievements: 'उपलब्धियाँ',
     teams: "टीमें",
     camps: "कैंप",
+    me: "प्रोफ़ाइल",
     rewards: 'इनाम',
     admin: 'एडमिन',
     sos: 'SOS',
