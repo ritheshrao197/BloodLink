@@ -55,6 +55,22 @@ export const api = {
   userAchievements: (id) => request(`/users/${id}/achievements`),
   achievementsSeen: (id) => request(`/users/${id}/achievements/seen`, { method: 'POST' }),
   redeem: (rewardId, userId) => request(`/redeem/${rewardId}`, { method: 'POST', body: { user_id: userId } }),
+  teams: {
+    list: (kind, userId) => request('/teams', { params: { kind, user_id: userId } }),
+    get: (id, userId) => request(`/teams/${id}`, { params: { user_id: userId } }),
+    create: (body) => request('/teams', { method: 'POST', body }),
+    join: (userId, code) => request('/teams/join', { method: 'POST', body: { user_id: userId, invite_code: code } }),
+    leave: (id, userId) => request(`/teams/${id}/leave`, { method: 'POST', body: { user_id: userId } }),
+    mine: (userId) => request(`/users/${userId}/teams`),
+  },
+  camps: {
+    list: (when, userId) => request('/camps', { params: { when, user_id: userId } }),
+    leaderboard: () => request('/camps/leaderboard'),
+    create: (body) => request('/camps', { method: 'POST', body }),
+    rsvp: (id, userId) => request(`/camps/${id}/rsvp`, { method: 'POST', body: { user_id: userId } }),
+    attendees: (id, userId) => request(`/camps/${id}/attendees`, { params: { user_id: userId } }),
+    attend: (id, userId, attendeeId) => request(`/camps/${id}/attend`, { method: 'POST', body: { user_id: userId, attendee_id: attendeeId } }),
+  },
   admin: {
     stats: () => request('/admin/stats'),
     users: () => request('/admin/users'),

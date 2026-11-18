@@ -183,6 +183,7 @@ def menu_kb(lang: str, user: dict | None) -> InlineKeyboardMarkup:
         [btn(t(lang, "btn_requests"), "m_requests"), btn(t(lang, "btn_me"), "m_me")],
         [btn(t(lang, "btn_rewards"), "m_rewards"), btn(t(lang, "btn_leaderboard"), "m_leaderboard")],
         [btn(t(lang, "btn_achievements"), "m_achievements"), btn(t(lang, "btn_invite"), "m_invite")],
+        [btn(t(lang, "btn_camps"), "m_camps"), btn(t(lang, "btn_teams"), "m_teams")],
         [btn(t(lang, "btn_language"), "m_language")],
     ]
     if user:
@@ -352,7 +353,8 @@ async def menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("sos", None)
     await ack(update)
     handler = {"requests": requests_cmd, "me": me, "invite": invite, "rewards": rewards,
-               "leaderboard": leaderboard, "achievements": achievements_cmd, "language": ask_language, "available": available, "busy": busy}.get(action)
+               "leaderboard": leaderboard, "achievements": achievements_cmd, "camps": camps_cmd, "teams": teams_cmd,
+               "language": ask_language, "available": available, "busy": busy}.get(action)
     if handler:
         await handler(update, context)
     return END
@@ -743,6 +745,68 @@ async def achievements_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await reply(update, "\n".join(lines))
 
 
+def _camp_keyboard(lang: str, camps: list[dict]) -> InlineKeyboardMarkup:
+    rows = []
+    for c in camps:
+        going = c.get("my_status") == "Registered"
+        label = f"{t(lang, 'btn_unrsvp') if going else t(lang, 'btn_rsvp')} · {c['title'][:28]}"
+        rows.append([btn(label, f"crsvp_{c['id']}")])
+    return InlineKeyboardMarkup(rows)
+
+
+async def camps_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await ensure_lang(update, context)
+    lang = L(context)
+    u = await current_user(update)
+    camps = await api("GET", "/camps", params={"user_id": u["id"]} if u else {})
+    if u and u.get("state"):
+        local = [c for c in camps if c.get("state") == u["state"]]
+        camps = local or camps
+    camps = camps[:6]
+    if not camps:
+        return await reply(update, t(lang, "camps_none", url=f"{WEB_URL}/camps"))
+    lines = [t(lang, "camps_title"), ""]
+    for c in camps:
+        when = c["starts_at"][:10]
+        going = f"  {t(lang, 'camp_going')}" if c.get("my_status") == "Registered" else ""
+        lines.append(f"🗓 <b>{esc(c['title'])}</b> · {when}{going}\n📍 {esc(c['venue'])}, {esc(c['city'])} · 👥 {c['registered']}/{c['expected_donors']}")
+    lines += ["", f"🌐 {WEB_URL}/camps"]
+    await reply(update, "\n".join(lines), reply_markup=_camp_keyboard(lang, camps) if u else None)
+
+
+async def camp_rsvp_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = await ensure_lang(update, context) or "en"
+    u = await current_user(update)
+    if not u:
+        await ack(update)
+        return await not_registered(update, context)
+    camp_id = int(update.callback_query.data.removeprefix("crsvp_"))
+    try:
+        res = await api("POST", f"/camps/{camp_id}/rsvp", json={"user_id": u["id"]})
+    except ApiError as e:
+        elig = e.data.get("eligibility")
+        wait = next((r for r in elig["reasons"] if r["code"] == "interval"), None) if elig else None
+        msg = t(lang, "elig_wait", date=wait["until"][:10]) if wait else (t(lang, "server_down") if str(e) == "server_down" else str(e))
+        return await ack(update, msg[:190], alert=True)
+    await ack(update, t(lang, "rsvp_ok") if res["status"] == "registered" else t(lang, "rsvp_cancel"))
+
+
+async def teams_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await ensure_lang(update, context)
+    lang = L(context)
+    u = await current_user(update)
+    if not u:
+        return await not_registered(update, context)
+    teams = await api("GET", f"/users/{u['id']}/teams")
+    if not teams:
+        return await reply(update, t(lang, "teams_none", url=f"{WEB_URL}/teams"))
+    lines = [t(lang, "teams_title"), ""]
+    lines += [t(lang, "team_line", rank=x["rank"], name=esc(x["name"]), points=x["points"], donations=x["donations"],
+                members=x["members"]) for x in teams]
+    lines += ["", f"🌐 {WEB_URL}/teams"]
+    await reply(update, "\n".join(lines))
+
+
 async def requests_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_lang(update, context)
     lang = L(context)
@@ -872,7 +936,7 @@ def build_app() -> Application:
     )
     app.add_handler(flows)
     for name, fn in [("start", start), ("menu", menu_cmd), ("help", menu_cmd), ("language", ask_language),
-                     ("me", me), ("invite", invite), ("leaderboard", leaderboard), ("achievements", achievements_cmd), ("requests", requests_cmd),
+                     ("me", me), ("invite", invite), ("leaderboard", leaderboard), ("achievements", achievements_cmd), ("camps", camps_cmd), ("teams", teams_cmd), ("requests", requests_cmd),
                      ("available", available), ("busy", busy), ("rewards", rewards), ("cancel", cancel)]:
         app.add_handler(CommandHandler(name, fn))
     app.add_handler(cb(menu_router, pattern=r"^m_(?!menu_show)"))
@@ -882,6 +946,7 @@ def build_app() -> Application:
     app.add_handler(cb(donate_confirmed, pattern=r"^dok_\d+$"))
     app.add_handler(cb(donate_declined, pattern=r"^dno_\d+$"))
     app.add_handler(cb(reminder_later, pattern=r"^rem_later$"))
+    app.add_handler(cb(camp_rsvp_click, pattern=r"^crsvp_\d+$"))
     app.add_handler(cb(redeem_click, pattern=r"^redeem_\d+$"))
     app.add_handler(cb(cancel, pattern=r"^x_cancel$"))
     app.add_handler(MessageHandler(text, unknown_text))

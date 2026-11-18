@@ -18,7 +18,7 @@ from datetime import timedelta
 import eligibility
 import notifier
 from database import SessionLocal
-from models import BloodRequest, Donation, ReminderLog, User, utcnow
+from models import BloodRequest, Camp, CampRSVP, Donation, ReminderLog, User, utcnow
 
 log = logging.getLogger("bloodlink.reminders")
 ENABLED = os.getenv("REMINDERS", "1") == "1"
@@ -69,8 +69,45 @@ def run_once(send: bool = True) -> dict:
             sent[kind] += 1
     finally:
         db.close()
+    sent.update(run_camps(send))
     if any(sent.values()):
         log.info("Reminders sent: %s", sent)
+    return sent
+
+
+def camp_due(camp: Camp, now) -> str | None:
+    left = camp.starts_at - now
+    if timedelta(days=2) < left <= timedelta(days=3):
+        return "camp3"
+    if timedelta(hours=6) < left <= timedelta(days=1):
+        return "camp1"
+    if timedelta(0) < left <= timedelta(hours=6):
+        return "camp0"
+    return None
+
+
+def run_camps(send: bool = True) -> dict:
+    """Remind registered donors 3 days before, the day before and on the day of a camp."""
+    db = SessionLocal()
+    sent = {"camp3": 0, "camp1": 0, "camp0": 0}
+    try:
+        now = utcnow()
+        rows = (db.query(CampRSVP, Camp, User).join(Camp, CampRSVP.camp_id == Camp.id).join(User, CampRSVP.user_id == User.id)
+                .filter(CampRSVP.status == "Registered", Camp.status == "Upcoming", Camp.starts_at > now,
+                        Camp.starts_at <= now + timedelta(days=3), User.telegram_id.isnot(None)).all())
+        for _r, camp, u in rows:
+            kind = camp_due(camp, now)
+            if not kind or db.query(ReminderLog).filter_by(user_id=u.id, kind=kind, cycle=str(camp.id)).first():
+                continue
+            db.add(ReminderLog(user_id=u.id, kind=kind, cycle=str(camp.id), sent_at=now))
+            db.commit()
+            if send:
+                when = (camp.starts_at + timedelta(hours=5, minutes=30)).strftime("%d %b, %I:%M %p")
+                notifier.notify(u.telegram_id, notifier.t(u.language, f"rem_{kind}", title=notifier.esc(camp.title),
+                                                          venue=notifier.esc(camp.venue), when=when))
+            sent[kind] += 1
+    finally:
+        db.close()
     return sent
 
 

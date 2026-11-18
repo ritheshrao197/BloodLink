@@ -97,6 +97,19 @@ awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_123
   achievement and on the profile. They share natively on phones (image straight to WhatsApp or Instagram), or via
   WhatsApp/Telegram/X/LinkedIn/Facebook links, or as a download.
 
+### Teams and donation camps
+
+- **Teams** (`/teams`): colleges, companies, communities and friend groups. Create a team, share its invite code, and climb the
+  team leaderboard. A team scores only donations its members make *after* joining. Team pages show members ranked by
+  contribution and the gap to the team above.
+- **Camps** (`/camps`): anyone signed in can post a blood drive.
+  - Donors RSVP. If they won't be eligible by the camp day, they're told up front.
+  - Telegram reminders go out 3 days before, the day before and on the day.
+  - The organiser marks attendance, which records the donation (+100 BLP), restarts the donor's safe-interval clock, and
+    unlocks 🎪 First Camp / 🏕️ Camp Champion.
+- **Telegram:** `/camps` (upcoming camps in your state, one-tap RSVP) and `/teams`.
+- **Code:** [backend/community.py](backend/community.py).
+
 ### Languages
 
 The web app is available in English, ಕನ್ನಡ, हिन्दी, മലയാളം, தமிழ், తెలుగు, বাংলা, অসমীয়া, कोंकणी (Konkani) and ತುಳು (Tulu).

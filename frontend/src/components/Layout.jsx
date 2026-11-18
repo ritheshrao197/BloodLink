@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, Droplet, Gift, Languages, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Trophy, UserRound, X } from 'lucide-react';
+import { Award, Droplet, Gift, Languages, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Tent, Trophy, UserRound, Users, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { Link, useRouter } from '../lib/router';
 import { useSession } from '../lib/session';
@@ -11,9 +11,10 @@ const NAV = [
   { to: '/', key: 'feed', icon: Droplet },
   { to: '/donors', key: 'donors', icon: Search },
   { to: '/leaderboard', key: 'leaderboard', icon: Trophy },
+  { to: '/teams', key: 'teams', icon: Users },
+  { to: '/camps', key: 'camps', icon: Tent },
   { to: '/achievements', key: 'achievements', icon: Award },
   { to: '/rewards', key: 'rewards', icon: Gift },
-  { to: '/admin', key: 'admin', icon: Shield },
 ];
 
 const THEME_ICON = { light: Sun, dark: Moon, system: Monitor };
@@ -51,7 +52,7 @@ export default function Layout({ children }) {
   const { mode, cycle } = useTheme();
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
-  const wide = lang === 'en'; // translated labels are longer: collapse the nav earlier
+  const wide = false; // eight sections: the full nav needs a 2xl screen in every language
   const ThemeIcon = THEME_ICON[mode];
   const themeLabel = t(`nav.theme.${mode}`);
 
@@ -149,6 +150,9 @@ export default function Layout({ children }) {
       <footer className="border-t border-slate-800/80 py-10 text-center text-xs text-slate-500">
         <p className="text-sm font-semibold text-slate-400">{t('footer.tagline')}</p>
         <p className="mx-auto mt-2 max-w-2xl px-4">{t('footer.disclaimer')}</p>
+        <Link to="/admin" className="mt-3 inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-300">
+          <Shield className="h-3.5 w-3.5" /> {t('nav.admin')}
+        </Link>
       </footer>
     </div>
   );

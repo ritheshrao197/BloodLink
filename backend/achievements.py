@@ -17,14 +17,14 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import logic
-from models import BloodRequest, Donation, Referral, User, UserAchievement, utcnow
+from models import BloodRequest, CampRSVP, Donation, Referral, User, UserAchievement, utcnow
 
 IST = timedelta(hours=5, minutes=30)
 RARITIES = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
 TIERS = ["Bronze", "Silver", "Gold", "Platinum"]
 TIER_RARITY = {"Bronze": "Common", "Silver": "Uncommon", "Gold": "Rare", "Platinum": "Epic"}
 TIER_POINTS = {"Bronze": 25, "Silver": 75, "Gold": 150, "Platinum": 300}
-CATEGORIES = ["Donation", "Speed", "Referral", "Streak", "Location", "Fun", "Verification"]
+CATEGORIES = ["Donation", "Speed", "Referral", "Streak", "Location", "Community", "Fun", "Verification"]
 
 # Lakshmi Puja (Diwali, celebrated over ~5 days) and Vijayadashami (Dussehra) dates.
 DIWALI = [date(2024, 11, 1), date(2025, 10, 20), date(2026, 11, 8), date(2027, 10, 29), date(2028, 10, 17)]
@@ -54,6 +54,7 @@ class Facts:
     user: User
     donations: list[D] = field(default_factory=list)
     referrals: list[datetime] = field(default_factory=list)
+    camps: list[datetime] = field(default_factory=list)  # camp attendances
     unlocked: dict[str, datetime] = field(default_factory=dict)
 
 
@@ -196,6 +197,11 @@ SINGLES = [
       "Donate in 3 different states", 500, 3, lambda f, now: distinct(f, "state", 3)),
     A("bharat_sevak", "Bharat Sevak", "🇮🇳", "Location", "Legendary", "Five states. One nation. One hero.",
       "Donate in 5 different states", 1000, 5, lambda f, now: distinct(f, "state", 5)),
+    # --- Community ---
+    A("first_camp", "First Camp", "🎪", "Community", "Common", "You showed up for a blood drive. Communities run on people like you.",
+      "Donate at a donation camp", 50, 1, lambda f, now: nth(f.camps, 1)),
+    A("camp_champion", "Camp Champion", "🏕️", "Community", "Rare", "Three camps. You make blood drives work.",
+      "Donate at 3 donation camps", 150, 3, lambda f, now: nth(f.camps, 3)),
     # --- Fun ---
     A("yolo", "YOLO", "🎲", "Fun", "Common", "No hesitation. Straight into action.",
       "Donate on the day you register", 25, 1,
@@ -276,6 +282,10 @@ def load_facts(db: Session, users: list[User]) -> dict[int, Facts]:
             first=first.get(r.id) == d.id, rainy=d.weather == "rain"))
     for referrer_id, at in db.query(Referral.referrer_id, Referral.created_at).filter(Referral.referrer_id.in_(ids)):
         facts[referrer_id].referrals.append(at)
+    for uid, at in (db.query(CampRSVP.user_id, CampRSVP.attended_at)
+                    .filter(CampRSVP.user_id.in_(ids), CampRSVP.status == "Attended")):
+        if at:
+            facts[uid].camps.append(at)
     for uid, key, at in (db.query(UserAchievement.user_id, UserAchievement.key, UserAchievement.unlocked_at)
                          .filter(UserAchievement.user_id.in_(ids))):
         facts[uid].unlocked[key] = at

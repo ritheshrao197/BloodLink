@@ -4,6 +4,11 @@ LANGUAGES = ("en", "kn", "hi")
 
 STRINGS = {
     "en": {
+        "camp_rsvp": "✅ You're registered for <b>{title}</b>!\n📍 {venue}\n🗓 {when}\nWe'll remind you before the day.",
+        "camp_thanks": "🎉 Thank you for donating at <b>{title}</b>! +{points} BLP. Your next donation date is on your profile.",
+        "rem_camp3": "📅 <b>{title}</b> is in 3 days ({when}) at {venue}. Still coming? Eat well and sleep well before it.",
+        "rem_camp1": "🚨 Tomorrow: <b>{title}</b> at {venue}, {when}. Eat a proper meal and drink plenty of water.",
+        "rem_camp0": "🩸 It's today! <b>{title}</b> at {venue}, {when}. Bring a photo ID. Thank you, hero!",
         "rem_soon": "🩸 In {days} day(s) you can donate blood again. Get ready: eat well and stay hydrated!",
         "rem_where": " Your last donation at <b>{hospital}</b> helped save a life.",
         "rem_eligible": "🎉 <b>You're eligible to donate again!</b>{where}\n\nReady to be someone's hero today?",
@@ -25,6 +30,11 @@ STRINGS = {
         "redeemed": "🎁 You redeemed <b>{reward}</b>!\nVoucher code: <code>{code}</code>\n(Demo voucher — not redeemable)",
     },
     "kn": {
+        "camp_rsvp": "✅ <b>{title}</b> ಗೆ ನೋಂದಣಿ ಆಯಿತು!\n📍 {venue}\n🗓 {when}\nಹಿಂದಿನ ದಿನ ನೆನಪಿಸುತ್ತೇವೆ.",
+        "camp_thanks": "🎉 <b>{title}</b> ನಲ್ಲಿ ರಕ್ತದಾನ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ! +{points} BLP. ಮುಂದಿನ ದಾನದ ದಿನಾಂಕ ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿದೆ.",
+        "rem_camp3": "📅 <b>{title}</b> ಇನ್ನು 3 ದಿನದಲ್ಲಿ ({when}), {venue} ನಲ್ಲಿ. ಬರುತ್ತೀರಲ್ಲವೇ? ಚೆನ್ನಾಗಿ ತಿನ್ನಿ, ಚೆನ್ನಾಗಿ ನಿದ್ರಿಸಿ.",
+        "rem_camp1": "🚨 ನಾಳೆ: <b>{title}</b>, {venue}, {when}. ಸರಿಯಾಗಿ ಊಟ ಮಾಡಿ, ಸಾಕಷ್ಟು ನೀರು ಕುಡಿಯಿರಿ.",
+        "rem_camp0": "🩸 ಇಂದೇ! <b>{title}</b>, {venue}, {when}. ಫೋಟೋ ಗುರುತಿನ ಚೀಟಿ ತನ್ನಿ. ಧನ್ಯವಾದ, ವೀರರೇ!",
         "rem_soon": "🩸 ಇನ್ನು {days} ದಿನಗಳಲ್ಲಿ ನೀವು ಮತ್ತೆ ರಕ್ತದಾನ ಮಾಡಬಹುದು. ಚೆನ್ನಾಗಿ ತಿನ್ನಿ, ಸಾಕಷ್ಟು ನೀರು ಕುಡಿಯಿರಿ!",
         "rem_where": " <b>{hospital}</b> ನಲ್ಲಿ ನಿಮ್ಮ ಕೊನೆಯ ದಾನ ಒಂದು ಜೀವ ಉಳಿಸಲು ಸಹಾಯ ಮಾಡಿತು.",
         "rem_eligible": "🎉 <b>ನೀವು ಮತ್ತೆ ರಕ್ತದಾನ ಮಾಡಬಹುದು!</b>{where}\n\nಇಂದು ಯಾರಿಗಾದರೂ ವೀರರಾಗಲು ಸಿದ್ಧರೇ?",
@@ -46,6 +56,11 @@ STRINGS = {
         "redeemed": "🎁 ನೀವು <b>{reward}</b> ಪಡೆದಿದ್ದೀರಿ!\nವೋಚರ್ ಕೋಡ್: <code>{code}</code>\n(ಡೆಮೊ ವೋಚರ್)",
     },
     "hi": {
+        "camp_rsvp": "✅ <b>{title}</b> के लिए आपका रजिस्ट्रेशन हो गया!\n📍 {venue}\n🗓 {when}\nहम पहले याद दिला देंगे।",
+        "camp_thanks": "🎉 <b>{title}</b> में रक्तदान के लिए धन्यवाद! +{points} BLP। अगली रक्तदान तारीख आपकी प्रोफ़ाइल पर है।",
+        "rem_camp3": "📅 <b>{title}</b> 3 दिन बाद ({when}), {venue} में है। आ रहे हैं न? अच्छा खाएँ और अच्छी नींद लें।",
+        "rem_camp1": "🚨 कल: <b>{title}</b>, {venue}, {when}। ठीक से खाना खाएँ और खूब पानी पिएँ।",
+        "rem_camp0": "🩸 आज है! <b>{title}</b>, {venue}, {when}। फ़ोटो पहचान पत्र साथ लाएँ। धन्यवाद, हीरो!",
         "rem_soon": "🩸 {days} दिन बाद आप फिर रक्तदान कर सकते हैं। तैयार रहें: अच्छा खाएँ और खूब पानी पिएँ!",
         "rem_where": " <b>{hospital}</b> में आपके पिछले रक्तदान ने एक जान बचाने में मदद की।",
         "rem_eligible": "🎉 <b>आप फिर से रक्तदान कर सकते हैं!</b>{where}\n\nआज किसी के हीरो बनने के लिए तैयार हैं?",

@@ -24,7 +24,7 @@ import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "4"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "5"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -333,6 +333,8 @@ def seed(db: Session) -> None:
                for d in donors if d.referral)
     db.flush()
 
+    seed_community(db, rng, now, donors, hospitals, earn)
+
     # ---------- achievements, dated to the moment each was earned ----------
     def verified_at(u: User) -> datetime:
         return min(now, u.created_at + timedelta(days=rng.uniform(1, 20)))
@@ -355,6 +357,91 @@ def seed(db: Session) -> None:
     for d in donors:
         del d.zeal, d.referral
     db.commit()
+
+
+# ---------- teams and camps ----------
+# Fictional organisations (not real institutions), spread over the demo districts
+TEAMS = [
+    ("Karavali Institute of Technology · CSE", "college", "Karnataka", "Dakshina Kannada"),
+    ("Karavali Institute of Technology · ECE", "college", "Karnataka", "Dakshina Kannada"),
+    ("Netravati Arts & Science College", "college", "Karnataka", "Dakshina Kannada"),
+    ("Udupi Coastal Engineering College", "college", "Karnataka", "Udupi"),
+    ("Mysuru Heritage University", "college", "Karnataka", "Mysuru"),
+    ("Garden City Tech Park Volunteers", "company", "Karnataka", "Bengaluru Urban"),
+    ("Silk Board Software Labs", "company", "Karnataka", "Bengaluru Urban"),
+    ("Marina Fintech Pvt Ltd", "company", "Tamil Nadu", "Chennai"),
+    ("Deccan Riders Club", "community", "Maharashtra", "Pune"),
+    ("Backwaters Running Club", "community", "Kerala", "Ernakulam"),
+    ("Lifeline Blood Warriors", "community", "Delhi", "New Delhi"),
+    ("The Bloodline Squad", "group", "Karnataka", "Bengaluru Urban"),
+]
+CAMPS = [
+    # title, organiser team index (or None = a hospital), state, district, days from now, expected
+    ("KIT Mega Blood Drive", 0, "Karnataka", "Dakshina Kannada", 4, 120),
+    ("Tech Park Donate-a-Thon", 5, "Karnataka", "Bengaluru Urban", 9, 150),
+    ("Riders for Life Camp", 8, "Maharashtra", "Pune", 2, 60),
+    ("Monsoon Blood Drive", None, "Kerala", "Ernakulam", 12, 80),
+    ("Heritage Campus Donation Day", 4, "Karnataka", "Mysuru", 20, 100),
+    ("Marina Corporate Camp", 7, "Tamil Nadu", "Chennai", 6, 70),
+    ("Independence Day Blood Drive", 0, "Karnataka", "Dakshina Kannada", -95, 100),
+    ("Founders' Day Camp", 3, "Karnataka", "Udupi", -60, 80),
+    ("World Blood Donor Day Camp", None, "Karnataka", "Bengaluru Urban", -156, 200),
+    ("Run & Give Camp", 9, "Kerala", "Ernakulam", -40, 60),
+]
+
+
+def seed_community(db: Session, rng: random.Random, now: datetime, donors: list[User], hospitals: list[User], earn) -> None:
+    from models import Camp, CampRSVP, Team, TeamMember
+
+    donation_times: dict[int, list[datetime]] = {}
+    for donor_id, at in db.query(Donation.donor_id, Donation.created_at):
+        donation_times.setdefault(donor_id, []).append(at)
+
+    teams = []
+    for i, (name, kind, state, district) in enumerate(TEAMS):
+        local = [d for d in donors if d.city == district] or [d for d in donors if d.state == state]
+        created = now - timedelta(days=rng.uniform(150, 420))
+        team = Team(name=name, kind=kind, city=district, state=state, invite_code=f"TEAM-{1001 + i}", created_at=created)
+        db.add(team)
+        db.flush()
+        members = rng.sample(local, min(len(local), rng.randint(8, 30)))
+        team.created_by = members[0].id
+        for k, u in enumerate(members):
+            joined = max(u.created_at, created) + timedelta(days=rng.uniform(0, 60))
+            db.add(TeamMember(team_id=team.id, user_id=u.id, role="owner" if k == 0 else "member", joined_at=min(joined, now)))
+        teams.append((team, members))
+
+    for title, team_idx, state, district, days, expected in CAMPS:
+        start_ist = (now + timedelta(days=days)).replace(hour=9, minute=30, second=0, microsecond=0)
+        starts = start_ist - IST
+        team, members = teams[team_idx] if team_idx is not None else (None, [])
+        hosp = next((h for h in hospitals if h.city == district), None)
+        organizer = team.name if team else (hosp.name if hosp else f"District Blood Bank, {district}")
+        venue = (f"Main auditorium, {team.name.split(' · ')[0]}" if team and team.kind == "college"
+                 else "Community hall" if team else hosp.name if hosp else f"District Hospital, {district}")
+        camp = Camp(title=title, organizer=organizer, team_id=team.id if team else None, venue=venue, city=district, state=state,
+                    starts_at=starts, ends_at=starts + timedelta(hours=7), expected_donors=expected,
+                    created_by=(members[0].id if members else (hosp.id if hosp else None)),
+                    status="Upcoming" if days > 0 else "Completed", created_at=starts - timedelta(days=rng.uniform(10, 30)),
+                    description="Free health check-up and refreshments for every donor. Please bring a photo ID.")
+        db.add(camp)
+        db.flush()
+        pool = list({u.id: u for u in members + [d for d in donors if d.city == district]}.values())
+        for u in rng.sample(pool, min(len(pool), int(expected * rng.uniform(0.35, 0.7)))):
+            interval = timedelta(days=eligibility.interval_days(u))
+            times = donation_times.get(u.id, [])
+            # only donors who would be eligible on the day, and whose later donations keep a safe gap
+            if any(abs(t - starts) < interval for t in times) or u.created_at > camp.created_at:
+                continue
+            rsvp = CampRSVP(camp_id=camp.id, user_id=u.id, created_at=camp.created_at + timedelta(days=rng.uniform(0, 9)))
+            if days < 0 and rng.random() < 0.8:
+                rsvp.status, rsvp.attended_at = "Attended", starts + timedelta(hours=rng.uniform(0.5, 6.5))
+                earn(u, 100, f"Camp donation — {title}", rsvp.attended_at)
+                times.append(rsvp.attended_at)
+                donation_times[u.id] = times
+                u.last_donation_at = max(u.last_donation_at or rsvp.attended_at, rsvp.attended_at)
+            db.add(rsvp)
+    db.flush()
 
 
 # ---------- maintenance ----------
@@ -388,6 +475,16 @@ def clear_demo(db: Session) -> int:
     db.query(Donation).filter(or_(Donation.donor_id.in_(demo_users), Donation.request_id.in_(demo_reqs))) \
         .delete(synchronize_session=False)
     db.query(achievements.UserAchievement).filter(achievements.UserAchievement.user_id.in_(demo_users)).delete(synchronize_session=False)
+    from models import Camp, CampRSVP, ReminderLog, Team, TeamMember
+
+    demo_teams = [i for (i,) in db.query(Team.id).filter(or_(Team.created_by.in_(demo_users), Team.created_by.is_(None)))]
+    demo_camps = [i for (i,) in db.query(Camp.id).filter(or_(Camp.created_by.in_(demo_users), Camp.created_by.is_(None),
+                                                              Camp.team_id.in_(demo_teams)))]
+    db.query(CampRSVP).filter(or_(CampRSVP.user_id.in_(demo_users), CampRSVP.camp_id.in_(demo_camps))).delete(synchronize_session=False)
+    db.query(Camp).filter(Camp.id.in_(demo_camps)).delete(synchronize_session=False)
+    db.query(TeamMember).filter(or_(TeamMember.user_id.in_(demo_users), TeamMember.team_id.in_(demo_teams))).delete(synchronize_session=False)
+    db.query(Team).filter(Team.id.in_(demo_teams)).delete(synchronize_session=False)
+    db.query(ReminderLog).filter(ReminderLog.user_id.in_(demo_users)).delete(synchronize_session=False)
     db.query(Referral).filter(or_(Referral.referrer_id.in_(demo_users), Referral.referred_id.in_(demo_users))) \
         .delete(synchronize_session=False)
     db.query(Reward).filter(Reward.user_id.in_(demo_users)).delete(synchronize_session=False)

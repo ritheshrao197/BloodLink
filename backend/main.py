@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 import database  # noqa: F401  (loads .env before notifier reads the token)
 import achievements
+import community
 import eligibility
 import reminders
 from database import Base, SessionLocal, engine, get_db
@@ -82,6 +83,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="BLOODLINK API", version="2.0", lifespan=lifespan)
+app.include_router(community.router)  # teams + donation camps
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 WEB_URL = os.getenv("BLOODLINK_WEB_URL", "http://localhost:5173").rstrip("/")

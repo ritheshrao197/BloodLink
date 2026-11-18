@@ -126,6 +126,65 @@ class ReminderLog(Base):
     sent_at = Column(DateTime, default=utcnow)
 
 
+class Team(Base):
+    """A college, class, company or friend group competing on donations."""
+
+    __tablename__ = "teams"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    kind = Column(String, default="group")  # college | company | community | group
+    city = Column(String, nullable=True)  # district
+    state = Column(String, nullable=True)
+    invite_code = Column(String, unique=True, nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class TeamMember(Base):
+    __tablename__ = "team_members"
+    __table_args__ = (UniqueConstraint("team_id", "user_id"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    role = Column(String, default="member")  # owner | member
+    joined_at = Column(DateTime, default=utcnow)  # only donations after this count for the team
+
+
+class Camp(Base):
+    """A blood donation drive that donors RSVP to."""
+
+    __tablename__ = "camps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    organizer = Column(String, nullable=False)  # shown name: hospital, college, NGO...
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    venue = Column(String, nullable=False)
+    city = Column(String, nullable=False)  # district
+    state = Column(String, nullable=True)
+    starts_at = Column(DateTime, nullable=False)  # UTC
+    ends_at = Column(DateTime, nullable=False)
+    expected_donors = Column(Integer, default=50)
+    description = Column(String, nullable=True)
+    status = Column(String, default="Upcoming")  # Upcoming | Completed | Cancelled
+    created_at = Column(DateTime, default=utcnow)
+
+
+class CampRSVP(Base):
+    __tablename__ = "camp_rsvps"
+    __table_args__ = (UniqueConstraint("camp_id", "user_id"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    camp_id = Column(Integer, ForeignKey("camps.id"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    status = Column(String, default="Registered")  # Registered | Attended | Cancelled
+    created_at = Column(DateTime, default=utcnow)
+    attended_at = Column(DateTime, nullable=True)
+
+
 class UserAchievement(Base):
     """An unlocked achievement. The catalog itself lives in code (achievements.py), keyed by `key`."""
 

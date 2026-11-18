@@ -13,6 +13,8 @@ import Rewards from './pages/Rewards';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Achievements from './pages/Achievements';
+import Teams from './pages/Teams';
+import Camps from './pages/Camps';
 
 const ROUTES = {
   '/': Home,
@@ -21,6 +23,8 @@ const ROUTES = {
   '/register': Register,
   '/leaderboard': Leaderboard,
   '/achievements': Achievements,
+  '/teams': Teams,
+  '/camps': Camps,
   '/rewards': Rewards,
   '/profile': Profile,
   '/admin': Admin,
