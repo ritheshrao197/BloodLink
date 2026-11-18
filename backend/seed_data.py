@@ -385,11 +385,12 @@ def seed(db: Session) -> None:
 
 # ---------- the showcase accounts: most achievements, earned by a believable history ----------
 HEROES = [
-    # Sinchana: everything (54/54). AB- (The Unicorn), 90-day interval, two years of unbroken quarters.
-    {"code": "USER_77777", "name": "Sinchana", "blood_group": "AB-", "sex": "male", "dob": date(1988, 6, 14), "weight": 74,
+    # Sinchana: AB- (The Unicorn), 120-day interval, one perfect year (Jan, May, Aug, Dec) for Unstoppable.
+    {"code": "USER_77777", "name": "Sinchana", "blood_group": "AB-", "sex": "female", "dob": date(1988, 6, 14), "weight": 57,
      "phone": "+91 98450 77777", "home": ("Karnataka", "Bengaluru Urban"), "latlng": (12.97, 77.6),
-     "donations": 56, "gap": (91, 96), "referrals": 55, "rewards": ((400, 2), (120, 1), (30, 4)),
-     "anchors": [datetime(2016, 1, 1, 4, 30), datetime(2024, 11, 1, 5, 0)],  # New Year's Day, Diwali (10:00 / 10:30 IST)
+     "donations": 56, "gap": (121, 126), "referrals": 55, "rewards": ((400, 2), (120, 1), (30, 4)),
+     "anchors": [datetime(2016, 1, 1, 4, 30), datetime(2016, 5, 2, 4, 30), datetime(2016, 8, 31, 4, 30),
+                 datetime(2016, 12, 30, 4, 30), datetime(2024, 11, 1, 5, 0)],  # a perfect year, then Diwali (10:00 / 10:30 IST)
      "route": [("Karnataka", "Bengaluru Urban"), ("Kerala", "Ernakulam"), ("Tamil Nadu", "Chennai"), ("Maharashtra", "Pune"),
                ("Goa", "North Goa"), ("Karnataka", "Mysuru"), ("Karnataka", "Dakshina Kannada")]},
     # Sanjana: O- universal donor, 120-day interval; one perfect year (Jan, May, Aug, Dec) for Unstoppable.

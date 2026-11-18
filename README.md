@@ -104,20 +104,19 @@ each one as a chip, showing their live achievement count:
 
 | Code | Donor | Blood | Achievements | Missing |
 |---|---|---|---|---|
-| `USER_77777` | **Sinchana** | AB- | 54/54 | nothing (90-day interval: two years of unbroken quarters) |
+| `USER_77777` | **Sinchana** | AB- | 52/54 | Iron Will, Hot Streak Platinum |
 | `USER_77701` | **Sanjana** | O- | 51/54 | Iron Will, Hot Streak Platinum, The Unicorn (not AB-) |
 | `USER_77702` | **Varsha** | AB- | 51/54 | Iron Will, Hot Streak Platinum, Bloodline Ambassador (40 referrals) |
 | `USER_77703` | **Vrusha** | B+ | 50/54 | Iron Will, Hot Streak Platinum, The Unicorn, Bloodline Royalty (42 donations) |
 
 All four have:
-- donations at least the safe interval apart (90 days for Sinchana, 120 for the others), across five states;
+- donations at least 120 days apart (the safe interval for women), across five states;
 - 5-minute and 2 AM responses, donations on New Year's Day, at a festival and in the rain, and 3 camp donations;
 - verified status and Admin's Favorite;
 - membership of The Bloodline Squad and a shared location;
 - eligibility to donate today.
 
-With a 120-day interval you can't donate in eight quarters in a row, so Iron Will is out of reach. Sanjana, Varsha and Vrusha each still
-have one perfect year (January, May, August, December) for Unstoppable.
+With a 120-day interval you can't donate in eight quarters in a row, so Iron Will is out of reach. Each of the four still has one perfect year (January, May, August, December) for Unstoppable.
 
 ### Demo data that stays alive
 
