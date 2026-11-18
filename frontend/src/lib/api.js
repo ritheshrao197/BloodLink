@@ -60,6 +60,8 @@ export const api = {
   register: (body) => request('/register', { method: 'POST', body }),
   user: (id) => request(`/users/${id}`),
   stats: () => request('/stats'),
+  setLocation: (id, pos) => request(`/users/${id}/location`, { method: 'PATCH', body: pos }),
+  clearLocation: (id) => request(`/users/${id}/location`, { method: 'DELETE' }),
   auth: {
     me: () => request('/auth/me'),
     telegramStart: (purpose = 'login') => request('/auth/telegram/start', { method: 'POST', body: { purpose } }),

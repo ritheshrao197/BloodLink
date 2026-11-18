@@ -7,6 +7,7 @@ import { usePoll } from '../lib/usePoll';
 import { BADGES, BLOOD_GROUPS, canDonate, cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 import RequestCard from '../components/RequestCard';
+import { kmBetween } from '../components/Nearby';
 import DonateModal from '../components/DonateModal';
 import { Showcase } from '../components/Achievements';
 import { BadgeChip, BloodTag, Empty, ErrorBox, Loading } from '../components/ui';
@@ -16,6 +17,8 @@ export default function Home() {
   const { t, num, ago } = useI18n();
   const [filter, setFilter] = useState('All');
   const [respondTo, setRespondTo] = useState(null);
+  const [nearest, setNearest] = useState(false);
+  const me = user?.location || null;
   const feed = usePoll(() => api.requests('Active'), 4000);
   const stats = usePoll(() => api.stats(), 15000);
   const board = usePoll(() => api.leaderboard(5), 15000);
@@ -24,6 +27,7 @@ export default function Home() {
   const requests = (feed.data || []).filter((r) =>
     filter === 'All' ? true : filter === 'Mine' ? user && canDonate(user.blood_group, r.blood_group) : r.blood_group === filter,
   );
+  if (me && nearest) requests.sort((a, b) => (kmBetween(me, a) ?? 1e9) - (kmBetween(me, b) ?? 1e9));
   const s = stats.data?.totals;
   const bot = config?.bot_username || 'BloodLinkBot';
   const spotlight = (feed.data || []).find((r) => r.urgency === 'Critical') || feed.data?.[0];
@@ -166,6 +170,15 @@ export default function Home() {
                 {g === 'Mine' ? t('home.mine') : g === 'All' ? t('common.all') : g}
               </button>
             ))}
+            {me && (
+              <button
+                onClick={() => setNearest(!nearest)}
+                aria-pressed={nearest}
+                className={cx('min-h-9 rounded-full px-3.5 py-1 text-sm font-semibold transition', nearest ? 'bg-sky-600 text-white' : 'bg-slate-800 text-sky-400 hover:bg-slate-700')}
+              >
+                📍 {t('geo.nearest')}
+              </button>
+            )}
           </div>
           <ErrorBox error={feed.error} />
           {feed.loading && !feed.data ? (
@@ -181,7 +194,7 @@ export default function Home() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               {requests.map((r) => (
-                <RequestCard key={r.id} request={r} onRespond={setRespondTo} />
+                <RequestCard key={r.id} request={r} onRespond={setRespondTo} me={me} />
               ))}
             </div>
           )}

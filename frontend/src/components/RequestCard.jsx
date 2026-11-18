@@ -2,12 +2,14 @@ import { BadgeCheck, Clock, Hospital, MapPin } from 'lucide-react';
 import { BloodTag } from './ui';
 import { URGENCY, cx } from '../lib/utils';
 import { useI18n } from '../i18n';
+import { kmBetween, roundKm } from './Nearby';
 
-export default function RequestCard({ request: r, onRespond, highlight }) {
+export default function RequestCard({ request: r, onRespond, highlight, me }) {
   const { t, ago } = useI18n();
   const u = URGENCY[r.urgency] || URGENCY.High;
   const pct = Math.min(100, Math.round((r.units_fulfilled / r.units_needed) * 100));
   const active = r.status === 'Active';
+  const km = roundKm(kmBetween(me, r));
   return (
     <article
       className={cx(
@@ -57,6 +59,7 @@ export default function RequestCard({ request: r, onRespond, highlight }) {
           <span>
             {r.city}
             {r.state && <span className="text-slate-500">, {r.state}</span>}
+            {km != null && <span className="ml-2 font-semibold text-sky-500">· {t('geo.away', { km })}</span>}
           </span>
         </p>
       </div>

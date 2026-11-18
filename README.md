@@ -97,6 +97,21 @@ awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_123
   achievement and on the profile. They share natively on phones (image straight to WhatsApp or Instagram), or via
   WhatsApp/Telegram/X/LinkedIn/Facebook links, or as a download.
 
+### Nearest donors first
+
+- **Opt-in location:** donors share their location once (the profile's "Nearby alerts" card, or Telegram's 📍 button). It's
+  rounded to about 1 km and never shown to anyone. Requesters only ever see distances rounded to half a kilometre.
+- **SOS location:** an SOS carries the hospital's location ("I'm at the hospital: use my location"), or falls back to the
+  district centre.
+- **Alerts go out in widening circles:**
+  - The first wave covers 5 km, growing to 15 km, 40 km, or the rest of the state until at least 8 donors are reached.
+  - If the request is still open, the next circle is alerted after 5 minutes (Critical), 10 (High) or 20 (Normal).
+  - Nobody is alerted twice, and widening stops once the request is fulfilled.
+  - Escalation state lives in the database (`sos_alerts`, `alert_ring`, `next_ring_at`), so a restart doesn't lose it.
+- **Distances shown:** Telegram alerts say "📍 About 3 km from you", and the live feed shows distances with a "Nearest first"
+  sort.
+- Code: [backend/geo.py](backend/geo.py) and `alert_plan` / `escalate_once` in [backend/main.py](backend/main.py).
+
 ### Sign-in and security
 
 - **Log in with Telegram.** The site gets a one-time link (`t.me/<bot>?start=login_<nonce>`), you tap Start, the bot

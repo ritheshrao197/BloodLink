@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 
 from database import Base
 
@@ -36,7 +36,11 @@ class User(Base):
     weight_kg = Column(Integer, nullable=True)
     deferred_until = Column(DateTime, nullable=True)  # self-reported temporary deferral (fever, tattoo, ...)
     is_admin = Column(Boolean, default=False)
-    is_demo = Column(Boolean, default=False)  # seeded demo account (may be opened by code while DEMO_LOGIN=1)
+    is_demo = Column(Boolean, default=False)
+    # opt-in approximate location (rounded to ~1 km) for nearest-first alerts
+    lat = Column(Float, nullable=True)
+    lng = Column(Float, nullable=True)
+    location_at = Column(DateTime, nullable=True)  # seeded demo account (may be opened by code while DEMO_LOGIN=1)
     is_verified = Column(Boolean, default=False)
     last_donation_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow)
@@ -61,8 +65,26 @@ class BloodRequest(Base):
     fulfilled_by = Column(String, nullable=True)
     is_verified = Column(Boolean, default=False)
     notified_count = Column(Integer, default=0)
+    lat = Column(Float, nullable=True)  # hospital / requester location (or district centre)
+    lng = Column(Float, nullable=True)
+    alert_ring = Column(Integer, default=0)  # widest alert circle sent so far
+    next_ring_at = Column(DateTime, nullable=True)  # when to widen if still unfulfilled (None = done)
     created_at = Column(DateTime, default=utcnow)
     fulfilled_at = Column(DateTime, nullable=True)
+
+
+class SosAlert(Base):
+    """Who was alerted for a request, in which circle: so wider circles never re-alert anyone."""
+
+    __tablename__ = "sos_alerts"
+    __table_args__ = (UniqueConstraint("request_id", "user_id"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("requests.id"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    ring = Column(Integer, default=0)
+    distance_km = Column(Float, nullable=True)
+    sent_at = Column(DateTime, default=utcnow)
 
 
 class Donation(Base):

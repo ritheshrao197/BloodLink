@@ -7,6 +7,8 @@ import { BLOOD_GROUPS, COMPATIBILITY, cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 import { BadgeChip, BloodTag, ErrorBox, PageHeader, Spinner } from '../components/ui';
 import LocationPicker from '../components/LocationPicker';
+import { currentPosition } from '../components/Nearby';
+import { LocateFixed } from 'lucide-react';
 
 const URGENCIES = [
   ['Critical', 'border-red-500 bg-red-600/15 text-red-300'],
@@ -26,7 +28,21 @@ export default function SOS() {
     units_needed: 1,
     urgency: 'Critical',
     contact_phone: '',
+    lat: null,
+    lng: null,
   });
+  const [locating, setLocating] = useState(false);
+  const useMyLocation = async () => {
+    setLocating(true);
+    try {
+      const pos = await currentPosition();
+      setForm((f) => ({ ...f, ...pos }));
+    } catch (e) {
+      setError(new Error(t(e.message === 'denied' ? 'geo.denied' : 'geo.unsupported')));
+    } finally {
+      setLocating(false);
+    }
+  };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
@@ -68,6 +84,11 @@ export default function SOS() {
               <div className="text-sm text-slate-400">{t('sos.alerted')}</div>
             </div>
           </div>
+          <p className="mt-4 rounded-lg bg-sky-950/40 p-3 text-sm text-sky-300">
+            {result.first_wave_km
+              ? t('geo.firstWave', { n: result.first_wave, km: result.first_wave_km, min: result.escalate_minutes })
+              : t('geo.firstWaveDistrict', { n: result.first_wave, min: result.escalate_minutes })}
+          </p>
           {!config?.telegram_enabled && <p className="mt-3 text-xs text-amber-300/80">{t('sos.noBot')}</p>}
         </div>
 
@@ -80,7 +101,7 @@ export default function SOS() {
                   <div className="flex min-w-0 items-center gap-3">
                     <BloodTag group={d.blood_group} size="sm" />
                     <span className="truncate font-medium">{d.name}</span>
-                    <span className="hidden text-sm text-slate-500 sm:inline">{d.city}</span>
+                    <span className="hidden text-sm text-slate-500 sm:inline">{d.distance_km != null ? t('geo.away', { km: d.distance_km }) : d.city}</span>
                   </div>
                   <div className="flex shrink-0 items-center gap-3 text-sm">
                     {d.telegram_linked && <Send className="h-4 w-4 text-sky-400" aria-label={t('sos.telegramSent')} />}
@@ -145,6 +166,15 @@ export default function SOS() {
           </div>
           <div className="sm:col-span-2">
             <LocationPicker withHospital idPrefix="sos" value={form} onChange={(v) => setForm({ ...form, ...v })} />
+            <div className="mt-2">
+              {form.lat != null ? (
+                <p className="text-sm text-emerald-500">✓ {t('geo.added')}</p>
+              ) : (
+                <button type="button" onClick={useMyLocation} disabled={locating} className="flex items-center gap-1.5 text-sm font-semibold text-sky-500 hover:underline">
+                  <LocateFixed className="h-4 w-4" /> {t('geo.atHospital')}
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <label className="label" htmlFor="sos-units">

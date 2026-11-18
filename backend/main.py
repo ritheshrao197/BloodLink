@@ -17,6 +17,7 @@ import achievements
 import auth
 import community
 import eligibility
+import geo
 import reminders
 from database import Base, SessionLocal, engine, get_db
 import locations
@@ -25,8 +26,8 @@ import notifier
 import secrets
 import threading
 import weather
-from models import AuthSession, BloodRequest, Donation, LoginRequest, PointLog, Referral, Reward, User, UserAchievement, utcnow
-from schemas import (AvailabilityBody, DonateBody, EligibilityBody, HealthBody, LanguageBody, RedeemBody, SOSCreate,
+from models import AuthSession, BloodRequest, Donation, LoginRequest, SosAlert, PointLog, Referral, Reward, User, UserAchievement, utcnow
+from schemas import (AvailabilityBody, DonateBody, EligibilityBody, HealthBody, LanguageBody, LocationBody, RedeemBody, SOSCreate,
                      UserCreate)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -37,8 +38,10 @@ def migrate() -> None:
     """Add columns introduced after v2.0 to existing SQLite files and map old city names to districts."""
     new_columns = {"users": {"state": "VARCHAR", "language": "VARCHAR DEFAULT 'en'", "available_since": "TIMESTAMP",
                              "sex": "VARCHAR", "date_of_birth": "DATE", "weight_kg": "INTEGER", "deferred_until": "TIMESTAMP",
-                             "is_admin": "BOOLEAN DEFAULT FALSE", "is_demo": "BOOLEAN DEFAULT FALSE"},
-                   "requests": {"state": "VARCHAR", "requester_language": "VARCHAR"},
+                             "is_admin": "BOOLEAN DEFAULT FALSE", "is_demo": "BOOLEAN DEFAULT FALSE",
+                             "lat": "FLOAT", "lng": "FLOAT", "location_at": "TIMESTAMP"},
+                   "requests": {"state": "VARCHAR", "requester_language": "VARCHAR", "lat": "FLOAT", "lng": "FLOAT",
+                                "alert_ring": "INTEGER DEFAULT 0", "next_ring_at": "TIMESTAMP"},
                    "donations": {"weather": "VARCHAR"}}
     insp = inspect(engine)
     with engine.begin() as conn:
@@ -89,6 +92,7 @@ async def lifespan(_app: FastAPI):
         db.close()
     log.info("Telegram notifications %s", "ENABLED" if notifier.enabled() else "DISABLED (no TELEGRAM_BOT_TOKEN)")
     reminders.start()
+    threading.Thread(target=_escalation_loop, name="sos-escalation", daemon=True).start()
     yield
 
 
@@ -141,6 +145,7 @@ def user_private(db: Session, u: User) -> dict:
         "web_referral_link": f"{WEB_URL}/register?ref={u.referral_code}",
         "is_admin": bool(u.is_admin),
         "is_demo": bool(u.is_demo),
+        "location": {"lat": u.lat, "lng": u.lng, "updated_at": iso(u.location_at)} if geo.valid(u.lat, u.lng) else None,
         "referrals": stats,
         "achievements": achievements.showcase(db, [u.id])[u.id],
         "eligibility": eligibility.status(u) if u.role == "donor" else None,
@@ -155,6 +160,7 @@ def request_out(r: BloodRequest) -> dict:
         "fulfilled_by": r.fulfilled_by, "is_verified": r.is_verified,
         "notified_count": r.notified_count, "contact_phone": r.contact_phone,
         "compatible_donor_groups": logic.compatible_donor_groups(r.blood_group),
+        "lat": r.lat, "lng": r.lng,
         "created_at": iso(r.created_at), "fulfilled_at": iso(r.fulfilled_at),
     }
 
@@ -313,6 +319,41 @@ def set_available(user: User, value: bool) -> None:
     user.is_available = value
 
 
+def _set_location(user: User, body: LocationBody | None) -> None:
+    if body is None:
+        user.lat = user.lng = user.location_at = None
+    else:
+        user.lat, user.lng, user.location_at = geo.round_coord(body.lat), geo.round_coord(body.lng), utcnow()
+
+
+@app.patch("/api/users/{user_id}/location")
+def set_location(user_id: int, body: LocationBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    """Opt-in approximate location (rounded to ~1 km) so the nearest donors are alerted first."""
+    user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
+    _set_location(user, body)
+    db.commit()
+    return user_private(db, user)
+
+
+@app.delete("/api/users/{user_id}/location")
+def clear_location(user_id: int, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
+    _set_location(user, None)
+    db.commit()
+    return user_private(db, user)
+
+
+@app.patch("/api/users/by-telegram/{telegram_id}/location")
+def set_location_tg(telegram_id: str, body: LocationBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_bot(a)
+    user = find_user(db, telegram_id=telegram_id)
+    _set_location(user, body)
+    db.commit()
+    return user_private(db, user)
+
+
 @app.patch("/api/users/{user_id}/availability")
 def set_availability(user_id: int, body: AvailabilityBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     user = find_user(db, user_id=user_id)
@@ -432,45 +473,142 @@ def leaderboard(limit: int = 10, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------- requests / SOS
-def matching_donors(db: Session, req: BloodRequest) -> list[User]:
+def alert_plan(db: Session, req: BloodRequest) -> list[tuple[User, int, float | None]]:
+    """Every donor who could answer this request, with their alert circle (0 = nearest) and distance, nearest first."""
     groups = logic.compatible_donor_groups(req.blood_group)
-    base = db.query(User).filter(User.role == "donor", User.is_available.is_(True), User.blood_group.in_(groups))
+    q = db.query(User).filter(User.role == "donor", User.is_available.is_(True), User.blood_group.in_(groups))
     if req.requester_telegram_id:
-        base = base.filter((User.telegram_id.is_(None)) | (User.telegram_id != req.requester_telegram_id))
+        q = q.filter((User.telegram_id.is_(None)) | (User.telegram_id != req.requester_telegram_id))
+    if req.state:
+        q = q.filter((User.state == req.state) | (func.lower(User.city) == req.city.lower()))
+    else:
+        q = q.filter(func.lower(User.city) == req.city.lower())
     now = utcnow()
-    ok = lambda users: [u for u in users if eligibility.can_be_alerted(u, now)]  # noqa: E731
-    local = ok(base.filter(func.lower(User.city) == req.city.lower()).all())
-    return local or ok(base.all())  # fall back to all cities when nobody local matches
+    has_point = geo.valid(req.lat, req.lng)
+    plan = []
+    for u in q.all():
+        if not eligibility.can_be_alerted(u, now):
+            continue
+        dist = geo.km(req.lat, req.lng, u.lat, u.lng) if has_point and geo.valid(u.lat, u.lng) else None
+        same_district = (u.city or "").lower() == (req.city or "").lower()
+        ring = geo.ring_for(dist, same_district, bool(req.state) and u.state == req.state)
+        if not has_point and same_district:
+            ring = 0  # no location on the request: the whole district is the first circle
+        if ring is not None:
+            plan.append((u, ring, dist))
+    plan.sort(key=lambda x: (x[1], x[2] if x[2] is not None else 9999))
+    return plan
+
+
+def matching_donors(db: Session, req: BloodRequest) -> list[User]:
+    return [u for u, _, _ in alert_plan(db, req)]
+
+
+def first_wave(plan) -> int:
+    """Widest circle in the first wave: grow until enough donors are reached."""
+    rings = sorted({r for _, r, _ in plan})
+    reached = 0
+    for r in rings:
+        reached += sum(1 for _, ring, _ in plan if ring == r)
+        if reached >= geo.MIN_FIRST_WAVE:
+            return r
+    return rings[-1] if rings else 0
+
+
+def send_rings(db: Session, req: BloodRequest, upto: int) -> int:
+    """Alert everyone in circles <= upto who has not been alerted yet. Returns Telegram messages delivered."""
+    done = {uid for (uid,) in db.query(SosAlert.user_id).filter(SosAlert.request_id == req.id)}
+    batch = [(u, r, d) for u, r, d in alert_plan(db, req) if r <= upto and u.id not in done]
+    for u, r, d in batch:
+        db.add(SosAlert(request_id=req.id, user_id=u.id, ring=r, distance_km=round(d, 2) if d is not None else None))
+    db.commit()
+    targets = [{"telegram_id": u.telegram_id, "language": u.language, "km": geo.shown_km(d)} for u, _, d in batch if u.telegram_id]
+    sent = notifier.broadcast_sos(request_out(req), targets) if targets else 0
+    req.notified_count = (req.notified_count or 0) + sent
+    db.commit()
+    return sent
+
+
+def _schedule_next(req: BloodRequest, plan, now) -> None:
+    wider = [r for _, r, _ in plan if r > (req.alert_ring or 0)]
+    req.next_ring_at = now + timedelta(minutes=geo.ESCALATE_MINUTES.get(req.urgency, 10)) if wider else None
 
 
 def _broadcast(request_id: int):
     db = SessionLocal()
     try:
         req = db.get(BloodRequest, request_id)
-        donors = [{"telegram_id": d.telegram_id, "language": d.language}
-                  for d in matching_donors(db, req) if d.telegram_id]
-        req.notified_count = notifier.broadcast_sos(request_out(req), donors)
+        plan = alert_plan(db, req)
+        req.alert_ring = first_wave(plan)
+        sent = send_rings(db, req, req.alert_ring)
+        _schedule_next(req, plan, utcnow())
         db.commit()
-        log.info("SOS #%s broadcast to %s/%s Telegram donors", request_id, req.notified_count, len(donors))
+        log.info("SOS #%s: first wave (circles <= %s) reached %s Telegram donors", request_id, req.alert_ring, sent)
     finally:
         db.close()
 
 
+def escalate_once() -> int:
+    """Widen the alert circle for open requests whose wait is over. Returns how many requests escalated."""
+    db = SessionLocal()
+    n = 0
+    try:
+        now = utcnow()
+        for req in db.query(BloodRequest).filter(BloodRequest.status == "Active", BloodRequest.next_ring_at.isnot(None),
+                                                 BloodRequest.next_ring_at <= now).all():
+            if (req.units_fulfilled or 0) >= (req.units_needed or 1):
+                req.next_ring_at = None
+                continue
+            plan = alert_plan(db, req)
+            rings = sorted({r for _, r, _ in plan if r > (req.alert_ring or 0)})
+            if not rings:
+                req.next_ring_at = None
+                continue
+            req.alert_ring = rings[0]
+            sent = send_rings(db, req, req.alert_ring)
+            _schedule_next(req, plan, now)
+            n += 1
+            log.info("SOS #%s still open: widened to circle %s, %s more donors alerted", req.id, req.alert_ring, sent)
+        db.commit()
+    finally:
+        db.close()
+    return n
+
+
+def _escalation_loop() -> None:
+    import time
+
+    while True:
+        time.sleep(60)
+        try:
+            escalate_once()
+        except Exception:  # noqa: BLE001  (keep the loop alive)
+            log.exception("escalation run failed")
+
+
 @app.post("/api/sos")
 def create_sos(body: SOSCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    req = BloodRequest(**body.model_dump())
+    req = BloodRequest(**body.model_dump(exclude={"lat", "lng"}))
     req.state, req.city = locations.normalize(body.city, body.state)
+    point = (body.lat, body.lng) if geo.valid(body.lat, body.lng) else geo.DISTRICT_CENTRES.get(req.city)
+    if point:
+        req.lat, req.lng = geo.round_coord(point[0]), geo.round_coord(point[1])
     db.add(req)
     db.commit()
     db.refresh(req)
-    donors = matching_donors(db, req)
+    plan = alert_plan(db, req)
+    wave = first_wave(plan)
+    first = [(u, r, d) for u, r, d in plan if r <= wave]
     background_tasks.add_task(_broadcast, req.id)
     return {
         "status": "broadcasted",
         "request_id": req.id,
-        "matched_donors": len(donors),
-        "telegram_reachable": sum(1 for d in donors if d.telegram_id),
-        "donors": [user_public(d) for d in donors[:20]],
+        "matched_donors": len(plan),
+        "first_wave": len(first),
+        "first_wave_km": geo.RINGS_KM[wave] if wave < len(geo.RINGS_KM) and geo.valid(req.lat, req.lng) else None,
+        "escalate_minutes": geo.ESCALATE_MINUTES.get(req.urgency, 10),
+        "telegram_reachable": sum(1 for u, _, _ in first if u.telegram_id),
+        "donors": [{**user_public(u), "distance_km": geo.shown_km(d), "ring": r} for u, r, d in plan[:20]],
         "request": request_out(req),
     }
 

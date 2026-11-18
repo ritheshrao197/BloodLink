@@ -68,6 +68,8 @@ def broadcast_sos(request: dict, donors: list[dict]) -> int:
         text = t(lang, "sos_alert", group=esc(request["blood_group"]), hospital=esc(request["hospital"]),
                  city=esc(request["city"]), units=request["units_needed"], uicon=uicon,
                  urgency=t(lang, f"urg_{request['urgency']}"), name=esc(request["requester_name"]))
+        if d.get("km") is not None:
+            text += "\n" + t(lang, "dist", km=d["km"])
         buttons = [[{"text": t(lang, "donate_btn"), "callback_data": f"donate_{request['id']}"}]]
         sent += bool(send_message(d["telegram_id"], text, buttons))
     return sent

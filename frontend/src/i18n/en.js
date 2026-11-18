@@ -415,6 +415,23 @@ export default {
     achievement: 'Achievement unlocked: {name}',
     seed: 'Starting balance',
   },
+  // nearest-first alerts
+  geo: {
+    title: "Nearby alerts",
+    hint: "Share your approximate location (rounded to about 1 km, never shown to anyone) so you're alerted first for emergencies near you.",
+    use: "📍 Use my current location",
+    update: "Update",
+    saved: "Location saved (approximate)",
+    remove: "Remove",
+    denied: "Location permission was denied.",
+    unsupported: "Couldn't get your location on this device.",
+    atHospital: "I'm at the hospital: use my location",
+    added: "Location added: the nearest donors are alerted first.",
+    away: "{km} km away",
+    nearest: "Nearest first",
+    firstWave: "Alerting the nearest donors first: {n} within {km} km now. If nobody answers, the alert widens every {min} min.",
+    firstWaveDistrict: "Alerting {n} donors in the district first. If nobody answers, the alert widens every {min} min.",
+  },
   // sign-in
   auth: {
     telegram: "Log in with Telegram",

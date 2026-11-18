@@ -11,6 +11,7 @@ import { BloodTag, CopyField, PageHeader, StatCard, Toggle } from '../components
 import SignInByCode, { TelegramLinkButton } from '../components/SignInByCode';
 import { Showcase } from '../components/Achievements';
 import { EligibilityCard } from '../components/Eligibility';
+import { NearbyCard } from '../components/Nearby';
 import ShareCardModal from '../components/ShareCard';
 
 // Voucher names are stored in English; map them back to catalog ids so they can be translated
@@ -125,6 +126,7 @@ export default function Profile() {
       </div>
 
       {user.role === 'donor' && <EligibilityCard key={user.id} user={user} onUser={setUser} />}
+      {user.role === 'donor' && <NearbyCard user={user} onUser={setUser} />}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card p-6">

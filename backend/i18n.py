@@ -4,6 +4,7 @@ LANGUAGES = ("en", "kn", "hi")
 
 STRINGS = {
     "en": {
+        "dist": "📍 About {km} km from you",
         "camp_rsvp": "✅ You're registered for <b>{title}</b>!\n📍 {venue}\n🗓 {when}\nWe'll remind you before the day.",
         "camp_thanks": "🎉 Thank you for donating at <b>{title}</b>! +{points} BLP. Your next donation date is on your profile.",
         "rem_camp3": "📅 <b>{title}</b> is in 3 days ({when}) at {venue}. Still coming? Eat well and sleep well before it.",
@@ -30,6 +31,7 @@ STRINGS = {
         "redeemed": "🎁 You redeemed <b>{reward}</b>!\nVoucher code: <code>{code}</code>\n(Demo voucher — not redeemable)",
     },
     "kn": {
+        "dist": "📍 ನಿಮ್ಮಿಂದ ಸುಮಾರು {km} ಕಿಮೀ ದೂರ",
         "camp_rsvp": "✅ <b>{title}</b> ಗೆ ನೋಂದಣಿ ಆಯಿತು!\n📍 {venue}\n🗓 {when}\nಹಿಂದಿನ ದಿನ ನೆನಪಿಸುತ್ತೇವೆ.",
         "camp_thanks": "🎉 <b>{title}</b> ನಲ್ಲಿ ರಕ್ತದಾನ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ! +{points} BLP. ಮುಂದಿನ ದಾನದ ದಿನಾಂಕ ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿದೆ.",
         "rem_camp3": "📅 <b>{title}</b> ಇನ್ನು 3 ದಿನದಲ್ಲಿ ({when}), {venue} ನಲ್ಲಿ. ಬರುತ್ತೀರಲ್ಲವೇ? ಚೆನ್ನಾಗಿ ತಿನ್ನಿ, ಚೆನ್ನಾಗಿ ನಿದ್ರಿಸಿ.",
@@ -56,6 +58,7 @@ STRINGS = {
         "redeemed": "🎁 ನೀವು <b>{reward}</b> ಪಡೆದಿದ್ದೀರಿ!\nವೋಚರ್ ಕೋಡ್: <code>{code}</code>\n(ಡೆಮೊ ವೋಚರ್)",
     },
     "hi": {
+        "dist": "📍 आपसे लगभग {km} किमी दूर",
         "camp_rsvp": "✅ <b>{title}</b> के लिए आपका रजिस्ट्रेशन हो गया!\n📍 {venue}\n🗓 {when}\nहम पहले याद दिला देंगे।",
         "camp_thanks": "🎉 <b>{title}</b> में रक्तदान के लिए धन्यवाद! +{points} BLP। अगली रक्तदान तारीख आपकी प्रोफ़ाइल पर है।",
         "rem_camp3": "📅 <b>{title}</b> 3 दिन बाद ({when}), {venue} में है। आ रहे हैं न? अच्छा खाएँ और अच्छी नींद लें।",

@@ -35,6 +35,11 @@ class EligibilityBody(BaseModel):
     screening: Screening = Screening()
 
 
+class LocationBody(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+
+
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     blood_group: str
@@ -74,6 +79,8 @@ class SOSCreate(BaseModel):
     requester_language: Optional[Literal["en", "kn", "hi", "ml", "ta", "te", "bn", "as", "kok", "tcy"]] = None
 
     _bg = field_validator("blood_group")(_check_group)
+    lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    lng: Optional[float] = Field(default=None, ge=-180, le=180)
 
 
 class DonateBody(BaseModel):

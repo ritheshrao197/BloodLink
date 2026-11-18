@@ -20,11 +20,12 @@ from sqlalchemy.orm import Session
 from database import Base, SessionLocal, engine
 import achievements
 import eligibility
+import geo
 import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "6"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "7"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -160,6 +161,11 @@ def seed(db: Session) -> None:
                  # most donors are 18-45; weights are realistic for eligible adults
                  date_of_birth=date(now.year - int(min(62, max(18, rng.gauss(29, 8)))), rng.randint(1, 12), rng.randint(1, 28)),
                  weight_kg=int(max(46, rng.gauss(58 if p["female"] else 70, 9))))
+        centre = geo.DISTRICT_CENTRES.get(p["district"])
+        if centre and rng.random() < 0.7:  # most donors opted in to nearest-first alerts (~1 km precision)
+            u.lat = geo.round_coord(centre[0] + rng.gauss(0, 0.06))
+            u.lng = geo.round_coord(centre[1] + rng.gauss(0, 0.06))
+            u.location_at = u.created_at
         u.zeal = p["zeal"]
         earn(u, logic.POINTS_REGISTER, "Registration bonus", u.created_at)
         earlier = [d for d in donors if d.created_at < u.created_at - timedelta(days=1)]
@@ -245,6 +251,10 @@ def seed(db: Session) -> None:
                            status="Active", is_verified=by_hospital or rng.random() < 0.55,
                            contact_phone=local_h[0].phone if by_hospital else phone(rng),
                            requester_language=pick(rng, LANG_BY_STATE.get(state, {"en": 1})), created_at=created)
+        centre = geo.DISTRICT_CENTRES.get(district)
+        if centre:  # hospitals sit near the district's main town
+            req.lat = geo.round_coord(centre[0] + rng.gauss(0, 0.02))
+            req.lng = geo.round_coord(centre[1] + rng.gauss(0, 0.02))
         db.add(req)
         db.flush()
         return req
@@ -472,6 +482,9 @@ def clear_demo(db: Session) -> int:
     """Delete demo data. Accounts linked to Telegram, and SOS requests made from Telegram, are real and kept."""
     demo_users = [i for (i,) in db.query(User.id).filter(User.telegram_id.is_(None))]
     demo_reqs = [i for (i,) in db.query(BloodRequest.id).filter(BloodRequest.requester_telegram_id.is_(None))]
+    from models import SosAlert
+
+    db.query(SosAlert).filter(or_(SosAlert.user_id.in_(demo_users), SosAlert.request_id.in_(demo_reqs))).delete(synchronize_session=False)
     db.query(Donation).filter(or_(Donation.donor_id.in_(demo_users), Donation.request_id.in_(demo_reqs))) \
         .delete(synchronize_session=False)
     db.query(achievements.UserAchievement).filter(achievements.UserAchievement.user_id.in_(demo_users)).delete(synchronize_session=False)

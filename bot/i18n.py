@@ -25,6 +25,19 @@ S = {
     "btn_rewards": {"en": "🎁 Rewards", "kn": "🎁 ಬಹುಮಾನಗಳು", "hi": "🎁 इनाम"},
     "btn_leaderboard": {"en": "🏆 Leaderboard", "kn": "🏆 ಲೀಡರ್‌ಬೋರ್ಡ್", "hi": "🏆 लीडरबोर्ड"},
     "btn_achievements": {"en": "🏅 Achievements", "kn": "🏅 ಸಾಧನೆಗಳು", "hi": "🏅 उपलब्धियाँ"},
+    "btn_location": {"en": "📍 Nearby alerts", "kn": "📍 ಹತ್ತಿರದ ಎಚ್ಚರಿಕೆಗಳು", "hi": "📍 पास के अलर्ट"},
+    "btn_send_location": {"en": "📍 Share my location", "kn": "📍 ನನ್ನ ಸ್ಥಳ ಹಂಚಿಕೊಳ್ಳಿ", "hi": "📍 मेरी लोकेशन भेजें"},
+    "ask_location": {
+        "en": "📍 Share your location once and we'll alert you first for emergencies near you.\n"
+              "We round it to about 1 km and never show it to anyone. Tap the button below (or Skip).",
+        "kn": "📍 ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಒಮ್ಮೆ ಹಂಚಿಕೊಳ್ಳಿ, ನಿಮ್ಮ ಹತ್ತಿರದ ತುರ್ತುಗಳಿಗೆ ಮೊದಲು ನಿಮಗೆ ಎಚ್ಚರಿಕೆ ಕಳುಹಿಸುತ್ತೇವೆ.\n"
+              "ಇದನ್ನು ಸುಮಾರು 1 ಕಿಮೀಗೆ ಸರಿಹೊಂದಿಸುತ್ತೇವೆ ಮತ್ತು ಯಾರಿಗೂ ತೋರಿಸುವುದಿಲ್ಲ. ಕೆಳಗಿನ ಬಟನ್ ಒತ್ತಿ (ಅಥವಾ ಬಿಟ್ಟುಬಿಡಿ).",
+        "hi": "📍 एक बार अपनी लोकेशन भेजें, ताकि पास की आपात स्थिति में सबसे पहले आपको अलर्ट मिले।\n"
+              "हम इसे लगभग 1 किमी तक गोल करते हैं और किसी को नहीं दिखाते। नीचे बटन दबाएँ (या छोड़ें)।",
+    },
+    "location_saved": {"en": "✅ Saved (approximately). You'll be alerted first for emergencies near you.",
+                       "kn": "✅ ಉಳಿಸಲಾಗಿದೆ (ಅಂದಾಜು). ನಿಮ್ಮ ಹತ್ತಿರದ ತುರ್ತುಗಳಿಗೆ ಮೊದಲು ಎಚ್ಚರಿಕೆ ಬರುತ್ತದೆ.",
+                       "hi": "✅ सेव हो गया (लगभग)। पास की आपात स्थिति में सबसे पहले आपको अलर्ट मिलेगा।"},
     "btn_camps": {"en": "🏕️ Camps", "kn": "🏕️ ಶಿಬಿರಗಳು", "hi": "🏕️ कैंप"},
     "btn_teams": {"en": "👥 My Teams", "kn": "👥 ನನ್ನ ತಂಡಗಳು", "hi": "👥 मेरी टीमें"},
     "btn_rsvp": {"en": "✅ RSVP", "kn": "✅ ನೋಂದಾಯಿಸಿ", "hi": "✅ RSVP करें"},

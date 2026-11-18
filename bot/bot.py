@@ -190,7 +190,7 @@ def menu_kb(lang: str, user: dict | None) -> InlineKeyboardMarkup:
         [btn(t(lang, "btn_rewards"), "m_rewards"), btn(t(lang, "btn_leaderboard"), "m_leaderboard")],
         [btn(t(lang, "btn_achievements"), "m_achievements"), btn(t(lang, "btn_invite"), "m_invite")],
         [btn(t(lang, "btn_camps"), "m_camps"), btn(t(lang, "btn_teams"), "m_teams")],
-        [btn(t(lang, "btn_language"), "m_language")],
+        [btn(t(lang, "btn_location"), "m_location"), btn(t(lang, "btn_language"), "m_language")],
     ]
     if user:
         rows.append([btn(t(lang, "btn_busy"), "m_busy") if user["is_available"]
@@ -369,7 +369,7 @@ async def menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("sos", None)
     await ack(update)
     handler = {"requests": requests_cmd, "me": me, "invite": invite, "rewards": rewards,
-               "leaderboard": leaderboard, "achievements": achievements_cmd, "camps": camps_cmd, "teams": teams_cmd,
+               "leaderboard": leaderboard, "achievements": achievements_cmd, "camps": camps_cmd, "teams": teams_cmd, "location": ask_location,
                "language": ask_language, "available": available, "busy": busy}.get(action)
     if handler:
         await handler(update, context)
@@ -823,6 +823,26 @@ async def teams_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await reply(update, "\n".join(lines))
 
 
+async def ask_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await ensure_lang(update, context)
+    lang = L(context)
+    if not await current_user(update):
+        return await not_registered(update, context)
+    kb = ReplyKeyboardMarkup([[KeyboardButton(t(lang, "btn_send_location"), request_location=True)], [KeyboardButton(t(lang, "btn_skip"))]],
+                             resize_keyboard=True, one_time_keyboard=True)
+    await reply(update, t(lang, "ask_location"), reply_markup=kb)
+
+
+async def location_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = await ensure_lang(update, context) or "en"
+    loc = update.message.location
+    try:
+        await api("PATCH", f"/users/by-telegram/{update.effective_user.id}/location", json={"lat": loc.latitude, "lng": loc.longitude})
+    except ApiError as e:
+        return await reply(update, err_text(lang, e), reply_markup=ReplyKeyboardRemove())
+    await reply(update, t(lang, "location_saved"), reply_markup=ReplyKeyboardRemove())
+
+
 async def requests_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_lang(update, context)
     lang = L(context)
@@ -965,6 +985,8 @@ def build_app() -> Application:
     app.add_handler(cb(camp_rsvp_click, pattern=r"^crsvp_\d+$"))
     app.add_handler(cb(redeem_click, pattern=r"^redeem_\d+$"))
     app.add_handler(cb(cancel, pattern=r"^x_cancel$"))
+    app.add_handler(MessageHandler(filters.LOCATION, location_received))
+    app.add_handler(CommandHandler("location", ask_location))
     app.add_handler(MessageHandler(text, unknown_text))
     app.add_error_handler(on_error)
     return app
