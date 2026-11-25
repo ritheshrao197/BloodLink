@@ -791,18 +791,20 @@ async def donate_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def staff_pledge_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Hospital / blood bank staff tapped Donated (pok_) or Didn't come (pns_) on a pledge alert."""
+    """Hospital / blood bank staff tapped Donated (pok_), Didn't come (pns_) or Low Hb (phb_) on a pledge alert."""
     q = update.callback_query
     lang = await ensure_lang(update, context) or "en"
     kind, donation_id = q.data.split("_", 1)
+    path = {"pok": "confirm", "pns": "no-show", "phb": "low-hb"}[kind]
     try:
-        res = await api("POST", f"/staff/pledges/{int(donation_id)}/{'confirm' if kind == 'pok' else 'no-show'}",
+        res = await api("POST", f"/staff/pledges/{int(donation_id)}/{path}",
                         json={"staff_telegram_id": str(update.effective_user.id)})
     except ApiError as e:
         await ack(update, (t(lang, "server_down") if str(e) == "server_down" else str(e))[:190], alert=True)
         return
     await ack(update)
     note = (t(lang, "staff_done", name=esc(res["donor_name"]), points=res["points_awarded"]) if kind == "pok"
+            else t(lang, "staff_lowhb", name=esc(res["donor_name"])) if kind == "phb"
             else t(lang, "staff_noshow"))
     await q.edit_message_reply_markup(None)
     await context.bot.send_message(q.message.chat_id, note, parse_mode=ParseMode.HTML)
@@ -1099,7 +1101,7 @@ def build_app() -> Application:
     app.add_handler(cb(donate_screen, pattern=r"^dsc_\d+_(none|any)$"))
     app.add_handler(cb(donate_confirmed, pattern=r"^dok_\d+$"))
     app.add_handler(cb(donate_declined, pattern=r"^dno_\d+$"))
-    app.add_handler(cb(staff_pledge_click, pattern=r"^(pok|pns)_\d+$"))
+    app.add_handler(cb(staff_pledge_click, pattern=r"^(pok|pns|phb)_\d+$"))
     app.add_handler(cb(reminder_later, pattern=r"^rem_later$"))
     app.add_handler(cb(camp_rsvp_click, pattern=r"^crsvp_\d+$"))
     app.add_handler(cb(redeem_click, pattern=r"^redeem_\d+$"))
