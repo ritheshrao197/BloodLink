@@ -51,7 +51,7 @@ export function NearbyCard({ user, onUser }) {
   return (
     <div className="card p-6">
       <h2 className="flex items-center gap-2 text-lg font-bold">
-        <MapPin className="h-5 w-5 text-blood-500" aria-hidden /> {t('geo.title')}
+        <MapPin className="h-5 w-5 text-brand-600" aria-hidden /> {t('geo.title')}
       </h2>
       <p className="mt-2 text-sm text-slate-400">{t('geo.hint')}</p>
       {user.location ? (
@@ -63,7 +63,7 @@ export function NearbyCard({ user, onUser }) {
             <button onClick={share} className="font-semibold hover:underline" disabled={busy}>
               {t('geo.update')}
             </button>
-            <button onClick={remove} className="text-slate-400 hover:text-blood-500">
+            <button onClick={remove} className="text-slate-400 hover:text-brand-600">
               {t('geo.remove')}
             </button>
           </span>

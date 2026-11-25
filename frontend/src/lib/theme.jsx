@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 
-const KEY = 'bloodlink-theme'; // 'light' | 'dark' | 'system'
+const KEY = 'bloodlink-theme'; // 'light' | 'dark' | 'system'; nothing stored = light (the default look)
 const media = () => window.matchMedia('(prefers-color-scheme: dark)');
 
 function read() {
   try {
-    return localStorage.getItem(KEY) || 'system';
+    return localStorage.getItem(KEY) || 'light';
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
@@ -23,7 +23,7 @@ export function useTheme() {
   useEffect(() => {
     apply(mode);
     try {
-      if (mode === 'system') localStorage.removeItem(KEY);
+      if (mode === 'light') localStorage.removeItem(KEY);
       else localStorage.setItem(KEY, mode);
     } catch {
       /* storage blocked: still works for this visit */

@@ -115,7 +115,7 @@ export default {
     haveCode: 'ನನ್ನ ಬಳಿ ಈಗಾಗಲೇ ಕೋಡ್ ಇದೆ',
     topHeroes: 'ಅಗ್ರ ವೀರರು',
     activityTitle: "ಲೈವ್ ಚಟುವಟಿಕೆ",
-    activityLine: "{name} {hospital} ನಲ್ಲಿ ದಾನಕ್ಕೆ ಮುಂದಾದರು",
+    activityLine: "{name} {hospital} ನಲ್ಲಿ ರಕ್ತದಾನ ಮಾಡಿದರು",
   },
   request: {
     onTheWay: "{n} ದಾರಿಯಲ್ಲಿ",

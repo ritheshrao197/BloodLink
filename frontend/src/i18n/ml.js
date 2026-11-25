@@ -115,7 +115,7 @@ export default {
     haveCode: 'എന്റെ പക്കൽ ഇതിനകം കോഡ് ഉണ്ട്',
     topHeroes: 'മികച്ച നായകന്മാർ',
     activityTitle: "തത്സമയ പ്രവർത്തനം",
-    activityLine: "{name} {hospital}-ൽ ദാനം വാഗ്ദാനം ചെയ്തു",
+    activityLine: "{name} {hospital}-ൽ രക്തദാനം ചെയ്തു",
   },
   request: {
     onTheWay: "{n} വഴിയിൽ",

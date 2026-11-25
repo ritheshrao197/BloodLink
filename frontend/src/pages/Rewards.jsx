@@ -39,7 +39,7 @@ export default function Rewards() {
         {user && (
           <div className="card px-5 py-3 text-right">
             <div className="text-xs text-slate-400">{t('rewards.balance')}</div>
-            <div className="text-2xl font-extrabold text-red-400">{num(user.points)} BLP</div>
+            <div className="text-2xl font-extrabold text-brand-400">{num(user.points)} BLP</div>
           </div>
         )}
       </PageHeader>
@@ -66,9 +66,9 @@ export default function Rewards() {
             const affordable = user && user.points >= r.cost;
             const pct = user ? Math.min(100, Math.round((user.points / r.cost) * 100)) : 0;
             return (
-              <div key={r.id} className={cx('card card-hover flex flex-col p-6', affordable && 'border-blood-300 dark:border-blood-500/40')}>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600/15">
-                  <Icon className="h-7 w-7 text-red-400" />
+              <div key={r.id} className={cx('card card-hover flex flex-col p-6', affordable && 'border-brand-300 dark:border-brand-500/40')}>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600/15">
+                  <Icon className="h-7 w-7 text-brand-400" />
                 </div>
                 <h3 className="mt-4 text-lg font-bold">{tOr(`reward.${r.id}.name`, r.name)}</h3>
                 <p className="mt-1 flex-1 text-sm text-slate-400">{tOr(`reward.${r.id}.description`, r.description)}</p>
@@ -103,7 +103,7 @@ export default function Rewards() {
           ].map(([k, p]) => (
             <div key={k} className="flex items-center justify-between gap-3 rounded-lg bg-slate-800/50 px-4 py-3">
               <span className="text-slate-300">{t(`rewards.earn.${k}`)}</span>
-              <span className="shrink-0 font-bold text-red-400">{p}</span>
+              <span className="shrink-0 font-bold text-brand-400">{p}</span>
             </div>
           ))}
         </div>
@@ -113,7 +113,7 @@ export default function Rewards() {
         {voucher && (
           <div className="space-y-4 text-center">
             <p className="text-slate-300">{voucher.reward}</p>
-            <div className="rounded-xl border-2 border-dashed border-red-500/50 bg-slate-800/60 p-5 font-mono text-3xl font-extrabold tracking-widest text-red-400">
+            <div className="rounded-xl border-2 border-dashed border-brand-500/50 bg-slate-800/60 p-5 font-mono text-3xl font-extrabold tracking-widest text-brand-400">
               {voucher.voucher_code}
             </div>
             <CopyField value={voucher.voucher_code} />

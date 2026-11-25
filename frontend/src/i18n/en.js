@@ -115,7 +115,7 @@ export default {
     haveCode: 'I already have a code',
     topHeroes: 'Top heroes',
     activityTitle: "Live activity",
-    activityLine: "{name} pledged at {hospital}",
+    activityLine: "{name} donated at {hospital}",
   },
   request: {
     needed: '{group} Needed',

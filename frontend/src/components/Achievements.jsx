@@ -44,7 +44,7 @@ export function RarityTag({ rarity, className }) {
 
 function NewTag() {
   const { t } = useI18n();
-  return <span className="absolute right-2 top-2 rounded-full bg-blood-600 px-2 py-0.5 text-[10px] font-bold text-white">{t('achievements.new')}</span>;
+  return <span className="absolute right-2 top-2 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white">{t('achievements.new')}</span>;
 }
 
 export function AchievementCard({ a, isNew, onShare }) {

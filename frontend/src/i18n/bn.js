@@ -134,7 +134,7 @@ export default {
     haveCode: 'আমার কাছে ইতিমধ্যে একটি কোড আছে',
     topHeroes: 'শীর্ষ নায়করা',
     activityTitle: "লাইভ কার্যকলাপ",
-    activityLine: "{name} {hospital}-এ রক্তদানের অঙ্গীকার করেছেন",
+    activityLine: "{name} {hospital}-এ রক্তদান করেছেন",
   },
   request: {
     onTheWay: "{n} জন পথে",

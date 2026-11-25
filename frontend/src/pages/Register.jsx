@@ -50,7 +50,7 @@ export default function Register() {
   };
 
   if (created) {
-    const points = <span className="font-bold text-red-400">{created.points} BLP</span>;
+    const points = <span className="font-bold text-brand-400">{created.points} BLP</span>;
     const [before, after] = t(created.referred_by ? 'register.earnedBonus' : 'register.earned', { points: '\u0000' }).split('\u0000');
     return (
       <div className="mx-auto max-w-xl">
@@ -69,7 +69,7 @@ export default function Register() {
           )}
           <div className="mt-6 rounded-xl bg-slate-800/60 p-4">
             <div className="text-sm text-slate-400">{t('register.yourCode')}</div>
-            <div className="mt-1 font-mono text-3xl font-extrabold tracking-wider text-red-400">{created.referral_code}</div>
+            <div className="mt-1 font-mono text-3xl font-extrabold tracking-wider text-brand-400">{created.referral_code}</div>
             <div className="mt-1 text-xs text-slate-500">{t('register.codeHint')}</div>
           </div>
           <div className="mt-6 space-y-4 text-left">
@@ -124,7 +124,7 @@ export default function Register() {
                   onClick={() => setForm({ ...form, blood_group: g })}
                   className={cx(
                     'min-h-11 rounded-lg border py-2.5 font-extrabold transition',
-                    form.blood_group === g ? 'border-red-500 bg-red-600 text-white' : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-red-500/50',
+                    form.blood_group === g ? 'border-brand-600 bg-brand-700 text-white' : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-brand-500/50',
                   )}
                 >
                   {g}

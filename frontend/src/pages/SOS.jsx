@@ -12,8 +12,8 @@ import { LocateFixed } from 'lucide-react';
 
 const URGENCIES = [
   ['Critical', 'border-red-500 bg-red-600/15 text-red-300'],
-  ['High', 'border-orange-500 bg-orange-500/15 text-orange-300'],
-  ['Normal', 'border-amber-400 bg-amber-400/10 text-amber-200'],
+  ['High', 'border-amber-500 bg-amber-500/15 text-amber-300'],
+  ['Normal', 'border-slate-500 bg-slate-800 text-slate-200'],
 ];
 
 export default function SOS() {
@@ -68,7 +68,7 @@ export default function SOS() {
       <div className="mx-auto max-w-2xl">
         <div className="card border-red-500/40 p-8 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-600/20">
-            <Siren className="h-8 w-8 animate-pulse text-red-500" />
+            <Siren className="h-8 w-8 text-red-500" />
           </div>
           <h1 className="mt-4 text-3xl font-extrabold">{t('sos.sent')}</h1>
           <p className="mt-2 text-slate-300">

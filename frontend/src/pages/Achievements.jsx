@@ -117,7 +117,7 @@ export default function Achievements() {
             aria-pressed={category === c}
             className={cx(
               'min-h-9 rounded-full border px-3 py-1.5 text-sm transition',
-              category === c ? 'border-red-500 bg-red-600/20 text-red-300' : 'border-slate-700 text-slate-300 hover:border-slate-500',
+              category === c ? 'border-brand-500 bg-brand-600/15 text-brand-300' : 'border-slate-700 text-slate-300 hover:border-slate-500',
             )}
           >
             {CATEGORY_ICON[c] || '🏆'} {t(`achievements.category.${c}`)}

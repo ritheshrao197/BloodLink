@@ -15,7 +15,7 @@ export default function RequestCard({ request: r, onRespond, highlight, me }) {
       className={cx(
         'card card-hover relative flex flex-col overflow-hidden p-5',
         active && r.urgency === 'Critical' ? 'card-emergency' : u.border,
-        highlight && 'ring-2 ring-blood-500',
+        highlight && 'ring-2 ring-brand-500',
       )}
       aria-label={t('request.aria', { urgency: t(`urgency.${r.urgency}`), group: r.blood_group, hospital: r.hospital })}
     >
@@ -23,7 +23,7 @@ export default function RequestCard({ request: r, onRespond, highlight, me }) {
         <div className="flex flex-wrap items-center gap-2">
           {active && (
             <span className="relative flex h-2.5 w-2.5">
-              <span className={cx('absolute inline-flex h-full w-full animate-pulse-ring rounded-full', u.dot)} />
+              {r.urgency === 'Critical' && <span className={cx('absolute inline-flex h-full w-full animate-pulse-ring rounded-full', u.dot)} />}
               <span className={cx('relative inline-flex h-2.5 w-2.5 rounded-full', u.dot)} />
             </span>
           )}

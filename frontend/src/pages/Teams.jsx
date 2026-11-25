@@ -37,7 +37,7 @@ function TeamList() {
                 key={k || 'all'}
                 onClick={() => setKind(k)}
                 aria-pressed={kind === k}
-                className={cx('min-h-9 shrink-0 rounded-full px-3.5 py-1 text-sm font-semibold transition', kind === k ? 'bg-blood-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}
+                className={cx('min-h-9 shrink-0 rounded-full px-3.5 py-1 text-sm font-semibold transition', kind === k ? 'bg-brand-700 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}
               >
                 {k ? t(`teams.kind.${k}`) : t('common.all')}
               </button>
@@ -73,7 +73,7 @@ function TeamList() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-extrabold tabular-nums text-blood-600 dark:text-blood-400">{num(team.points)} BLP</div>
+                      <div className="font-extrabold tabular-nums text-brand-700 dark:text-brand-300">{num(team.points)} BLP</div>
                       <div className="text-xs text-slate-400">{t('teams.donations', { n: team.donations })}</div>
                     </div>
                   </Link>
@@ -107,7 +107,7 @@ function TeamList() {
           ) : (
             <div className="card p-5 text-sm text-slate-300">
               {t('teams.signIn')}{' '}
-              <Link to="/profile" className="font-semibold text-blood-500 hover:underline">
+              <Link to="/profile" className="font-semibold text-brand-600 hover:underline">
                 {t('common.signIn')}
               </Link>
             </div>
@@ -264,7 +264,7 @@ function TeamDetail({ id }) {
           <h2 className="border-b border-slate-800 px-5 py-4 font-bold">{t('teams.membersTitle')}</h2>
           <ol className="divide-y divide-slate-800">
             {team.members_list.map((m, i) => (
-              <li key={m.id} className={cx('flex items-center gap-3 px-5 py-3', user?.id === m.id && 'bg-blood-600/10')}>
+              <li key={m.id} className={cx('flex items-center gap-3 px-5 py-3', user?.id === m.id && 'bg-brand-600/10')}>
                 <span className={cx('w-7 text-sm font-extrabold', i < 3 ? 'text-amber-500' : 'text-slate-500')}>#{i + 1}</span>
                 <span aria-hidden>{BADGES[m.badge]?.icon}</span>
                 <div className="min-w-0 flex-1">
@@ -275,7 +275,7 @@ function TeamDetail({ id }) {
                 </div>
                 <BloodTag group={m.blood_group} size="sm" />
                 <div className="w-20 text-right">
-                  <div className="font-bold tabular-nums text-blood-600 dark:text-blood-400">{num(m.points)}</div>
+                  <div className="font-bold tabular-nums text-brand-700 dark:text-brand-300">{num(m.points)}</div>
                   <div className="text-[11px] text-slate-500">{t('teams.donations', { n: m.donations })}</div>
                 </div>
               </li>
@@ -290,7 +290,7 @@ function TeamDetail({ id }) {
                 {team.invite_code} <Copy className="h-4 w-4" />
               </button>
               <p className="text-xs text-slate-400">{t('teams.inviteHint')}</p>
-              <button onClick={leave} className="text-xs font-semibold text-slate-500 hover:text-blood-500">
+              <button onClick={leave} className="text-xs font-semibold text-slate-500 hover:text-brand-600">
                 {t('teams.leave')}
               </button>
             </div>

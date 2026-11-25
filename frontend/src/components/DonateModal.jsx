@@ -117,7 +117,7 @@ export default function DonateModal({ request, onClose, onDone }) {
               <p className="flex items-center gap-2 rounded-lg bg-emerald-950/40 px-3 py-2 text-sm font-semibold text-emerald-300">{t('elig.ok')}</p>
               <p className="text-sm text-slate-300">{t('donate.donatingAs', { name: user.name, group: user.blood_group })}</p>
               <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-300">
-                <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-red-600" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+                <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
                 {t('donate.confirm')}
               </label>
               {error?.data?.eligibility ? (

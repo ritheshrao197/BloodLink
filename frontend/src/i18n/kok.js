@@ -115,7 +115,7 @@ export default {
     haveCode: 'म्हजे कडेन पयलींच कोड आसा',
     topHeroes: 'मुखेल हिरो',
     activityTitle: "लायव्ह हालचाल",
-    activityLine: "{name} हांणी {hospital} हांगा दान करपाचें उतर दिलें",
+    activityLine: "{name} हांणी {hospital} हांगा रक्तदान केलें",
   },
   request: {
     onTheWay: "{n} वाटेर",

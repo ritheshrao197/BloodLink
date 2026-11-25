@@ -229,7 +229,7 @@ export function EligibilityForm({ user, onEligible }) {
   return (
     <div className="space-y-4">
       <div className="flex gap-3 rounded-xl bg-slate-800/60 p-3">
-        <Stethoscope className="mt-0.5 h-5 w-5 shrink-0 text-blood-500" aria-hidden />
+        <Stethoscope className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden />
         <div>
           <p className="font-bold">{t('elig.title')}</p>
           <p className="text-xs text-slate-400">{t('elig.intro')}</p>
@@ -245,7 +245,7 @@ export function EligibilityForm({ user, onEligible }) {
           <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-300">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 shrink-0 accent-red-600"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
               checked={basicsConfirmed}
               onChange={(e) => setBasicsConfirmed(e.target.checked)}
             />
@@ -353,7 +353,7 @@ export function EligibilityCard({ user, onUser }) {
   return (
     <div className="card p-6">
       <h2 className="flex items-center gap-2 text-lg font-bold">
-        <HeartPulse className="h-5 w-5 text-blood-500" aria-hidden /> {t('elig.card')}
+        <HeartPulse className="h-5 w-5 text-brand-600" aria-hidden /> {t('elig.card')}
       </h2>
       {e.permanently_ineligible ? (
         <div className="mt-4">
@@ -391,7 +391,7 @@ export function EligibilityCard({ user, onUser }) {
       {pausedUntil && (
         <p className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-400">
           {t('elig.pausedUntil', { date: date(pausedUntil) })}
-          <button onClick={undo} className="text-xs font-semibold text-blood-500 hover:underline">
+          <button onClick={undo} className="text-xs font-semibold text-brand-600 hover:underline">
             {t('elig.undo')}
           </button>
         </p>

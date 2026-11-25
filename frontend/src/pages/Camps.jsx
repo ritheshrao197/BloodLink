@@ -38,7 +38,7 @@ export default function Camps() {
                 role="tab"
                 aria-selected={tab === k}
                 onClick={() => setTab(k)}
-                className={cx('min-h-10 flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition', tab === k ? 'bg-blood-600 text-white' : 'text-slate-300 hover:bg-slate-800')}
+                className={cx('min-h-10 flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition', tab === k ? 'bg-brand-700 text-white' : 'text-slate-300 hover:bg-slate-800')}
               >
                 {t(`camps.${k}`)}
               </button>
@@ -62,7 +62,7 @@ export default function Camps() {
           {!user && (
             <div className="card p-5 text-sm text-slate-300">
               {t('camps.signIn')}{' '}
-              <Link to="/profile" className="font-semibold text-blood-500 hover:underline">
+              <Link to="/profile" className="font-semibold text-brand-600 hover:underline">
                 {t('common.signIn')}
               </Link>
             </div>
@@ -120,7 +120,7 @@ function CampCard({ camp: c, onChange }) {
   return (
     <article className="card card-hover flex flex-col p-5">
       <div className="flex items-start gap-3">
-        <div className="flex w-14 shrink-0 flex-col items-center rounded-xl bg-blood-600/10 py-1.5 text-blood-600 dark:bg-blood-500/15 dark:text-blood-400">
+        <div className="flex w-14 shrink-0 flex-col items-center rounded-xl bg-brand-600/10 py-1.5 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
           <span className="text-[11px] font-bold uppercase">{start.toLocaleDateString(locale, { month: 'short' })}</span>
           <span className="text-2xl font-extrabold leading-none">{start.getDate()}</span>
         </div>

@@ -28,7 +28,7 @@ function BottomBar({ path }) {
       <Link
         to={to}
         aria-current={active ? 'page' : undefined}
-        className={cx('flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold', active ? 'text-blood-600 dark:text-blood-400' : 'text-slate-400')}
+        className={cx('flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold', active ? 'text-brand-700 dark:text-brand-300' : 'text-slate-400')}
       >
         <Icon className="h-6 w-6" aria-hidden />
         <span className="max-w-full truncate px-1">{t(key)}</span>
@@ -45,7 +45,7 @@ function BottomBar({ path }) {
         {tab('/', 'nav.feed', Droplet)}
         {tab('/camps', 'nav.camps', Tent)}
         <Link to="/sos" className="flex flex-1 flex-col items-center" aria-label={t('nav.sosLong')}>
-          <span className={cx('-mt-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blood-500 to-blood-700 text-white shadow-xl shadow-blood-600/40 ring-4 ring-white dark:ring-slate-950', path !== '/sos' && 'animate-pulse-sos')}>
+          <span className={cx('-mt-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blood-500 to-blood-700 text-white shadow-md ring-4 ring-white dark:ring-slate-950', path !== '/sos' && 'animate-pulse-sos')}>
             <Siren className="h-7 w-7" />
           </span>
           <span className="pb-2 pt-0.5 text-[11px] font-extrabold text-blood-600 dark:text-blood-400">{t('nav.sos')}</span>
@@ -66,7 +66,7 @@ function LanguagePicker() {
     if (user && user.language !== code) api.setLanguage(user.id, code).then(setUser).catch(() => {});
   };
   return (
-    <label className="relative flex h-10 items-center rounded-lg text-slate-400 transition focus-within:ring-4 focus-within:ring-blood-500/30 hover:bg-slate-800 hover:text-slate-50">
+    <label className="relative flex h-10 items-center rounded-lg text-slate-400 transition focus-within:ring-4 focus-within:ring-brand-500/30 hover:bg-slate-800 hover:text-slate-50">
       <Languages className="pointer-events-none absolute left-2.5 h-4 w-4" aria-hidden />
       <span className="sr-only">{t('common.language')}</span>
       <select
@@ -87,9 +87,9 @@ function LanguagePicker() {
 export default function Layout({ children }) {
   const { path } = useRouter();
   const { user } = useSession();
-  const nav = user && (user.is_admin || ['hospital', 'blood_bank'].includes(user.role))
-    ? [...NAV, { to: '/staff', key: 'staff', icon: ClipboardCheck }]
-    : NAV;
+  const staff = !!user && (user.is_admin || ['hospital', 'blood_bank'].includes(user.role));
+  // staff get the page in the menu, and as an icon in the header (the full nav has no room for a ninth link)
+  const nav = staff ? [...NAV, { to: '/staff', key: 'staff', icon: ClipboardCheck }] : NAV;
   const { mode, cycle } = useTheme();
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
@@ -107,7 +107,7 @@ export default function Layout({ children }) {
         aria-current={active ? 'page' : undefined}
         className={cx(
           'flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition',
-          active ? 'bg-blood-600/10 text-blood-600 dark:bg-blood-500/15 dark:text-blood-400' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-50',
+          active ? 'bg-brand-600/10 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-50',
         )}
       >
         <Icon className="h-4 w-4 shrink-0" />
@@ -117,27 +117,41 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[radial-gradient(ellipse_at_top,_rgba(220,38,38,0.08),_transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(220,38,38,0.14),_transparent_55%)]">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-blood-600 focus:px-4 focus:py-2 focus:text-white">
+    <div className="flex min-h-screen flex-col bg-slate-950">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand-700 focus:px-4 focus:py-2 focus:text-white">
         {t('nav.skip')}
       </a>
       <header className="glass-nav">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4">
           <Link to="/" className="flex shrink-0 items-center gap-2 text-xl font-black tracking-tight" aria-label={t('nav.home')}>
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blood-500 to-blood-700 shadow-lg shadow-blood-600/30">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blood-600 shadow-sm">
               <Droplet className="h-5 w-5 fill-white text-white" />
             </span>
             <span className="hidden sm:inline">
-              <span className="text-gradient-blood">BLOOD</span>LINK
+              <span className="text-brand-700 dark:text-brand-300">BLOOD</span>LINK
             </span>
           </Link>
           <nav className={cx('hidden items-center gap-0.5', wide ? 'xl:flex' : '2xl:flex')} aria-label={t('nav.main')}>
-            {nav.map(navLink)}
+            {NAV.map(navLink)}
           </nav>
           <div className="flex items-center gap-1.5">
             <Link to="/sos" className={cx('btn-sos hidden min-h-10 px-4 py-2 text-sm sm:inline-flex', path === '/sos' && 'animate-none')}>
               <Siren className="h-4 w-4" /> {t('nav.sos')}
             </Link>
+            {staff && (
+              <Link
+                to="/staff"
+                aria-label={t('nav.staff')}
+                title={t('nav.staff')}
+                aria-current={path.startsWith('/staff') ? 'page' : undefined}
+                className={cx(
+                  'flex h-10 w-10 items-center justify-center rounded-lg transition',
+                  path.startsWith('/staff') ? 'bg-brand-600/10 text-brand-700 dark:text-brand-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-50',
+                )}
+              >
+                <ClipboardCheck className="h-5 w-5" />
+              </Link>
+            )}
             <LanguagePicker />
             <button
               onClick={cycle}
@@ -150,13 +164,13 @@ export default function Layout({ children }) {
             {user ? (
               <Link
                 to="/profile"
-                className="flex min-h-10 items-center gap-2 rounded-full border border-slate-800 bg-white py-1 pl-1 pr-3 text-sm transition hover:border-blood-400 dark:border-slate-700 dark:bg-slate-900"
+                className="flex min-h-10 items-center gap-2 rounded-full border border-slate-800 bg-white py-1 pl-1 pr-3 text-sm transition hover:border-brand-400 dark:border-slate-700 dark:bg-slate-900"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blood-500 to-blood-700 text-xs font-bold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">
                   {user.blood_group}
                 </span>
                 <span className="hidden font-medium md:inline">{user.name.split(' ')[0]}</span>
-                <span className="whitespace-nowrap font-bold text-blood-600 dark:text-blood-400">{user.points} BLP</span>
+                <span className="whitespace-nowrap font-bold text-brand-700 dark:text-brand-300">{user.points} BLP</span>
               </Link>
             ) : (
               <Link to="/register" className="btn-primary hidden min-h-10 px-4 py-2 text-sm lg:inline-flex">

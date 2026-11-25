@@ -115,7 +115,7 @@ export default {
     haveCode: 'నా వద్ద ఇప్పటికే కోడ్ ఉంది',
     topHeroes: 'అగ్ర నాయకులు',
     activityTitle: "లైవ్ కార్యకలాపం",
-    activityLine: "{name} {hospital}లో దానానికి ముందుకొచ్చారు",
+    activityLine: "{name} {hospital}లో రక్తదానం చేశారు",
   },
   request: {
     onTheWay: "{n} దారిలో",

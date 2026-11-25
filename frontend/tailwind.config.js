@@ -1,5 +1,8 @@
 /**
- * BLOODLINK design system: "Urgency without panic. Hope without cliché. Premium without coldness."
+ * BLOODLINK design system: "Calm, clean healthcare. Red only where it means an emergency."
+ *
+ * Colour roles: `brand` (teal) is the main colour for actions, focus, links and headings. `blood` (red) is kept for
+ * emergencies only: the SOS button, Critical requests, blood-group chips and the logo drop.
  *
  * Theming: class names describe the DARK appearance (e.g. `bg-slate-900 text-slate-300`). Every themed palette is
  * backed by CSS variables; in light mode the scale is mirrored (slate fully, accents for their tint/text shades
@@ -47,6 +50,10 @@ export default {
     extend: {
       colors: {
         ...themedColors,
+        brand: {
+          50: '#F0FDFA', 100: '#CCFBF1', 200: '#99F6E4', 300: '#5EEAD4', 400: '#2DD4BF', 500: '#14B8A6',
+          600: '#0D9488', 700: '#0F766E', 800: '#115E59', 900: '#134E4A', 950: '#042F2E',
+        },
         blood: {
           50: '#FEF2F2', 100: '#FEE2E2', 200: '#FECACA', 300: '#FCA5A5', 400: '#F87171', 500: '#EF4444',
           600: '#DC2626', 700: '#B91C1C', 800: '#991B1B', 900: '#7F1D1D', 950: '#450A0A',

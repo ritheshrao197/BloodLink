@@ -38,7 +38,7 @@ export default function Donors() {
                 key={m}
                 onClick={() => setMode(m)}
                 aria-pressed={mode === m}
-                className={cx('min-h-9 rounded-md px-3 py-1.5 font-semibold', mode === m ? 'bg-red-600 text-white' : 'text-slate-300')}
+                className={cx('min-h-9 rounded-md px-3 py-1.5 font-semibold', mode === m ? 'bg-brand-700 text-white' : 'text-slate-300')}
               >
                 {label}
               </button>
@@ -63,7 +63,7 @@ export default function Donors() {
           <input id="donor-city" className="input" placeholder={t('donors.anyCity')} value={city} onChange={(e) => setCity(e.target.value)} />
         </div>
         <label className="flex min-h-11 cursor-pointer items-center gap-2 pb-1 text-sm text-slate-300">
-          <input type="checkbox" className="h-4 w-4 accent-red-600" checked={availableOnly} onChange={(e) => setAvailableOnly(e.target.checked)} />
+          <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={availableOnly} onChange={(e) => setAvailableOnly(e.target.checked)} />
           {t('donors.availableOnly')}
         </label>
       </div>

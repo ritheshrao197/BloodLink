@@ -42,7 +42,7 @@ export default function Admin() {
             onClick={() => setTab(key)}
             className={cx(
               'flex min-h-10 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition',
-              tab === key ? 'bg-red-600 text-white' : 'text-slate-300 hover:bg-slate-800',
+              tab === key ? 'bg-brand-700 text-white' : 'text-slate-300 hover:bg-slate-800',
             )}
           >
             <Icon className="h-4 w-4" /> {t(`admin.tabs.${key}`)}
@@ -444,7 +444,7 @@ function Vouchers() {
                 <td className="px-4 py-3 font-medium">{v.user}</td>
                 <td className="px-4 py-3">{v.reward_name}</td>
                 <td className="whitespace-nowrap px-4 py-3 tabular-nums">{v.points_cost ? `${v.points_cost} BLP` : t('admin.referralBonus')}</td>
-                <td className="px-4 py-3 font-mono text-red-300">{v.voucher_code}</td>
+                <td className="px-4 py-3 font-mono text-brand-300">{v.voucher_code}</td>
                 <td className="px-4 py-3 text-emerald-400">{tOr(`admin.voucherStatus.${v.status}`, v.status)}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-slate-400">{ago(v.created_at)}</td>
               </tr>

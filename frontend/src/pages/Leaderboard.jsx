@@ -39,8 +39,8 @@ export default function Leaderboard() {
                     <div key={place} className="flex min-w-0 flex-col items-center text-center">
                       <div className={cx('flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-3xl ring-4', ring)}>{medal}</div>
                       <div className="mt-2 max-w-full truncate font-bold">{u.name}</div>
-                      <div className="text-sm text-red-400">{num(u.points)} BLP</div>
-                      <div className={cx('mt-2 flex w-full items-start justify-center rounded-t-xl bg-gradient-to-b from-red-600/30 to-slate-900 pt-3 text-3xl font-extrabold text-slate-300', height)}>
+                      <div className="text-sm text-brand-400">{num(u.points)} BLP</div>
+                      <div className={cx('mt-2 flex w-full items-start justify-center rounded-t-xl bg-gradient-to-b from-brand-600/25 to-slate-900 pt-3 text-3xl font-extrabold text-slate-300', height)}>
                         #{place}
                       </div>
                     </div>
@@ -50,7 +50,7 @@ export default function Leaderboard() {
             )}
             <div className="card divide-y divide-slate-800 overflow-hidden">
               {data.map((u, i) => (
-                <div key={u.id} className={cx('flex items-center gap-3 px-4 py-3.5 sm:gap-4 sm:px-6', user?.id === u.id && 'bg-red-600/10')}>
+                <div key={u.id} className={cx('flex items-center gap-3 px-4 py-3.5 sm:gap-4 sm:px-6', user?.id === u.id && 'bg-brand-600/10')}>
                   <span className={cx('w-8 text-lg font-extrabold', i < 3 ? 'text-yellow-400' : 'text-slate-500')}>#{i + 1}</span>
                   <span className="text-2xl" aria-hidden>
                     {BADGES[u.badge]?.icon}
@@ -58,7 +58,7 @@ export default function Leaderboard() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-bold">{u.name}</span>
-                      {user?.id === u.id && <span className="rounded bg-blood-600 px-1.5 text-xs font-bold text-white">{t('leaderboard.you')}</span>}
+                      {user?.id === u.id && <span className="rounded bg-brand-700 px-1.5 text-xs font-bold text-white">{t('leaderboard.you')}</span>}
                       {u.influencer && <span title={t('leaderboard.influencer')}>🗣️</span>}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-400">
@@ -70,7 +70,7 @@ export default function Leaderboard() {
                   <div className="hidden w-28 sm:block">
                     <BadgeChip badge={u.badge} />
                   </div>
-                  <span className="w-24 text-right text-lg font-extrabold tabular-nums text-red-400">{num(u.points)} BLP</span>
+                  <span className="w-24 text-right text-lg font-extrabold tabular-nums text-brand-400">{num(u.points)} BLP</span>
                 </div>
               ))}
             </div>

@@ -134,7 +134,7 @@ export default {
     haveCode: 'মোৰ ওচৰত ইতিমধ্যে এটা ক’ড আছে',
     topHeroes: 'শীৰ্ষ নায়কসকল',
     activityTitle: "লাইভ কাৰ্যকলাপ",
-    activityLine: "{name}এ {hospital}ত ৰক্তদানৰ প্ৰতিশ্ৰুতি দিলে",
+    activityLine: "{name}এ {hospital}ত ৰক্তদান কৰিলে",
   },
   request: {
     onTheWay: "{n} জন বাটত",

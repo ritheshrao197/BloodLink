@@ -115,7 +115,7 @@ export default {
     haveCode: 'ಎನಡ ಇತ್ತೆನೇ ಕೋಡ್ ಉಂಡು',
     topHeroes: 'ಅಗ್ರ ವೀರೆರ್',
     activityTitle: "ಲೈವ್ ಚಟುವಟಿಕೆ",
-    activityLine: "{name} {hospital} ಡ್ ದಾನೊಗು ಮುಂದೆ ಬತ್ತೆರ್",
+    activityLine: "{name} {hospital} ಡ್ ನೆತ್ತೆರ್ ದಾನ ಮಲ್ತೆರ್",
   },
   request: {
     onTheWay: "{n} ಸಾದಿಡ್ ಉಲ್ಲೆರ್",

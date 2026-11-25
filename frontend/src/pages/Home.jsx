@@ -39,17 +39,16 @@ export default function Home() {
       {/* ---------------- hero ---------------- */}
       <section className="relative isolate pb-4 pt-6 sm:pt-10">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute left-0 top-0 h-80 w-80 rounded-full bg-blood-500/15 blur-[100px] dark:bg-blood-600/25" />
-          <div className="absolute right-0 top-10 h-72 w-72 rounded-full bg-blood-200/60 blur-[100px] dark:bg-rose-500/10" />
+          <div className="absolute left-0 top-0 h-80 w-80 rounded-full bg-brand-300/20 blur-[100px] dark:bg-brand-600/10" />
+          <div className="absolute right-0 top-10 h-72 w-72 rounded-full bg-sky-200/30 blur-[100px] dark:bg-sky-500/5" />
           <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-slate-400/10 blur-[100px]" />
         </div>
 
         <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_1fr]">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-blood-200 bg-white/70 px-3 py-1 backdrop-blur dark:border-blood-500/30 dark:bg-blood-500/10">
+            <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/70 px-3 py-1 backdrop-blur dark:border-brand-500/30 dark:bg-brand-500/10">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blood-500 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-blood-500" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
               </span>
               <span className="overline">{t('home.live')}</span>
             </span>
@@ -87,7 +86,7 @@ export default function Home() {
             <div aria-hidden className="absolute -right-2 -top-16 z-10 animate-float text-7xl leading-none drop-shadow-[0_16px_24px_rgba(220,38,38,0.4)] sm:-right-8">
               🩸
             </div>
-            <div className="card-glass relative p-6 shadow-2xl shadow-blood-900/10">
+            <div className="card-glass relative p-6 shadow-lg shadow-slate-900/5">
               <p className="overline flex items-center gap-2">
                 <Radio className="h-3.5 w-3.5" /> {t('home.happening')}
               </p>
@@ -104,7 +103,7 @@ export default function Home() {
                     <span className="text-slate-400">
                       {spotlight.city} · {ago(spotlight.created_at)}
                     </span>
-                    <span className="font-semibold text-blood-600 dark:text-blood-400">{t('home.alerted', { n: num(spotlight.notified_count) })}</span>
+                    <span className="font-semibold text-brand-700 dark:text-brand-300">{t('home.alerted', { n: num(spotlight.notified_count) })}</span>
                   </div>
                   <div className="progress-bar mt-3">
                     <div className="progress-fill" style={{ width: `${Math.round((100 * spotlight.units_fulfilled) / spotlight.units_needed)}%` }} />
@@ -124,7 +123,7 @@ export default function Home() {
       {/* ---------------- live stats bar ---------------- */}
       <section className="card grid grid-cols-1 divide-y divide-slate-800 overflow-hidden p-0 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x" aria-label={t('home.stats')}>
         {[
-          [Users, num(s?.donors), t('home.statDonors'), s && t('home.statAvailable', { n: num(s.available_donors) }), 'text-blood-500'],
+          [Users, num(s?.donors), t('home.statDonors'), s && t('home.statAvailable', { n: num(s.available_donors) }), 'text-brand-500'],
           [Hospital, num(s?.hospitals), t('home.statHospitals'), s && t('home.statFulfilled', { n: num(s.fulfilled_requests) }), 'text-sky-500'],
           [
             Zap,
@@ -153,8 +152,8 @@ export default function Home() {
         <section aria-labelledby="feed-title">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h2 id="feed-title" className="section-title flex items-center gap-3">
-              <Activity className="h-7 w-7 text-blood-600 dark:text-blood-500" aria-hidden /> {t('home.feedTitle')}
-              <span className="rounded-full bg-blood-600 px-2.5 py-0.5 text-sm text-white">{feed.data?.length ?? 0}</span>
+              <Activity className="h-7 w-7 text-brand-700 dark:text-brand-400" aria-hidden /> {t('home.feedTitle')}
+              <span className="rounded-full bg-brand-700 px-2.5 py-0.5 text-sm text-white">{feed.data?.length ?? 0}</span>
             </h2>
           </div>
           <div className="mb-5 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t('home.filter')}>
@@ -165,7 +164,7 @@ export default function Home() {
                 aria-pressed={filter === g}
                 className={cx(
                   'min-h-9 shrink-0 rounded-full px-3.5 py-1 text-sm font-semibold transition',
-                  filter === g ? 'bg-blood-600 text-white shadow-md shadow-blood-600/30' : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+                  filter === g ? 'bg-brand-700 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
                 )}
               >
                 {g === 'Mine' ? t('home.mine') : g === 'All' ? t('common.all') : g}
@@ -222,8 +221,8 @@ export default function Home() {
           ].map(([title, text, Icon], i) => (
             <div key={i} className="card card-hover p-6">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blood-600/10 dark:bg-blood-500/15">
-                  <Icon className="h-5 w-5 text-blood-600 dark:text-blood-400" aria-hidden />
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600/10 dark:bg-brand-500/15">
+                  <Icon className="h-5 w-5 text-brand-700 dark:text-brand-300" aria-hidden />
                 </span>
                 <span className="font-mono text-sm font-semibold text-slate-500">0{i + 1}</span>
               </div>
@@ -341,10 +340,10 @@ function JoinWidget() {
   const { t } = useI18n();
   return (
     <div className="card overflow-hidden">
-      <div className="bg-gradient-to-br from-blood-600 to-blood-800 p-5 text-white">
-        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-blood-100">{t('home.heroOverline')}</p>
+      <div className="bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white">
+        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-brand-100">{t('home.heroOverline')}</p>
         <p className="mt-2 text-xl font-extrabold leading-snug">{t('home.heroLine')}</p>
-        <p className="mt-1 text-sm text-blood-100">{t('home.heroJoin')}</p>
+        <p className="mt-1 text-sm text-brand-100">{t('home.heroJoin')}</p>
       </div>
       <div className="space-y-2 p-5">
         <Link to="/register" className="btn-primary w-full">
@@ -366,7 +365,7 @@ function TopHeroes({ data, loading, me }) {
         <p className="overline flex items-center gap-1.5">
           <Trophy className="h-3.5 w-3.5" /> {t('home.topHeroes')}
         </p>
-        <Link to="/leaderboard" className="text-xs font-semibold text-slate-400 hover:text-blood-500">
+        <Link to="/leaderboard" className="text-xs font-semibold text-slate-400 hover:text-brand-600">
           {t('common.viewAll')}
         </Link>
       </div>
@@ -375,14 +374,14 @@ function TopHeroes({ data, loading, me }) {
       ) : (
         <ol className="mt-3 space-y-1">
           {(data || []).map((u, i) => (
-            <li key={u.id} className={cx('flex items-center gap-3 rounded-lg px-2 py-2', me === u.id && 'bg-blood-600/10')}>
+            <li key={u.id} className={cx('flex items-center gap-3 rounded-lg px-2 py-2', me === u.id && 'bg-brand-600/10')}>
               <span className={cx('w-6 text-sm font-extrabold', i < 3 ? 'text-amber-500' : 'text-slate-500')}>#{i + 1}</span>
               <span className="text-lg" aria-hidden>
                 {BADGES[u.badge]?.icon}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">{u.name}</span>
               <BloodTag group={u.blood_group} size="sm" />
-              <span className="w-16 text-right text-sm font-bold tabular-nums text-blood-600 dark:text-blood-400">{num(u.points)}</span>
+              <span className="w-16 text-right text-sm font-bold tabular-nums text-brand-700 dark:text-brand-300">{num(u.points)}</span>
             </li>
           ))}
         </ol>

@@ -22,9 +22,10 @@ export const BADGES = {
 };
 
 export const URGENCY = {
-  Critical: { chip: 'bg-red-600 text-white', border: 'border-red-500/60', dot: 'bg-red-500' },
-  High: { chip: 'bg-orange-500 text-white', border: 'border-orange-500/40', dot: 'bg-orange-400' },
-  Normal: { chip: 'bg-amber-400 text-slate-950', border: 'border-amber-400/30', dot: 'bg-amber-300' },
+  // red is reserved for Critical; the rest stay calm
+  Critical: { chip: 'bg-blood-600 text-white', border: 'border-red-500/60', dot: 'bg-blood-500' },
+  High: { chip: 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/40', border: 'border-amber-400/40', dot: 'bg-amber-400' },
+  Normal: { chip: 'bg-slate-800 text-slate-300', border: 'border-slate-800', dot: 'bg-slate-400' },
 };
 
 export function timeAgo(iso) {

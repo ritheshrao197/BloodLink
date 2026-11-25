@@ -95,8 +95,8 @@ export function PageHeader({ icon: Icon, title, subtitle, children }) {
       <div>
         <h1 className="flex items-center gap-3 text-3xl font-extrabold sm:text-5xl" style={{ letterSpacing: '-0.03em', lineHeight: 1.1 }}>
           {Icon && (
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blood-600/10 sm:h-12 sm:w-12 dark:bg-blood-500/15">
-              <Icon className="h-6 w-6 text-blood-600 dark:text-blood-400" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600/10 sm:h-12 sm:w-12 dark:bg-brand-500/15">
+              <Icon className="h-6 w-6 text-brand-700 dark:text-brand-300" />
             </span>
           )}
           {title}
@@ -108,7 +108,7 @@ export function PageHeader({ icon: Icon, title, subtitle, children }) {
   );
 }
 
-export function StatCard({ icon: Icon, label, value, hint, accent = 'text-red-400' }) {
+export function StatCard({ icon: Icon, label, value, hint, accent = 'text-brand-400' }) {
   return (
     <div className="card card-hover p-5">
       <div className="flex items-center justify-between text-sm font-medium text-slate-400">

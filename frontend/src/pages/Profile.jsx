@@ -36,7 +36,7 @@ export default function Profile() {
           <SignInByCode />
           <p className="text-center text-sm text-slate-400">
             {t('profile.newHere')}{' '}
-            <Link to="/register" className="font-semibold text-red-400 hover:underline">
+            <Link to="/register" className="font-semibold text-brand-500 hover:underline">
               {t('profile.registerLink')}
             </Link>
           </p>
@@ -168,7 +168,7 @@ export default function Profile() {
           <h2 className="text-lg font-bold">{t('profile.invite')}</h2>
           <div className="rounded-xl bg-slate-800/60 p-4 text-center">
             <div className="text-xs text-slate-400">{t('profile.codeLabel')}</div>
-            <div className="font-mono text-2xl font-extrabold tracking-wider text-red-400">{user.referral_code}</div>
+            <div className="font-mono text-2xl font-extrabold tracking-wider text-brand-400">{user.referral_code}</div>
           </div>
           <CopyField label={t('profile.tgLink')} value={user.referral_link} />
           <CopyField label={t('profile.webLink')} value={user.web_referral_link} />
@@ -232,7 +232,7 @@ export default function Profile() {
                   🎁 {rewardName(v.reward_name)}
                   <span className="block text-xs text-slate-500">{ago(v.created_at)}</span>
                 </span>
-                <code className="shrink-0 rounded bg-slate-800 px-2 py-0.5 text-sm text-red-300">{v.voucher_code}</code>
+                <code className="shrink-0 rounded bg-slate-800 px-2 py-0.5 text-sm text-brand-300">{v.voucher_code}</code>
               </>
             ) : (
               <>
