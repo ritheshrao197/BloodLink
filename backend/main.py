@@ -335,6 +335,11 @@ def user_activity(user_id: int, db: Session = Depends(get_db), a: auth.Actor = D
                        "points_awarded": d.points_awarded, "quick_response": d.quick_response,
                        "status": d.status, "confirmed_at": iso(d.confirmed_at),
                        "created_at": iso(d.created_at)} for d, r in donations],
+        # haemoglobin readings staff recorded (confirmed donations and low-Hb visits), newest first; private to the donor
+        "haemoglobin": [{"hb_g_dl": d.hb_g_dl, "band": eligibility.hb_band(d.hb_g_dl), "status": d.status,
+                         "hospital": r.hospital, "at": iso(d.confirmed_at or d.created_at)}
+                        for d, r in sorted((x for x in donations if x[0].hb_g_dl is not None),
+                                           key=lambda x: x[0].confirmed_at or x[0].created_at, reverse=True)],
         "vouchers": [{"reward_name": v.reward_name, "points_cost": v.points_cost, "voucher_code": v.voucher_code,
                       "status": v.status, "created_at": iso(v.created_at)} for v in vouchers],
         "referrals": [{"name": u.name, "blood_group": u.blood_group, "status": ref.status,

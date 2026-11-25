@@ -32,6 +32,12 @@ def _last_hospital(db, user: User) -> str | None:
     return row[0] if row else None
 
 
+def _last_hb(db, user: User) -> float | None:
+    row = (db.query(Donation.hb_g_dl).filter(Donation.donor_id == user.id, Donation.hb_g_dl.isnot(None))
+           .order_by(Donation.confirmed_at.desc()).first())
+    return row[0] if row else None
+
+
 def due(user: User, now) -> str | None:
     """Which reminder (if any) this donor should get now."""
     nxt = eligibility.next_eligible_at(user)
@@ -116,7 +122,10 @@ def _send(db, u: User, kind: str, now) -> None:
     lang = u.language
     if kind == "soon":
         days = max(1, math.ceil((eligibility.next_eligible_at(u) - now).total_seconds() / 86400))
-        notifier.notify(u.telegram_id, notifier.t(lang, "rem_soon", days=days))
+        hb = _last_hb(db, u)  # get ready for the haemoglobin check: stronger advice when the last reading was close
+        tip = (notifier.t(lang, "rem_iron_borderline", hb=f"{hb:g}") if eligibility.hb_band(hb) in ("borderline", "low")
+               else notifier.t(lang, "rem_iron"))
+        notifier.notify(u.telegram_id, notifier.t(lang, "rem_soon", days=days) + tip)
     elif kind == "eligible":
         hospital = _last_hospital(db, u)
         where = notifier.t(lang, "rem_where", hospital=notifier.esc(hospital)) if hospital else ""

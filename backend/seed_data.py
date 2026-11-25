@@ -25,7 +25,7 @@ import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "12"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "13"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -116,7 +116,16 @@ def daytime(rng: random.Random, day: datetime) -> datetime:
     return start + timedelta(hours=hour_ist, seconds=rng.randint(0, 59))
 
 
+HB_RNG = random.Random(1250)  # separate stream, so adding readings leaves every other demo value unchanged
+
+
+def demo_hb() -> float:
+    """A plausible haemoglobin reading for someone who passed the check (mostly 13-15, some borderline)."""
+    return round(min(16.8, max(12.5, HB_RNG.gauss(14.0, 0.9))), 1)
+
+
 def seed(db: Session) -> None:
+    HB_RNG.seed(1250)
     rng = random.Random(20261117)
     now = utcnow()
     area_w = [w for *_, w in AREAS]
@@ -235,7 +244,7 @@ def seed(db: Session) -> None:
         donor.total_donations += 1
         donor.last_donation_at = when
         db.add(Donation(request_id=req.id, donor_id=donor.id, points_awarded=total, quick_response=quick,
-                        status="confirmed", confirmed_at=when,
+                        status="confirmed", confirmed_at=when, hb_g_dl=demo_hb(),
                         weather="rain" if rng.random() < rain_chance(req.state, when) else "dry", created_at=when))
         req.units_fulfilled += 1
         req.fulfilled_by = f"{req.fulfilled_by}, {donor.name}" if req.fulfilled_by else donor.name
@@ -520,7 +529,7 @@ def seed_hero(db: Session, rng: random.Random, now: datetime, donors: list[User]
                 total += logic.POINTS_STREAK
                 earn(hero, logic.POINTS_STREAK, f"Streak bonus (3-month return) — request #{req.id}", when)
             db.add(Donation(request_id=req.id, donor_id=hero.id, points_awarded=total, quick_response=fast,
-                            status="confirmed", confirmed_at=when,
+                            status="confirmed", confirmed_at=when, hb_g_dl=demo_hb(),
                             weather="rain" if i % 7 == 3 else "dry", created_at=when))
             hero.total_donations += 1
         prev = when

@@ -1,6 +1,7 @@
 """Staff-verified donations. A donor's "I can donate" is a pledge; hospital or blood bank staff confirm it.
 
-States: pledged -> confirmed | no_show | expired (all final). Points, the next eligible date and the request's units
+States: pledged -> confirmed | no_show | expired | deferred_hb (all final). deferred_hb: the donor came but their
+haemoglobin was too low to donate; no points and not a no-show, and alerts pause for LOW_HB_PAUSE_DAYS. Points, the next eligible date and the request's units
 change only on confirmation. A pledge nobody confirms within PLEDGE_HOURS expires and counts as a no-show; every
 NO_SHOW_LIMIT-th no-show pauses new pledges for BLOCK_DAYS.
 
@@ -99,7 +100,8 @@ def pledge(db: Session, req: BloodRequest, donor: User, now: datetime) -> Donati
                           phone=phone, hospital=notifier.esc(req.hospital), city=notifier.esc(req.city), hours=PLEDGE_HOURS)
         notifier.notify_buttons(s.telegram_id, text, [[
             {"text": notifier.t(lang, "staff_done_btn"), "callback_data": f"pok_{d.id}"},
-            {"text": notifier.t(lang, "staff_noshow_btn"), "callback_data": f"pns_{d.id}"}]])
+            {"text": notifier.t(lang, "staff_noshow_btn"), "callback_data": f"pns_{d.id}"},
+            {"text": notifier.t(lang, "staff_lowhb_btn"), "callback_data": f"phb_{d.id}"}]])
     return d
 
 
@@ -143,9 +145,29 @@ def confirm(db: Session, d: Donation, staff: User | None, hb_g_dl: float | None,
     db.flush()
     unlocked = achievements.evaluate(db, [donor, referrer] if referrer else [donor])
     nxt = eligibility.next_eligible_at(donor)
-    notifier.notify_t(donor.telegram_id, donor.language, "pledge_confirmed", hospital=notifier.esc(req.hospital),
-                      points=total, balance=donor.points, next=f"{nxt:%d %b %Y}" if nxt else "—")
+    lang = donor.language
+    text = notifier.t(lang, "pledge_confirmed", hospital=notifier.esc(req.hospital), points=total,
+                      balance=donor.points, next=f"{nxt:%d %b %Y}" if nxt else "—")
+    if hb_g_dl is not None:
+        mark = "✅" if eligibility.hb_band(hb_g_dl) == "good" else "⚠️"
+        text += "\n\n" + notifier.t(lang, "hb_after", hb=f"{hb_g_dl:g}", mark=mark)
+    notifier.notify(donor.telegram_id, text)
     return {"points": total, "breakdown": items, "achievements": unlocked.get(donor.id, [])}
+
+
+def defer_low_hb(db: Session, d: Donation, staff: User | None, hb_g_dl: float | None, now: datetime) -> None:
+    """The donor came but their haemoglobin was below the minimum: pause them and send advice. Caller commits."""
+    req = db.get(BloodRequest, d.request_id)
+    donor = db.get(User, d.donor_id)
+    d.status, d.hb_g_dl, d.confirmed_at = "deferred_hb", hb_g_dl, now
+    d.confirmed_by = staff.id if staff else None
+    until = now + timedelta(days=eligibility.LOW_HB_PAUSE_DAYS)
+    donor.deferred_until = max(donor.deferred_until or until, until)
+    lang = donor.language
+    reading = (notifier.t(lang, "hb_low_value", hb=f"{hb_g_dl:g}") if hb_g_dl is not None
+               else notifier.t(lang, "hb_low_novalue"))
+    notifier.notify_t(donor.telegram_id, lang, "hb_low", reading=reading, until=f"{until:%d %b %Y}")
+    log.info("Pledge %s at %s: deferred for low haemoglobin", d.id, req.hospital)
 
 
 def miss(db: Session, d: Donation, status: str, now: datetime) -> None:
@@ -208,6 +230,10 @@ class ConfirmBody(StaffBody):
     hb_g_dl: float | None = Field(default=None, ge=4, le=25)
 
 
+class LowHbBody(StaffBody):
+    hb_g_dl: float | None = Field(default=None, ge=4, lt=eligibility.MIN_HB_G_DL)  # optional: the bot button sends none
+
+
 def _staff(db: Session, a: auth.Actor, telegram_id: str | None) -> User:
     if a.is_bot:
         user = db.query(User).filter(User.telegram_id == str(telegram_id)).first() if telegram_id else None
@@ -254,6 +280,8 @@ def staff_pledges(db: Session = Depends(get_db), a: auth.Actor = Depends(auth.ac
 def staff_confirm(donation_id: int, body: ConfirmBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     staff = _staff(db, a, body.staff_telegram_id)
     d = _open_pledge(db, donation_id, staff)
+    if body.hb_g_dl is not None and body.hb_g_dl < eligibility.MIN_HB_G_DL:
+        raise HTTPException(422, f"Haemoglobin below {eligibility.MIN_HB_G_DL:g} g/dL: use 'Low Hb' instead of confirming.")
     result = confirm(db, d, staff, body.hb_g_dl, utcnow())
     db.commit()
     req = db.get(BloodRequest, d.request_id)
@@ -261,6 +289,16 @@ def staff_confirm(donation_id: int, body: ConfirmBody, db: Session = Depends(get
     donor = db.get(User, d.donor_id)
     return {"status": "confirmed", "points_awarded": result["points"], "donor_name": donor.name,
             "next_eligible_at": iso(eligibility.next_eligible_at(donor))}
+
+
+@router.post("/api/staff/pledges/{donation_id}/low-hb")
+def staff_low_hb(donation_id: int, body: LowHbBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    staff = _staff(db, a, body.staff_telegram_id)
+    d = _open_pledge(db, donation_id, staff)
+    defer_low_hb(db, d, staff, body.hb_g_dl, utcnow())
+    db.commit()
+    donor = db.get(User, d.donor_id)
+    return {"status": "deferred_hb", "donor_name": donor.name, "deferred_until": iso(donor.deferred_until)}
 
 
 @router.post("/api/staff/pledges/{donation_id}/no-show")

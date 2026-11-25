@@ -17,6 +17,8 @@ from models import User, utcnow
 MIN_AGE, MAX_AGE = 18, 65
 MIN_WEIGHT_KG = 45
 MIN_HB_G_DL = 12.5  # measured by the hospital before every donation
+BORDERLINE_HB_G_DL = 13.0  # at or below this the donor gets stronger iron advice
+LOW_HB_PAUSE_DAYS = 30  # deferred for low haemoglobin: alerts pause, then they can try again
 INTERVAL_DAYS = {"male": 90, "female": 120}
 DEFAULT_INTERVAL_DAYS = 120  # sex not recorded: use the longer (safer) interval
 
@@ -44,6 +46,15 @@ PERMANENT = {
     "kidney_liver": ("Chronic kidney or liver disease", "These organs need the blood more than the patient does."),
     "insulin_diabetes": ("Diabetes treated with insulin", "Diabetes controlled by tablets or diet is fine."),
 }
+
+
+def hb_band(hb: float | None) -> str | None:
+    """good (> 13), borderline (12.5-13) or low (< 12.5); None without a reading."""
+    if hb is None:
+        return None
+    if hb < MIN_HB_G_DL:
+        return "low"
+    return "borderline" if hb <= BORDERLINE_HB_G_DL else "good"
 
 
 def needs_screening(user: User) -> bool:
