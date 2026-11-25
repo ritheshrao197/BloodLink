@@ -17,6 +17,7 @@ import sys
 import warnings
 from datetime import date, datetime
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from telegram import (
@@ -467,6 +468,28 @@ async def reg_city_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return REG_PHONE
 
 
+def destination(r: dict) -> str:
+    return ", ".join(x for x in (r.get("hospital"), r.get("city"), r.get("state")) if x)
+
+
+def directions_url(r: dict) -> str:
+    """Google Maps directions to the hospital, found by name (our own point is only approximate)."""
+    return f"https://www.google.com/maps/dir/?api=1&destination={quote(destination(r))}&travelmode=driving"
+
+
+def uber_url(r: dict) -> str:
+    return ("https://m.uber.com/ul/?action=setPickup&pickup=my_location"
+            f"&dropoff[formatted_address]={quote(destination(r))}&dropoff[nickname]={quote(r.get('hospital') or '')}")
+
+
+def travel_kb(lang: str, r: dict, donation_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t(lang, "btn_directions"), url=directions_url(r)),
+         InlineKeyboardButton(t(lang, "btn_uber"), url=uber_url(r))],
+        [btn(t(lang, "btn_ride_help"), f"rh_{donation_id}")],
+    ])
+
+
 def conditions_kb(lang: str, prefix: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[btn(t(lang, "cond_none_btn"), f"{prefix}none")],
                                  [btn(t(lang, "cond_any_btn"), f"{prefix}any")]])
@@ -784,10 +807,29 @@ async def donate_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await q.edit_message_text(
         t(lang, "pledged", id=r["id"], hospital=esc(r["hospital"]), city=esc(r["city"]), group=r["blood_group"],
           phone=phone, points=res["expected_points"], lines=lines, hours=res["pledge_hours"]),
-        parse_mode=ParseMode.HTML)
+        parse_mode=ParseMode.HTML, reply_markup=travel_kb(lang, r, res["donation_id"]))
     await context.bot.send_message(q.message.chat_id, t(lang, "invite", link=u["referral_link"]),
                                    parse_mode=ParseMode.HTML, disable_web_page_preview=True,
                                    reply_markup=InlineKeyboardMarkup([[btn(t(lang, "btn_menu"), "m_menu_show")]]))
+
+
+async def ride_help_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Donor tapped 'I need help getting there' under their pledge (rh_<donation id>)."""
+    q = update.callback_query
+    lang = await ensure_lang(update, context) or "en"
+    donation_id = int(q.data.removeprefix("rh_"))
+    try:
+        res = await api("POST", f"/pledges/{donation_id}/ride-help",
+                        json={"donor_telegram_id": str(update.effective_user.id)})
+    except ApiError as e:
+        await ack(update, (t(lang, "server_down") if str(e) == "server_down" else str(e))[:190], alert=True)
+        return
+    if res["status"] == "already_requested":
+        await ack(update, t(lang, "ride_already"), alert=True)
+        return
+    await ack(update)
+    text = t(lang, "ride_sent", phone=esc(res["phone"])) if res.get("phone") else t(lang, "ride_sent_nophone")
+    await context.bot.send_message(q.message.chat_id, text, parse_mode=ParseMode.HTML)
 
 
 async def staff_pledge_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1108,6 +1150,7 @@ def build_app() -> Application:
     app.add_handler(cb(donate_confirmed, pattern=r"^dok_\d+$"))
     app.add_handler(cb(donate_declined, pattern=r"^dno_\d+$"))
     app.add_handler(cb(staff_pledge_click, pattern=r"^(pok|pns|phb)_\d+$"))
+    app.add_handler(cb(ride_help_click, pattern=r"^rh_\d+$"))
     app.add_handler(cb(reminder_later, pattern=r"^rem_later$"))
     app.add_handler(cb(camp_rsvp_click, pattern=r"^crsvp_\d+$"))
     app.add_handler(cb(redeem_click, pattern=r"^redeem_\d+$"))
