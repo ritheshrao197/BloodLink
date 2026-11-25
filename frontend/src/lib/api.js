@@ -111,6 +111,7 @@ export const api = {
     pledges: () => request('/staff/pledges'),
     confirm: (id, hb) => request(`/staff/pledges/${id}/confirm`, { method: 'POST', body: { hb_g_dl: hb ?? null } }),
     noShow: (id) => request(`/staff/pledges/${id}/no-show`, { method: 'POST', body: {} }),
+    lowHb: (id, hb) => request(`/staff/pledges/${id}/low-hb`, { method: 'POST', body: { hb_g_dl: hb ?? null } }),
   },
   admin: {
     stats: () => request('/admin/stats'),

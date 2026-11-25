@@ -12,6 +12,7 @@ import SignInByCode, { TelegramLinkButton } from '../components/SignInByCode';
 import { Showcase } from '../components/Achievements';
 import { EligibilityCard } from '../components/Eligibility';
 import { NearbyCard } from '../components/Nearby';
+import HaemoglobinCard from '../components/Haemoglobin';
 import ShareCardModal from '../components/ShareCard';
 
 // Voucher names are stored in English; map them back to catalog ids so they can be translated
@@ -132,6 +133,7 @@ export default function Profile() {
       </div>
 
       {user.role === 'donor' && <EligibilityCard key={user.id} user={user} onUser={setUser} />}
+      {user.role === 'donor' && <HaemoglobinCard readings={a?.haemoglobin} />}
       {user.role === 'donor' && <NearbyCard user={user} onUser={setUser} />}
 
       <div className="grid gap-6 lg:grid-cols-2">

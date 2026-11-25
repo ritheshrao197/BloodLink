@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, ClipboardCheck, Hospital, Phone, XCircle } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, Droplets, Hospital, Phone, XCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { useSession } from '../lib/session';
 import { usePoll } from '../lib/usePoll';
@@ -25,6 +25,9 @@ function PledgeRow({ p, onDone }) {
       if (kind === 'confirm') {
         const res = await api.staff.confirm(p.donation_id, hb === '' ? null : Number(hb));
         toast(t('staff.confirmed', { name: res.donor_name, points: res.points_awarded }));
+      } else if (kind === 'lowHb') {
+        await api.staff.lowHb(p.donation_id, hb === '' ? null : Number(hb));
+        toast(t('staff.lowHbDone', { name: p.donor.name }));
       } else {
         await api.staff.noShow(p.donation_id);
         toast(t('staff.missed'));
@@ -78,6 +81,9 @@ function PledgeRow({ p, onDone }) {
         </button>
         <button className="btn-ghost" disabled={!!busy} onClick={() => act('noShow')}>
           {busy === 'noShow' ? <Spinner /> : <XCircle className="h-4 w-4" />} {t('staff.noShow')}
+        </button>
+        <button className="btn-ghost" disabled={!!busy} onClick={() => act('lowHb')} title={t('staff.lowHbHint')}>
+          {busy === 'lowHb' ? <Spinner /> : <Droplets className="h-4 w-4" />} {t('staff.lowHb')}
         </button>
       </div>
       <ErrorBox error={error} />
