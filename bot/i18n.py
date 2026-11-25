@@ -307,6 +307,7 @@ S = {
         "kn": "✨ ನಿಮ್ಮ ರಕ್ತದ ಗುಂಪಿಗೆ ಹೊಂದುವ ಸಕ್ರಿಯ ವಿನಂತಿಗಳು ಸದ್ಯಕ್ಕೆ ಇಲ್ಲ.",
         "hi": "✨ अभी आपके ब्लड ग्रुप से मेल खाता कोई सक्रिय अनुरोध नहीं है।",
     },
+    "req_km": {"en": "📍 About {km} km away", "kn": "📍 ಸುಮಾರು {km} ಕಿಮೀ ದೂರ", "hi": "📍 लगभग {km} किमी दूर"},
     "req_item": {
         "en": "🚨 <b>{group}</b> needed — {urgency}\n🏥 {hospital}, {city}\n🩸 {done}/{units} units · #{id}",
         "kn": "🚨 <b>{group}</b> ಬೇಕಾಗಿದೆ — {urgency}\n🏥 {hospital}, {city}\n🩸 {done}/{units} ಯೂನಿಟ್ · #{id}",

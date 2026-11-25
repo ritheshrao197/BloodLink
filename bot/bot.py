@@ -962,7 +962,11 @@ async def requests_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_lang(update, context)
     lang = L(context)
     u = await current_user(update)
-    reqs = await api("GET", "/requests")
+    home = (u or {}).get("home_point")
+    # registered donors see what is near them (within 50 km of their shared location or district centre)
+    params = ({"lat": home["lat"], "lng": home["lng"], "scope": "50", "state": u.get("state") or "", "district": u["city"]}
+              if home else {})
+    reqs = await api("GET", "/requests", params=params)
     if u:
         reqs = [r for r in reqs if u["blood_group"] in r["compatible_donor_groups"]]
     if not reqs:
@@ -972,6 +976,8 @@ async def requests_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = t(lang, "req_item", group=r["blood_group"], urgency=t(lang, f"urg_{r['urgency']}"),
                  hospital=esc(r["hospital"]), city=esc(r["city"]), done=r["units_fulfilled"],
                  units=r["units_needed"], id=r["id"])
+        if r.get("distance_km") is not None:
+            text += "\n" + t(lang, "req_km", km=r["distance_km"])
         kb = InlineKeyboardMarkup([[btn(t(lang, "btn_donate"), f"donate_{r['id']}")]]) if u else None
         await reply(update, text, reply_markup=kb)
     if not u:
