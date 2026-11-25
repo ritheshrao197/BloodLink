@@ -104,6 +104,7 @@ class Donation(Base):
     confirmed_at = Column(DateTime, nullable=True)
     confirmed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # the staff user
     hb_g_dl = Column(Float, nullable=True)  # haemoglobin recorded by staff at confirmation
+    ride_help_at = Column(DateTime, nullable=True)  # the donor asked for help getting to the hospital
     quick_response = Column(Boolean, default=False)
     weather = Column(String, nullable=True)  # "rain" | "dry" | None (unknown), for the Rainmaker achievement
     created_at = Column(DateTime, default=utcnow)

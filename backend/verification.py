@@ -270,6 +270,7 @@ def staff_pledges(db: Session = Depends(get_db), a: auth.Actor = Depends(auth.ac
         "donation_id": d.id, "pledged_at": iso(d.created_at),
         "expires_at": iso(d.created_at + timedelta(hours=PLEDGE_HOURS)),
         "donor": {"id": u.id, "name": u.name, "blood_group": u.blood_group, "phone": u.phone},
+        "ride_help": d.ride_help_at is not None,
         "request": {"id": r.id, "hospital": r.hospital, "city": r.city, "blood_group": r.blood_group,
                     "urgency": r.urgency, "status": r.status, "units_needed": r.units_needed,
                     "units_fulfilled": r.units_fulfilled},
@@ -299,6 +300,42 @@ def staff_low_hb(donation_id: int, body: LowHbBody, db: Session = Depends(get_db
     db.commit()
     donor = db.get(User, d.donor_id)
     return {"status": "deferred_hb", "donor_name": donor.name, "deferred_until": iso(donor.deferred_until)}
+
+
+class RideHelpBody(BaseModel):
+    donor_telegram_id: str | None = None  # set by the bot
+
+
+@router.post("/api/pledges/{donation_id}/ride-help")
+def ride_help(donation_id: int, body: RideHelpBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    """The donor pledged but needs help getting to the hospital: alert the requester and the covering staff once."""
+    d = db.get(Donation, donation_id)
+    if not d:
+        raise HTTPException(404, "Pledge not found")
+    donor = db.get(User, d.donor_id)
+    if a.is_bot:
+        if not body.donor_telegram_id or body.donor_telegram_id != donor.telegram_id:
+            raise HTTPException(403, "Not your pledge.")
+    else:
+        auth.require_self(a, donor)
+    if d.status != "pledged":
+        raise HTTPException(409, "This pledge is no longer open.")
+    if d.ride_help_at:
+        return {"status": "already_requested", "notified": 0, "phone": donor.phone}
+    d.ride_help_at = utcnow()
+    req = db.get(BloodRequest, d.request_id)
+    targets = [(req.requester_telegram_id, req.requester_language)] if req.requester_telegram_id else []
+    targets += [(s.telegram_id, s.language) for s in staff_for(db, req) if s.telegram_id]
+    seen = set()
+    for chat, lang in targets:
+        if chat in seen or chat == donor.telegram_id:
+            continue
+        seen.add(chat)
+        phone = f"\n📞 {notifier.esc(donor.phone)}" if donor.phone else ""
+        notifier.notify_t(chat, lang or "en", "ride_help", name=notifier.esc(donor.name), group=donor.blood_group,
+                          id=req.id, hospital=notifier.esc(req.hospital), area=notifier.esc(donor.city), phone=phone)
+    db.commit()
+    return {"status": "requested", "notified": len(seen), "phone": donor.phone}
 
 
 @router.post("/api/staff/pledges/{donation_id}/no-show")

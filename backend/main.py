@@ -47,7 +47,8 @@ def migrate() -> None:
                                 "alert_ring": "INTEGER DEFAULT 0", "next_ring_at": "TIMESTAMP", "is_demo": "BOOLEAN DEFAULT FALSE"},
                    # rows from before staff verification were real donations, so they become confirmed
                    "donations": {"weather": "VARCHAR", "status": "VARCHAR DEFAULT 'confirmed'",
-                                 "confirmed_at": "TIMESTAMP", "confirmed_by": "INTEGER", "hb_g_dl": "FLOAT"}}
+                                 "confirmed_at": "TIMESTAMP", "confirmed_by": "INTEGER", "hb_g_dl": "FLOAT",
+                                 "ride_help_at": "TIMESTAMP"}}
     insp = inspect(engine)
     with engine.begin() as conn:
         for table, cols in new_columns.items():
