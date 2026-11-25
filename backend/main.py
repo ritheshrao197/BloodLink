@@ -161,6 +161,7 @@ def user_private(db: Session, u: User) -> dict:
         "achievements": achievements.showcase(db, [u.id])[u.id],
         "eligibility": eligibility.status(u) if u.role == "donor" else None,
         "permanently_ineligible": bool(u.permanently_ineligible),
+        "home_point": geo.home_point(u),
         "no_show_count": u.no_show_count or 0,
         "pledge_blocked_until": iso(u.pledge_blocked_until),
     }
@@ -493,8 +494,12 @@ def search_donors(
     city: str | None = None,
     available: bool | None = None,
     compatible_for: str | None = Query(None, description="Recipient group: return every compatible donor"),
+    lat: float | None = None,
+    lng: float | None = None,
     db: Session = Depends(get_db),
 ):
+    """Donor search. With a reference point: nearest first with a rounded distance (donors who haven't shared a
+    location are placed at their district's centre; exact points are never returned)."""
     q = db.query(User).filter(User.role == "donor", User.permanently_ineligible.isnot(True))
     if compatible_for:
         q = q.filter(User.blood_group.in_(logic.compatible_donor_groups(compatible_for.upper())))
@@ -504,7 +509,21 @@ def search_donors(
         q = q.filter(func.lower(User.city).contains(city.strip().lower()))
     if available is not None:
         q = q.filter(User.is_available == available)
-    return [user_public(u) for u in q.order_by(User.is_available.desc(), User.points.desc()).limit(200)]
+    users = q.order_by(User.is_available.desc(), User.points.desc()).all()
+    if not geo.valid(lat, lng):
+        return [user_public(u) for u in users[:200]]
+    centres: dict[str, tuple | None] = {}
+
+    def distance(u: User) -> float | None:
+        if geo.valid(u.lat, u.lng):
+            return geo.km(lat, lng, u.lat, u.lng)
+        if u.city not in centres:
+            centres[u.city] = geo.district_centre(u.city)
+        c = centres[u.city]
+        return geo.km(lat, lng, c[0], c[1]) if c else None
+
+    ranked = sorted(((distance(u), u) for u in users), key=lambda x: x[0] if x[0] is not None else 1e9)
+    return [{**user_public(u), "distance_km": geo.shown_km(d)} for d, u in ranked[:200]]
 
 
 @app.get("/api/leaderboard")
@@ -642,7 +661,7 @@ def _escalation_loop() -> None:
 def create_sos(body: SOSCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     req = BloodRequest(**body.model_dump(exclude={"lat", "lng"}))
     req.state, req.city = locations.normalize(body.city, body.state)
-    point = (body.lat, body.lng) if geo.valid(body.lat, body.lng) else geo.DISTRICT_CENTRES.get(req.city)
+    point = (body.lat, body.lng) if geo.valid(body.lat, body.lng) else geo.district_centre(req.city)
     if point:
         req.lat, req.lng = geo.round_coord(point[0]), geo.round_coord(point[1])
     db.add(req)
@@ -666,16 +685,43 @@ def create_sos(body: SOSCreate, background_tasks: BackgroundTasks, db: Session =
 
 
 @app.get("/api/requests")
-def get_requests(status: str = "Active", db: Session = Depends(get_db)):
+def get_requests(status: str = "Active", lat: float | None = None, lng: float | None = None,
+                 scope: str = Query("all", pattern="^(25|50|state|all)$"), state: str | None = None,
+                 district: str | None = None, db: Session = Depends(get_db)):
+    """Requests, newest first. With a reference point (lat/lng): nearest first, limited to `scope` (25 km, 50 km, the
+    viewer's state or all), each with a rounded `distance_km`. Requests without coordinates count as nearby when they
+    are in the viewer's `district`."""
     q = db.query(BloodRequest)
     if status.lower() != "all":
         q = q.filter(BloodRequest.status == status.title())
-    rows = q.order_by(BloodRequest.id.desc()).limit(200).all()
+    rows = q.order_by(BloodRequest.id.desc()).limit(500).all()
+    dist = {}
+    if geo.valid(lat, lng):
+        same = lambda a, b: (a or "").strip().lower() == (b or "").strip().lower()  # noqa: E731
+        for r in rows:
+            dist[r.id] = geo.km(lat, lng, r.lat, r.lng) if geo.valid(r.lat, r.lng) else None
+        if scope in ("25", "50"):
+            limit = float(scope)
+            rows = [r for r in rows if (dist[r.id] <= limit if dist[r.id] is not None else same(r.city, district))]
+        elif scope == "state" and state:
+            rows = [r for r in rows if same(r.state, state) or same(r.city, district)]
+        rows.sort(key=lambda r: dist[r.id] if dist[r.id] is not None else 1e9)  # stable: newest first among ties
+    rows = rows[:200]
     ids = [r.id for r in rows]
     pledged = dict(db.query(Donation.request_id, func.count(Donation.id))
                    .filter(Donation.request_id.in_(ids), Donation.status == "pledged")
                    .group_by(Donation.request_id).all()) if ids else {}
-    return [request_out(r, pledged.get(r.id, 0)) for r in rows]
+    return [{**request_out(r, pledged.get(r.id, 0)), "distance_km": geo.shown_km(dist.get(r.id))} for r in rows]
+
+
+@app.get("/api/geo/point")
+def district_point(district: str, state: str | None = None):
+    """Centre of a district, so someone who isn't signed in can see requests near the district they pick."""
+    _state, name = locations.normalize(district, state)
+    centre = geo.district_centre(name)
+    if not centre:
+        raise HTTPException(404, "Unknown district")
+    return {"lat": centre[0], "lng": centre[1]}
 
 
 @app.get("/api/requests/{request_id}")

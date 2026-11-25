@@ -23,6 +23,7 @@ def fresh_db(monkeypatch):
     from database import Base, engine
 
     monkeypatch.setattr(weather, "current", lambda district: None)  # no network calls from tests
+    monkeypatch.setattr(weather, "_locate", lambda place: None)  # nor geocoding of unknown districts
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     yield

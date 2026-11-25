@@ -52,6 +52,17 @@ def district_centre(district: str | None) -> tuple[float, float] | None:
         return None
 
 
+FEED_SCOPES = ("25", "50", "state", "all")  # how far the live feed reaches from the viewer's home point
+
+
+def home_point(user) -> dict | None:
+    """Where 'nearby' is measured from: the location the person shared (rounded), else their district's centre."""
+    if valid(user.lat, user.lng):
+        return {"lat": user.lat, "lng": user.lng, "source": "gps"}
+    centre = district_centre(user.city)
+    return {"lat": centre[0], "lng": centre[1], "source": "district"} if centre else None
+
+
 def ring_for(distance_km: float | None, same_district: bool, same_state: bool) -> int | None:
     """Which alert circle a donor belongs to (0 = nearest). None = too far to alert at all."""
     if distance_km is not None:
