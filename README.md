@@ -38,6 +38,13 @@ The demo data simulates 18 months of network activity: about 700 donors and 35 h
 `seed_data.py --refresh` replaces the demo data and keeps Telegram-linked accounts; `--reset` wipes everything.
 Bumping `SEED_VERSION` in [backend/seed_data.py](backend/seed_data.py) makes a deployment refresh its demo data once on its next start.
 
+**Donation verification:** "I Can Donate" creates a *pledge*. Hospital staff (the account named on the request) or a blood
+bank in the request's district confirm it, and only then are points awarded, the unit counted and the next eligible
+date set. Pledges nobody confirms within 24 hours expire as no-shows; every 3rd no-show pauses pledging for 30 days.
+See [backend/verification.py](backend/verification.py).
+
+Backend tests: `cd backend; ..\.venv\Scripts\pip install -r requirements-dev.txt; ..\.venv\Scripts\python -m pytest tests`
+
 On macOS/Linux use `.venv/bin/python` instead of `.venv\Scripts\python`.
 
 ## Deploy for free (Render + Neon)
@@ -68,15 +75,17 @@ Set `AUTO_SEED=0` if you don't want demo data in the live database.
 | **Dashboard** (`/profile`) | Points, badge progress, availability toggle, referral links and stats, points, donation and voucher history |
 | **Leaderboard** (`/leaderboard`) | Live top 10 with a podium, badges, blood groups and the 🗣️ Influencer badge (5+ referrals) |
 | **Rewards** (`/rewards`) | Coffee 100 · Movie 250 · Shopping 500 · Merch 1000 BLP. Issues a fake voucher code, also sent to Telegram |
-| **Admin** (`/admin`) | Demand vs. supply by group, city demand heatmap, average response time, verify/cancel/fulfil requests, verify users, voucher log |
+| **Confirm donations** (`/staff`) | Hospital and blood bank accounts confirm each pledged donor (with an optional haemoglobin reading) or mark them as not come. Points and the next donation date follow only confirmed donations |
+| **Admin** (`/admin`) | Demand vs. supply by group, city demand heatmap, average response time, confirmed donations and no-shows, verify/cancel/fulfil requests, verify users and assign roles, voucher log |
 
 **Telegram bot:** fully button-driven, in **English, ಕನ್ನಡ or हिन्दी** (asked on `/start`, changeable with `/language`).
 `/menu` shows buttons for everything. Registration is name (one tap to use your Telegram name) → blood group → state → district →
 Telegram's "share phone" button. SOS is blood group → state → district (or one tap for your saved location) → hospital → units →
 urgency → share phone. Typing is only needed for a place or hospital that isn't listed. Locations live in
 [backend/locations.py](backend/locations.py): every district of Karnataka, Kerala, Tamil Nadu, Maharashtra, Delhi and Goa, plus
-a starter list of hospitals. SOS alerts reach each donor in their own language. SOS alerts carry a **🩸 I Can Donate** button: one tap fulfils the request,
-awards points and notifies the requester. Deep links: `t.me/<bot>?start=USER_12345` (referral) and `?start=link_USER_12345`
+a starter list of hospitals. SOS alerts reach each donor in their own language. SOS alerts carry a **🩸 I Can Donate** button: one tap pledges
+to donate and tells the requester a donor is on the way. Hospital and blood bank staff get the pledge on Telegram with
+**✅ Donated** / **❌ Didn't come** buttons; points are awarded only when they confirm. Deep links: `t.me/<bot>?start=USER_12345` (referral) and `?start=link_USER_12345`
 (link a web account).
 
 ### Donor safety and engagement
