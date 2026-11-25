@@ -100,6 +100,59 @@ S = {
         "kn": "📱 ನೀವು ಪ್ರತಿಕ್ರಿಯಿಸಿದಾಗ ಆಸ್ಪತ್ರೆ ನಿಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲು ಫೋನ್ ಸಂಖ್ಯೆ ಹಂಚಿಕೊಳ್ಳುವಿರಾ? (ಐಚ್ಛಿಕ)",
         "hi": "📱 जवाब देने पर अस्पताल आपसे संपर्क कर सके, इसके लिए फ़ोन नंबर साझा करेंगे? (वैकल्पिक)",
     },
+    "reg_sex": {"en": "🩺 A few health questions decide whether you can donate safely.\n\nYou are:",
+                "kn": "🩺 ನೀವು ಸುರಕ್ಷಿತವಾಗಿ ರಕ್ತದಾನ ಮಾಡಬಹುದೇ ಎಂದು ಕೆಲವು ಆರೋಗ್ಯ ಪ್ರಶ್ನೆಗಳು ನಿರ್ಧರಿಸುತ್ತವೆ.\n\nನೀವು:",
+                "hi": "🩺 कुछ स्वास्थ्य प्रश्न तय करते हैं कि आप सुरक्षित रूप से रक्तदान कर सकते हैं या नहीं।\n\nआप हैं:"},
+    "sex_male": {"en": "👨 Male", "kn": "👨 ಪುರುಷ", "hi": "👨 पुरुष"},
+    "sex_female": {"en": "👩 Female", "kn": "👩 ಮಹಿಳೆ", "hi": "👩 महिला"},
+    "sex_other": {"en": "Other", "kn": "ಇತರ", "hi": "अन्य"},
+    "reg_dob": {"en": "🎂 Your date of birth? Type it like <b>14-08-1998</b>.\n(Donors must be 18 to 65.)",
+                "kn": "🎂 ನಿಮ್ಮ ಜನ್ಮ ದಿನಾಂಕ? <b>14-08-1998</b> ಹೀಗೆ ಟೈಪ್ ಮಾಡಿ.\n(ದಾನಿಗಳು 18 ರಿಂದ 65 ವರ್ಷದವರಾಗಿರಬೇಕು.)",
+                "hi": "🎂 आपकी जन्म तिथि? ऐसे लिखें: <b>14-08-1998</b>\n(दाता की उम्र 18 से 65 वर्ष होनी चाहिए।)"},
+    "reg_dob_bad": {"en": "Please type the date like 14-08-1998.", "kn": "ದಯವಿಟ್ಟು ದಿನಾಂಕವನ್ನು 14-08-1998 ಹೀಗೆ ಟೈಪ್ ಮಾಡಿ.",
+                    "hi": "कृपया तिथि ऐसे लिखें: 14-08-1998"},
+    "reg_weight": {"en": "⚖️ Your weight? (Donors must weigh at least 45 kg.)",
+                   "kn": "⚖️ ನಿಮ್ಮ ತೂಕ? (ದಾನಿಗಳು ಕನಿಷ್ಠ 45 ಕೆಜಿ ಇರಬೇಕು.)",
+                   "hi": "⚖️ आपका वज़न? (दाता का वज़न कम से कम 45 किलो होना चाहिए।)"},
+    "weight_under": {"en": "Under 45 kg", "kn": "45 ಕೆಜಿಗಿಂತ ಕಡಿಮೆ", "hi": "45 किलो से कम"},
+    "reg_conditions": {
+        "en": "🧬 <b>Permanent conditions</b>\nPeople with any of these can never donate, to protect both them and the patient:\n\n"
+              "• Thalassaemia major or intermedia (the trait is fine)\n• Sickle cell disease\n"
+              "• Haemophilia or another bleeding disorder\n• HIV / AIDS\n• Hepatitis B or C (ever)\n"
+              "• Heart disease: heart attack, angina or heart surgery\n• Cancer (now or in the past)\n"
+              "• Epilepsy or fits on treatment\n• Chronic kidney or liver disease\n• Diabetes treated with insulin\n\n"
+              "We only save whether one applies, never which one.",
+        "kn": "🧬 <b>ಶಾಶ್ವತ ಆರೋಗ್ಯ ಸ್ಥಿತಿಗಳು</b>\nಇವುಗಳಲ್ಲಿ ಯಾವುದಾದರೂ ಇದ್ದರೆ, ನಿಮ್ಮ ಮತ್ತು ರೋಗಿಯ ಸುರಕ್ಷತೆಗಾಗಿ ಎಂದಿಗೂ ರಕ್ತದಾನ ಮಾಡಲಾಗದು:\n\n"
+              "• ಥಲಸ್ಸೇಮಿಯಾ ಮೇಜರ್ ಅಥವಾ ಇಂಟರ್ಮೀಡಿಯಾ (ಟ್ರೇಟ್ ಇದ್ದರೆ ಪರವಾಗಿಲ್ಲ)\n• ಸಿಕಲ್ ಸೆಲ್ ಕಾಯಿಲೆ\n"
+              "• ಹಿಮೋಫಿಲಿಯಾ ಅಥವಾ ಇತರ ರಕ್ತಸ್ರಾವ ಕಾಯಿಲೆ\n• ಎಚ್ಐವಿ / ಏಡ್ಸ್\n• ಹೆಪಟೈಟಿಸ್ ಬಿ ಅಥವಾ ಸಿ (ಎಂದಾದರೂ)\n"
+              "• ಹೃದಯ ಕಾಯಿಲೆ: ಹೃದಯಾಘಾತ, ಎದೆನೋವು ಅಥವಾ ಹೃದಯ ಶಸ್ತ್ರಚಿಕಿತ್ಸೆ\n• ಕ್ಯಾನ್ಸರ್ (ಈಗ ಅಥವಾ ಹಿಂದೆ)\n"
+              "• ಚಿಕಿತ್ಸೆಯಲ್ಲಿರುವ ಅಪಸ್ಮಾರ ಅಥವಾ ಮೂರ್ಛೆ\n• ದೀರ್ಘಕಾಲದ ಮೂತ್ರಪಿಂಡ ಅಥವಾ ಯಕೃತ್ತಿನ ಕಾಯಿಲೆ\n• ಇನ್ಸುಲಿನ್ ಬಳಸುವ ಮಧುಮೇಹ\n\n"
+              "ಇವುಗಳಲ್ಲಿ ಒಂದು ಇದೆಯೇ ಎಂಬುದನ್ನು ಮಾತ್ರ ಉಳಿಸುತ್ತೇವೆ, ಯಾವುದು ಎಂಬುದನ್ನಲ್ಲ.",
+        "hi": "🧬 <b>स्थायी स्वास्थ्य स्थितियाँ</b>\nइनमें से कोई भी होने पर, आपकी और मरीज़ की सुरक्षा के लिए कभी रक्तदान नहीं किया जा सकता:\n\n"
+              "• थैलेसीमिया मेजर या इंटरमीडिया (ट्रेट होने पर ठीक है)\n• सिकल सेल रोग\n"
+              "• हीमोफ़ीलिया या कोई अन्य रक्तस्राव विकार\n• एचआईवी / एड्स\n• हेपेटाइटिस बी या सी (कभी भी)\n"
+              "• हृदय रोग: दिल का दौरा, एनजाइना या हृदय की सर्जरी\n• कैंसर (अभी या पहले)\n"
+              "• इलाज चल रहा मिर्गी या दौरे\n• लंबे समय से गुर्दे या लिवर की बीमारी\n• इंसुलिन से इलाज वाला मधुमेह\n\n"
+              "हम केवल यह सहेजते हैं कि इनमें से कोई लागू है या नहीं, कौन-सा यह नहीं।",
+    },
+    "cond_none_btn": {"en": "✅ None of these apply", "kn": "✅ ಇವುಗಳಲ್ಲಿ ಯಾವುದೂ ಇಲ್ಲ", "hi": "✅ इनमें से कोई लागू नहीं"},
+    "cond_any_btn": {"en": "⚠️ One of these applies", "kn": "⚠️ ಇವುಗಳಲ್ಲಿ ಒಂದು ಇದೆ", "hi": "⚠️ इनमें से एक लागू है"},
+    "reg_cannot_donate": {
+        "en": "💙 Thank you for being honest. With that condition, donating isn't safe for you or the patient, so we "
+              "won't send you blood alerts. You can still request blood, invite friends and join camps.",
+        "kn": "💙 ಪ್ರಾಮಾಣಿಕತೆಗೆ ಧನ್ಯವಾದ. ಆ ಸ್ಥಿತಿಯೊಂದಿಗೆ ರಕ್ತದಾನ ನಿಮಗೂ ರೋಗಿಗೂ ಸುರಕ್ಷಿತವಲ್ಲ, ಆದ್ದರಿಂದ ನಿಮಗೆ ರಕ್ತದ ಎಚ್ಚರಿಕೆಗಳನ್ನು "
+              "ಕಳುಹಿಸುವುದಿಲ್ಲ. ನೀವು ಇನ್ನೂ ರಕ್ತಕ್ಕಾಗಿ ವಿನಂತಿಸಬಹುದು, ಸ್ನೇಹಿತರನ್ನು ಆಹ್ವಾನಿಸಬಹುದು ಮತ್ತು ಶಿಬಿರಗಳಿಗೆ ಸೇರಬಹುದು.",
+        "hi": "💙 ईमानदारी के लिए धन्यवाद। उस स्थिति में रक्तदान न आपके लिए सुरक्षित है न मरीज़ के लिए, इसलिए हम आपको "
+              "रक्त अलर्ट नहीं भेजेंगे। आप फिर भी रक्त का अनुरोध कर सकते हैं, दोस्तों को बुला सकते हैं और शिविरों में शामिल हो सकते हैं।",
+    },
+    "elig_permanent": {
+        "en": "💙 Your health check says donating isn't safe for you, so you can't pledge. If that was a mistake, "
+              "you can redo the check on your profile: {url}",
+        "kn": "💙 ನಿಮ್ಮ ಆರೋಗ್ಯ ಪರಿಶೀಲನೆಯ ಪ್ರಕಾರ ರಕ್ತದಾನ ನಿಮಗೆ ಸುರಕ್ಷಿತವಲ್ಲ, ಆದ್ದರಿಂದ ವಾಗ್ದಾನ ಮಾಡಲಾಗದು. ತಪ್ಪಾಗಿದ್ದರೆ, "
+              "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ಮತ್ತೆ ಪರಿಶೀಲಿಸಿ: {url}",
+        "hi": "💙 आपकी स्वास्थ्य जाँच के अनुसार रक्तदान आपके लिए सुरक्षित नहीं है, इसलिए आप वादा नहीं कर सकते। अगर यह गलती थी, "
+              "तो अपनी प्रोफ़ाइल पर जाँच दोबारा करें: {url}",
+    },
     "reg_done": {
         "en": "🎉 <b>Welcome to BloodLink, {name}!</b>\nYou earned <b>{points} BLP</b>{bonus}.\n"
               "You'll get an alert when someone near {district} needs blood you can give.",

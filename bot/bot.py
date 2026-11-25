@@ -15,6 +15,7 @@ import os
 import re
 import sys
 import warnings
+from datetime import date, datetime
 from pathlib import Path
 
 import httpx
@@ -67,7 +68,9 @@ END = ConversationHandler.END
 # conversation states (one conversation handles both flows so they never steal each other's input)
 (REG_NAME, REG_GROUP, REG_STATE, REG_DISTRICT, REG_CITY, REG_PHONE,
  SOS_GROUP, SOS_STATE, SOS_DISTRICT, SOS_HOSPITAL, SOS_HOSP_TEXT, SOS_PLACE_TEXT,
- SOS_UNITS, SOS_URGENCY, SOS_PHONE) = range(15)
+ SOS_UNITS, SOS_URGENCY, SOS_PHONE, REG_SEX, REG_DOB, REG_WEIGHT, REG_COND) = range(19)
+# weight bands for the registration buttons: (kg stored, label or i18n key)
+WEIGHT_BANDS = [(40, "weight_under"), (47, "45–50 kg"), (55, "50–60 kg"), (70, "60–80 kg"), (85, "80+ kg")]
 
 
 # ------------------------------------------------------------------ API + helpers
@@ -464,13 +467,68 @@ async def reg_city_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return REG_PHONE
 
 
+def conditions_kb(lang: str, prefix: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[btn(t(lang, "cond_none_btn"), f"{prefix}none")],
+                                 [btn(t(lang, "cond_any_btn"), f"{prefix}any")]])
+
+
 async def reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = L(context)
+    context.user_data.setdefault("reg", {})["phone"] = extract_phone(update)
+    await reply(update, "✅", reply_markup=ReplyKeyboardRemove())
+    await reply(update, t(lang, "reg_sex"), reply_markup=InlineKeyboardMarkup([[
+        btn(t(lang, "sex_male"), "rx_male"), btn(t(lang, "sex_female"), "rx_female"), btn(t(lang, "sex_other"), "rx_other")]]))
+    return REG_SEX
+
+
+async def reg_sex(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await ack(update)
+    context.user_data.setdefault("reg", {})["sex"] = update.callback_query.data.removeprefix("rx_")
+    await show(update, t(L(context), "reg_dob"))
+    return REG_DOB
+
+
+def parse_dob(text: str) -> date | None:
+    for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%d.%m.%Y", "%Y-%m-%d"):
+        try:
+            dob = datetime.strptime(text.strip(), fmt).date()
+        except ValueError:
+            continue
+        return dob if 5 <= (date.today() - dob).days / 365.25 <= 110 else None
+    return None
+
+
+async def reg_dob(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = L(context)
+    dob = parse_dob(update.message.text)
+    if not dob:
+        await reply(update, t(lang, "reg_dob_bad"))
+        return REG_DOB
+    context.user_data.setdefault("reg", {})["date_of_birth"] = dob.isoformat()
+    rows = chunk([btn(t(lang, label) if label.startswith("weight_") else label, f"rw_{kg}") for kg, label in WEIGHT_BANDS], 2)
+    await reply(update, t(lang, "reg_weight"), reply_markup=InlineKeyboardMarkup(rows))
+    return REG_WEIGHT
+
+
+async def reg_weight(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await ack(update)
+    lang = L(context)
+    context.user_data.setdefault("reg", {})["weight_kg"] = int(update.callback_query.data.removeprefix("rw_"))
+    await show(update, t(lang, "reg_conditions"), conditions_kb(lang, "rc_"))
+    return REG_COND
+
+
+async def reg_conditions(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Last registration step: submit everything. Only whether a condition applies is sent, never which one."""
+    await ack(update)
     lang = L(context)
     reg = context.user_data.pop("reg", {})
     tg = update.effective_user
     payload = {"name": reg.get("name"), "blood_group": reg.get("blood_group"), "city": reg.get("city"),
-               "state": reg.get("state"), "phone": extract_phone(update), "language": lang,
+               "state": reg.get("state"), "phone": reg.get("phone"), "language": lang,
                "telegram_id": str(tg.id), "telegram_username": tg.username,
+               "sex": reg.get("sex"), "date_of_birth": reg.get("date_of_birth"), "weight_kg": reg.get("weight_kg"),
+               "conditions": [] if update.callback_query.data == "rc_none" else ["any"],
                "referred_by": context.user_data.pop("ref", None)}
     try:
         try:
@@ -484,9 +542,10 @@ async def reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reply(update, err_text(lang, e), reply_markup=ReplyKeyboardRemove())
         return END
     u = res["user"]
-    await reply(update, t(lang, "reg_done", name=esc(u["name"]), points=u["points"],
-                          bonus=t(lang, "bonus") if u.get("referred_by") else "", district=esc(u["city"])),
-                reply_markup=ReplyKeyboardRemove())
+    await show(update, t(lang, "reg_done", name=esc(u["name"]), points=u["points"],
+                         bonus=t(lang, "bonus") if u.get("referred_by") else "", district=esc(u["city"])))
+    if u.get("permanently_ineligible"):
+        await reply(update, t(lang, "reg_cannot_donate"))
     await reply(update, t(lang, "invite", link=u["referral_link"]), reply_markup=menu_kb(lang, u))
     return END
 
@@ -639,13 +698,48 @@ async def sos_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ------------------------------------------------------------------ one-tap donate
 async def donate_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """SOS alert button: ask the quick health check first (one tap if nothing applies)."""
+    """SOS alert button: the permanent-conditions check once (if never answered), then the quick health check."""
     q = update.callback_query
     lang = await ensure_lang(update, context) or "en"
     request_id = int(q.data.removeprefix("donate_"))
     await ack(update)
+    user = await current_user(update)
+    elig = (user or {}).get("eligibility") or {}
+    if elig.get("permanently_ineligible"):
+        await context.bot.send_message(q.message.chat_id, t(lang, "elig_permanent", url=f"{WEB_URL}/profile"))
+        return
+    if elig and not elig.get("screened"):
+        await context.bot.send_message(q.message.chat_id, t(lang, "reg_conditions"), parse_mode=ParseMode.HTML,
+                                       reply_markup=conditions_kb(lang, f"dsc_{request_id}_"))
+        return
+    await elig_prompt(context, q.message.chat_id, lang, request_id)
+
+
+async def donate_screen(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Answer to the permanent-conditions check asked before a first pledge (dsc_<request>_none|any)."""
+    q = update.callback_query
+    lang = await ensure_lang(update, context) or "en"
+    _, request_id, answer = q.data.split("_")
+    await ack(update)
+    user = await current_user(update)
+    if not user:
+        return
+    try:
+        res = await api("POST", f"/users/{user['id']}/screening", json={"conditions": [] if answer == "none" else ["any"]})
+    except ApiError as e:
+        await ack(update, (t(lang, "server_down") if str(e) == "server_down" else str(e))[:190], alert=True)
+        return
+    if res.get("permanently_ineligible"):
+        await q.edit_message_text(t(lang, "reg_cannot_donate"))
+        return
+    await q.edit_message_reply_markup(None)
+    await elig_prompt(context, q.message.chat_id, lang, int(request_id))
+
+
+async def elig_prompt(context: ContextTypes.DEFAULT_TYPE, chat_id, lang: str, request_id: int):
+    """The quick temporary-conditions check before a pledge (one tap if nothing applies)."""
     await context.bot.send_message(
-        q.message.chat_id, t(lang, "elig_prompt"), parse_mode=ParseMode.HTML,
+        chat_id, t(lang, "elig_prompt"), parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup([[btn(t(lang, "elig_ok_btn"), f"dok_{request_id}")],
                                            [btn(t(lang, "elig_no_btn"), f"dno_{request_id}")]]))
 
@@ -673,8 +767,10 @@ async def donate_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ApiError as e:
         elig = e.data.get("eligibility")
         if elig:
+            codes = [r["code"] for r in elig["reasons"]]
             wait = next((r for r in elig["reasons"] if r["code"] == "interval"), None)
-            text = (t(lang, "elig_wait", date=wait["until"][:10]) if wait
+            text = (t(lang, "elig_permanent", url=f"{WEB_URL}/profile") if "permanent" in codes
+                    else t(lang, "elig_wait", date=wait["until"][:10]) if wait
                     else t(lang, "elig_not_now", url=f"{WEB_URL}/profile"))
             await ack(update)
             await q.edit_message_text(text)
@@ -969,6 +1065,10 @@ def build_app() -> Application:
             REG_DISTRICT: [cb(reg_district, pattern=r"^rd_")],
             REG_CITY: [MessageHandler(text, reg_city_text)],
             REG_PHONE: [MessageHandler(filters.CONTACT | text, reg_phone)],
+            REG_SEX: [cb(reg_sex, pattern=r"^rx_")],
+            REG_DOB: [MessageHandler(text, reg_dob)],
+            REG_WEIGHT: [cb(reg_weight, pattern=r"^rw_\d+$")],
+            REG_COND: [cb(reg_conditions, pattern=r"^rc_(none|any)$")],
             SOS_GROUP: [cb(sos_group, pattern=r"^sg_")],
             SOS_STATE: [cb(sos_state, pattern=r"^ss_")],
             SOS_DISTRICT: [cb(sos_district, pattern=r"^sd_")],
@@ -996,6 +1096,7 @@ def build_app() -> Application:
     app.add_handler(cb(menu_show_click, pattern=r"^m_menu_show$"))
     app.add_handler(cb(language_chosen, pattern=r"^lang_"))
     app.add_handler(cb(donate_click, pattern=r"^donate_\d+$"))
+    app.add_handler(cb(donate_screen, pattern=r"^dsc_\d+_(none|any)$"))
     app.add_handler(cb(donate_confirmed, pattern=r"^dok_\d+$"))
     app.add_handler(cb(donate_declined, pattern=r"^dno_\d+$"))
     app.add_handler(cb(staff_pledge_click, pattern=r"^(pok|pns)_\d+$"))
