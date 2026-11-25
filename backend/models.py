@@ -20,7 +20,7 @@ class User(Base):
     state = Column(String, nullable=True)
     language = Column(String, default="en")  # en | kn | hi (Telegram messages)
     phone = Column(String, nullable=True)
-    role = Column(String, default="donor")  # donor | hospital
+    role = Column(String, default="donor")  # donor | hospital | blood_bank
     telegram_id = Column(String, unique=True, nullable=True)
     telegram_username = Column(String, nullable=True)
     points = Column(Integer, default=0)
@@ -43,6 +43,8 @@ class User(Base):
     location_at = Column(DateTime, nullable=True)  # seeded demo account (may be opened by code while DEMO_LOGIN=1)
     is_verified = Column(Boolean, default=False)
     last_donation_at = Column(DateTime, nullable=True)
+    no_show_count = Column(Integer, default=0)  # pledges never confirmed by staff (see verification.py)
+    pledge_blocked_until = Column(DateTime, nullable=True)  # set on every NO_SHOW_LIMIT-th no-show
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -95,6 +97,10 @@ class Donation(Base):
     request_id = Column(Integer, ForeignKey("requests.id"), nullable=False)
     donor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     points_awarded = Column(Integer, default=0)
+    status = Column(String, default="pledged")  # pledged | confirmed | no_show | expired (see verification.py)
+    confirmed_at = Column(DateTime, nullable=True)
+    confirmed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # the staff user
+    hb_g_dl = Column(Float, nullable=True)  # haemoglobin recorded by staff at confirmation
     quick_response = Column(Boolean, default=False)
     weather = Column(String, nullable=True)  # "rain" | "dry" | None (unknown), for the Rainmaker achievement
     created_at = Column(DateTime, default=utcnow)

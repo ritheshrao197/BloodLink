@@ -47,7 +47,7 @@ class UserCreate(BaseModel):
     state: Optional[str] = None
     language: Literal["en", "kn", "hi", "ml", "ta", "te", "bn", "as", "kok", "tcy"] = "en"
     phone: Optional[str] = None
-    role: Literal["donor", "hospital"] = "donor"
+    role: Literal["donor", "hospital", "blood_bank"] = "donor"
     referred_by: Optional[str] = None
     telegram_id: Optional[str] = None
     telegram_username: Optional[str] = None

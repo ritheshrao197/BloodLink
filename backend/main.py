@@ -40,10 +40,13 @@ def migrate() -> None:
     new_columns = {"users": {"state": "VARCHAR", "language": "VARCHAR DEFAULT 'en'", "available_since": "TIMESTAMP",
                              "sex": "VARCHAR", "date_of_birth": "DATE", "weight_kg": "INTEGER", "deferred_until": "TIMESTAMP",
                              "is_admin": "BOOLEAN DEFAULT FALSE", "is_demo": "BOOLEAN DEFAULT FALSE",
-                             "lat": "FLOAT", "lng": "FLOAT", "location_at": "TIMESTAMP"},
+                             "lat": "FLOAT", "lng": "FLOAT", "location_at": "TIMESTAMP",
+                             "no_show_count": "INTEGER DEFAULT 0", "pledge_blocked_until": "TIMESTAMP"},
                    "requests": {"state": "VARCHAR", "requester_language": "VARCHAR", "lat": "FLOAT", "lng": "FLOAT",
                                 "alert_ring": "INTEGER DEFAULT 0", "next_ring_at": "TIMESTAMP", "is_demo": "BOOLEAN DEFAULT FALSE"},
-                   "donations": {"weather": "VARCHAR"}}
+                   # rows from before staff verification were real donations, so they become confirmed
+                   "donations": {"weather": "VARCHAR", "status": "VARCHAR DEFAULT 'confirmed'",
+                                 "confirmed_at": "TIMESTAMP", "confirmed_by": "INTEGER", "hb_g_dl": "FLOAT"}}
     insp = inspect(engine)
     with engine.begin() as conn:
         for table, cols in new_columns.items():
