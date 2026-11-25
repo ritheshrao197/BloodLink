@@ -686,13 +686,30 @@ async def donate_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = "\n".join(f"  +{b['points']} {t(lang, 'bd_' + b.get('code', 'donation'))}" for b in res["breakdown"])
     phone = t(lang, "contact", phone=esc(r["contact_phone"])) if r.get("contact_phone") else ""
     await q.edit_message_text(
-        t(lang, "donated", id=r["id"], hospital=esc(r["hospital"]), city=esc(r["city"]), group=r["blood_group"],
-          phone=phone, points=res["points_awarded"], lines=lines, balance=u["points"],
-          badge=f"{BADGE_ICON.get(u['badge'], '')} {u['badge']}"),
+        t(lang, "pledged", id=r["id"], hospital=esc(r["hospital"]), city=esc(r["city"]), group=r["blood_group"],
+          phone=phone, points=res["expected_points"], lines=lines, hours=res["pledge_hours"]),
         parse_mode=ParseMode.HTML)
     await context.bot.send_message(q.message.chat_id, t(lang, "invite", link=u["referral_link"]),
                                    parse_mode=ParseMode.HTML, disable_web_page_preview=True,
                                    reply_markup=InlineKeyboardMarkup([[btn(t(lang, "btn_menu"), "m_menu_show")]]))
+
+
+async def staff_pledge_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Hospital / blood bank staff tapped Donated (pok_) or Didn't come (pns_) on a pledge alert."""
+    q = update.callback_query
+    lang = await ensure_lang(update, context) or "en"
+    kind, donation_id = q.data.split("_", 1)
+    try:
+        res = await api("POST", f"/staff/pledges/{int(donation_id)}/{'confirm' if kind == 'pok' else 'no-show'}",
+                        json={"staff_telegram_id": str(update.effective_user.id)})
+    except ApiError as e:
+        await ack(update, (t(lang, "server_down") if str(e) == "server_down" else str(e))[:190], alert=True)
+        return
+    await ack(update)
+    note = (t(lang, "staff_done", name=esc(res["donor_name"]), points=res["points_awarded"]) if kind == "pok"
+            else t(lang, "staff_noshow"))
+    await q.edit_message_reply_markup(None)
+    await context.bot.send_message(q.message.chat_id, note, parse_mode=ParseMode.HTML)
 
 
 # ------------------------------------------------------------------ info commands
@@ -981,6 +998,7 @@ def build_app() -> Application:
     app.add_handler(cb(donate_click, pattern=r"^donate_\d+$"))
     app.add_handler(cb(donate_confirmed, pattern=r"^dok_\d+$"))
     app.add_handler(cb(donate_declined, pattern=r"^dno_\d+$"))
+    app.add_handler(cb(staff_pledge_click, pattern=r"^(pok|pns)_\d+$"))
     app.add_handler(cb(reminder_later, pattern=r"^rem_later$"))
     app.add_handler(cb(camp_rsvp_click, pattern=r"^crsvp_\d+$"))
     app.add_handler(cb(redeem_click, pattern=r"^redeem_\d+$"))

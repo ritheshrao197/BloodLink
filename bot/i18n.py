@@ -167,17 +167,22 @@ S = {
     "sos_failed": {"en": "⚠️ Could not create the request: {error}", "kn": "⚠️ ವಿನಂತಿ ರಚಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ: {error}",
                    "hi": "⚠️ अनुरोध नहीं बन सका: {error}"},
     "donate_thanks": {"en": "Thank you, hero! 🩸", "kn": "ಧನ್ಯವಾದಗಳು, ಹೀರೋ! 🩸", "hi": "धन्यवाद, हीरो! 🩸"},
-    "donated": {
-        "en": "✅ <b>You're donating for request #{id}</b>\n🏥 {hospital}, {city} — {group}{phone}\n\n"
-              "🎉 <b>Thank you! You earned {points} BLP!</b>\n{lines}\n\nBalance: <b>{balance} BLP</b> · {badge}\n"
-              "Please carry a photo ID to the hospital.",
-        "kn": "✅ <b>ವಿನಂತಿ #{id} ಗಾಗಿ ನೀವು ರಕ್ತದಾನ ಮಾಡುತ್ತಿದ್ದೀರಿ</b>\n🏥 {hospital}, {city} — {group}{phone}\n\n"
-              "🎉 <b>ಧನ್ಯವಾದಗಳು! ನೀವು {points} BLP ಗಳಿಸಿದ್ದೀರಿ!</b>\n{lines}\n\nಬ್ಯಾಲೆನ್ಸ್: <b>{balance} BLP</b> · {badge}\n"
-              "ದಯವಿಟ್ಟು ಆಸ್ಪತ್ರೆಗೆ ಫೋಟೋ ಐಡಿ ತನ್ನಿ.",
-        "hi": "✅ <b>आप अनुरोध #{id} के लिए रक्तदान कर रहे हैं</b>\n🏥 {hospital}, {city} — {group}{phone}\n\n"
-              "🎉 <b>धन्यवाद! आपने {points} BLP कमाए!</b>\n{lines}\n\nबैलेंस: <b>{balance} BLP</b> · {badge}\n"
-              "कृपया अस्पताल में फ़ोटो पहचान पत्र साथ लाएँ।",
+    "pledged": {
+        "en": "✅ <b>You've pledged for request #{id}</b>\n🏥 {hospital}, {city} — {group}{phone}\n\n"
+              "Please go to the hospital with a photo ID. Once staff confirm your donation you'll get about "
+              "<b>{points} BLP</b>.\n{lines}\n\nIf nobody confirms it within {hours} hours, the pledge expires.",
+        "kn": "✅ <b>ವಿನಂತಿ #{id} ಗೆ ನೀವು ವಾಗ್ದಾನ ಮಾಡಿದ್ದೀರಿ</b>\n🏥 {hospital}, {city} — {group}{phone}\n\n"
+              "ದಯವಿಟ್ಟು ಫೋಟೋ ಐಡಿಯೊಂದಿಗೆ ಆಸ್ಪತ್ರೆಗೆ ಹೋಗಿ. ಸಿಬ್ಬಂದಿ ನಿಮ್ಮ ರಕ್ತದಾನವನ್ನು ದೃಢೀಕರಿಸಿದ ನಂತರ ನಿಮಗೆ ಸುಮಾರು "
+              "<b>{points} BLP</b> ಸಿಗುತ್ತದೆ.\n{lines}\n\n{hours} ಗಂಟೆಯಲ್ಲಿ ಯಾರೂ ದೃಢೀಕರಿಸದಿದ್ದರೆ, ವಾಗ್ದಾನ ಮುಗಿಯುತ್ತದೆ.",
+        "hi": "✅ <b>आपने अनुरोध #{id} के लिए वादा किया है</b>\n🏥 {hospital}, {city} — {group}{phone}\n\n"
+              "कृपया फ़ोटो पहचान पत्र के साथ अस्पताल जाएँ। स्टाफ़ द्वारा रक्तदान की पुष्टि के बाद आपको लगभग "
+              "<b>{points} BLP</b> मिलेंगे।\n{lines}\n\nअगर {hours} घंटे में कोई पुष्टि नहीं करता, तो वादा समाप्त हो जाएगा।",
     },
+    "staff_done": {"en": "✅ Confirmed: {name} gets {points} BLP.", "kn": "✅ ದೃಢೀಕರಿಸಲಾಗಿದೆ: {name} ಗೆ {points} BLP.",
+                   "hi": "✅ पुष्टि हुई: {name} को {points} BLP मिले।"},
+    "staff_noshow": {"en": "❌ Marked as not come. The donor has been told.",
+                     "kn": "❌ ಬರಲಿಲ್ಲ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ. ದಾನಿಗೆ ತಿಳಿಸಲಾಗಿದೆ.",
+                     "hi": "❌ नहीं आए के रूप में दर्ज। दाता को बता दिया गया है।"},
     "contact": {"en": "\n📞 Contact: {phone}", "kn": "\n📞 ಸಂಪರ್ಕ: {phone}", "hi": "\n📞 संपर्क: {phone}"},
     "bd_donation": {"en": "Successful donation", "kn": "ಯಶಸ್ವಿ ರಕ್ತದಾನ", "hi": "सफल रक्तदान"},
     "bd_quick": {"en": "Quick response (< 5 min)", "kn": "ತ್ವರಿತ ಪ್ರತಿಕ್ರಿಯೆ (< 5 ನಿಮಿಷ)", "hi": "तेज़ जवाब (< 5 मिनट)"},
