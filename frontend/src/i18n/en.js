@@ -449,6 +449,8 @@ export default {
     tip: "You need at least 12.5 g/dL to donate. Iron-rich food (greens, dal, jaggery, eggs or meat) keeps it up.",
   },
   staff: {
+    waitingTitle: "Waiting for verification",
+    waitingBody: "BloodLink checks every hospital and blood bank account before it can confirm donations. We'll verify yours soon.",
     needsRide: "Needs a ride",
     lowHb: "Low Hb",
     lowHbHint: "They came but their haemoglobin was below 12.5 g/dL",

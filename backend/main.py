@@ -287,6 +287,10 @@ def register_user(body: UserCreate, db: Session = Depends(get_db), a: auth.Actor
                           name=notifier.esc(user.name), points=logic.POINTS_REFERRAL_REGISTER)
         db.flush()
         achievements.evaluate(db, [referrer])
+    if user.role in verification.STAFF_ROLES:  # staff can't confirm donations until an admin verifies them
+        for admin in db.query(User).filter(User.is_admin.is_(True), User.telegram_id.isnot(None)):
+            notifier.notify_t(admin.telegram_id, admin.language, "staff_signup", name=notifier.esc(user.name),
+                              role=user.role.replace("_", " "), place=notifier.esc(user.city), url=f"{WEB_URL}/admin")
     token = None if a.is_bot else auth.new_session(db, user)  # the web registrant is signed in straight away
     db.commit()
     db.refresh(user)

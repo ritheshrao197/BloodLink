@@ -6,6 +6,7 @@ change only on confirmation. A pledge nobody confirms within PLEDGE_HOURS expire
 NO_SHOW_LIMIT-th no-show pauses new pledges for BLOCK_DAYS.
 
 Who confirms: an admin; the hospital account named on the request; any blood bank in the request's district.
+Hospital and blood bank accounts must be verified by an admin first (anyone can register one under any name).
 """
 
 import logging
@@ -234,17 +235,23 @@ class LowHbBody(StaffBody):
     hb_g_dl: float | None = Field(default=None, ge=4, lt=eligibility.MIN_HB_G_DL)  # optional: the bot button sends none
 
 
+NOT_VERIFIED = "Your hospital or blood bank account is waiting to be verified by BloodLink before it can confirm donations."
+
+
 def _staff(db: Session, a: auth.Actor, telegram_id: str | None) -> User:
     if a.is_bot:
         user = db.query(User).filter(User.telegram_id == str(telegram_id)).first() if telegram_id else None
         if not user or not (user.is_admin or user.role in STAFF_ROLES):
             raise HTTPException(403, "This Telegram account is not a hospital or blood bank account.")
-        return user
-    if not a.user:
-        raise HTTPException(401, "Please sign in.")
-    if not (a.user.is_admin or a.user.role in STAFF_ROLES):
-        raise HTTPException(403, "Only hospital and blood bank staff can confirm donations.")
-    return a.user
+    else:
+        if not a.user:
+            raise HTTPException(401, "Please sign in.")
+        user = a.user
+        if not (user.is_admin or user.role in STAFF_ROLES):
+            raise HTTPException(403, "Only hospital and blood bank staff can confirm donations.")
+    if not user.is_admin and not user.is_verified:
+        raise HTTPException(403, NOT_VERIFIED)
+    return user
 
 
 def _open_pledge(db: Session, donation_id: int, staff: User) -> Donation:

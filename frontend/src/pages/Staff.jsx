@@ -98,7 +98,12 @@ export default function Staff() {
   const { user } = useSession();
   const { t } = useI18n();
   const allowed = !!user && (user.is_admin || STAFF_ROLES.includes(user.role));
-  const { data, error, loading, reload } = usePoll(() => (allowed ? api.staff.pledges() : Promise.resolve([])), 10000, `${user?.id}`);
+  const waiting = allowed && !user.is_admin && !user.is_verified; // an admin has to verify hospital/blood bank accounts
+  const { data, error, loading, reload } = usePoll(
+    () => (allowed && !waiting ? api.staff.pledges() : Promise.resolve([])),
+    10000,
+    `${user?.id}-${waiting}`,
+  );
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -110,6 +115,10 @@ export default function Staff() {
         </div>
       ) : !allowed ? (
         <Empty icon={ClipboardCheck} title={t('staff.notStaff')} />
+      ) : waiting ? (
+        <Empty icon={ClipboardCheck} title={t('staff.waitingTitle')}>
+          {t('staff.waitingBody')}
+        </Empty>
       ) : loading && !data ? (
         <Loading rows={3} />
       ) : (
