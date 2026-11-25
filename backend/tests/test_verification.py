@@ -316,7 +316,7 @@ def test_seed_has_confirmed_history_blood_banks_and_live_pledges(db):
 def test_clear_demo_keeps_real_donation_confirmed_by_demo_bank(client, db):
     import seed_data
 
-    donor, _, d = _pledged(client, db)
+    donor, _, d = _pledged(client, db, requester_telegram_id="42")  # a real request (demo ones are cleared)
     bank = _bank(db, is_demo=True)
     client.post(f"/api/staff/pledges/{d.id}/confirm", json={}, headers=login(db, bank))
     seed_data.clear_demo(db)
