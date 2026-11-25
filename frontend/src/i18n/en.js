@@ -200,7 +200,7 @@ export default {
     submit: 'Register & Earn {n} Points',
     whatYouGet: 'What you get',
     perk1: '⭐ +50 BLP for joining (+50 more with a referral code)',
-    perk2: '🩸 +100 BLP per donation, +20 for responding in under 5 minutes',
+    perk2: "🩸 +100 BLP per donation once the hospital confirms it (+20 if you responded quickly)",
     perk3: '🤝 +50 BLP per friend who joins, +200 BLP and a voucher when they donate',
     perk4: '🎁 Redeem BLP for coffee, movies and merch',
     perk5: '🏆 Climb from 🥉 Bronze to 💎 Platinum',

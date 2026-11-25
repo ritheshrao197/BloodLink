@@ -71,7 +71,7 @@ Set `AUTO_SEED=0` if you don't want demo data in the live database.
 | **Live feed** (`/`) | Active SOS requests, polled every 4 s, colour-coded by urgency, filter by group or "I can help", one-click donate |
 | **SOS** (`/sos`) | Blood group, hospital, city, units, urgency. Shows matched donors and how many were alerted on Telegram |
 | **Donor search** (`/donors`) | By exact group or "can donate to" (ABO/Rh matrix), city and availability |
-| **Register** (`/register?ref=CODE`) | +50 BLP, plus a +50 welcome bonus with a referral code. Shows the referral code and a Link Telegram button |
+| **Register** (`/register?ref=CODE`) | +50 BLP, plus a +50 welcome bonus with a referral code. Shows the referral code and a Link Telegram button. Donors give sex, date of birth and weight and answer a permanent-conditions check (thalassaemia, sickle cell, haemophilia, HIV, hepatitis B/C, heart disease and more); someone who reports one is registered but never alerted, and only that outcome is stored |
 | **Dashboard** (`/profile`) | Points, badge progress, availability toggle, referral links and stats, points, donation and voucher history |
 | **Leaderboard** (`/leaderboard`) | Live top 10 with a podium, badges, blood groups and the 🗣️ Influencer badge (5+ referrals) |
 | **Rewards** (`/rewards`) | Coffee 100 · Movie 250 · Shopping 500 · Merch 1000 BLP. Issues a fake voucher code, also sent to Telegram |
