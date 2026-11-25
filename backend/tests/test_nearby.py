@@ -76,4 +76,5 @@ def test_donor_search_is_nearest_first_with_rounded_distance(client, db):
     rows = client.get("/api/donors", params={**MYSURU, "blood_group": "O+"}).json()
     assert [d["name"] for d in rows] == ["Town donor", "Close donor", "Udupi donor"]
     assert rows[1]["distance_km"] == 4.0
+    assert rows[0]["distance_km"] is None  # placed by district only: ordered, but no made-up distance
     assert "lat" not in rows[1] and "lng" not in rows[1]  # never the exact point

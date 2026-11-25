@@ -216,6 +216,7 @@ export default {
     dashboard: 'Go to my dashboard',
   },
   donors: {
+    nearestFrom: "nearest to {place} first",
     title: 'Find Donors',
     subtitle: 'Search registered donors by blood group, city and availability, using rule-based ABO/Rh matching.',
     mode: 'Match mode',
@@ -416,6 +417,18 @@ export default {
     referralBonus: 'Referral bonus',
     noVouchers: 'No vouchers issued yet.',
     voucherStatus: { Issued: 'Issued', Used: 'Used' },
+  },
+  area: {
+    near: "Near {place}",
+    here: "Near your current position",
+    useHere: "Use my current position",
+    change: "Change area",
+    pickTitle: "Where are you?",
+    pickBody: "Pick your district to see blood requests near you.",
+    scopeLabel: "How far to look",
+    scope: { s25: "25 km", s50: "50 km", sstate: "My state", sall: "All" },
+    noneNear: "No requests within {km} km right now.",
+    widen: "Show wider area",
   },
   hb: {
     title: "My haemoglobin",

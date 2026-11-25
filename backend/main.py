@@ -523,7 +523,9 @@ def search_donors(
         return geo.km(lat, lng, c[0], c[1]) if c else None
 
     ranked = sorted(((distance(u), u) for u in users), key=lambda x: x[0] if x[0] is not None else 1e9)
-    return [{**user_public(u), "distance_km": geo.shown_km(d)} for d, u in ranked[:200]]
+    # a distance is shown only for donors who shared a location; the district centre is just for ordering
+    return [{**user_public(u), "distance_km": geo.shown_km(d) if geo.valid(u.lat, u.lng) else None}
+            for d, u in ranked[:200]]
 
 
 @app.get("/api/leaderboard")

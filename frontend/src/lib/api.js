@@ -77,7 +77,8 @@ export const api = {
     request(`/users/${id}/availability`, { method: 'PATCH', body: { is_available: isAvailable } }),
   donors: (params) => request('/donors', { params }),
   leaderboard: (limit = 10) => request('/leaderboard', { params: { limit } }),
-  requests: (status = 'Active') => request('/requests', { params: { status } }),
+  requests: (status = 'Active', near = {}) => request('/requests', { params: { status, ...near } }),
+  geoPoint: (district, state) => request('/geo/point', { params: { district, state } }),
   sos: (body) => request('/sos', { method: 'POST', body }),
   donate: (requestId, userId, screening) =>
     request(`/donate/${requestId}`, { method: 'POST', body: { user_id: userId, confirmed: true, screening } }),

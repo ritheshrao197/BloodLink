@@ -7,7 +7,8 @@ import { usePoll } from '../lib/usePoll';
 import { BADGES, BLOOD_GROUPS, canDonate, cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 import RequestCard from '../components/RequestCard';
-import { kmBetween } from '../components/Nearby';
+import { AreaBar, ScopeChips } from '../components/Area';
+import { feedParams, useArea } from '../lib/area';
 import DonateModal from '../components/DonateModal';
 import { Showcase } from '../components/Achievements';
 import { BadgeChip, BloodTag, Empty, ErrorBox, Loading } from '../components/ui';
@@ -17,9 +18,11 @@ export default function Home() {
   const { t, num, ago } = useI18n();
   const [filter, setFilter] = useState('All');
   const [respondTo, setRespondTo] = useState(null);
-  const [nearest, setNearest] = useState(false);
   const me = user?.location || null;
-  const feed = usePoll(() => api.requests('Active'), 4000);
+  const { area, choose, setHere, signedIn } = useArea();
+  const [scope, setScope] = useState('25'); // nearby by default; widen with the chips
+  const near = feedParams(area, scope);
+  const feed = usePoll(() => api.requests('Active', near), 4000, JSON.stringify(near));
   const stats = usePoll(() => api.stats(), 15000);
   const board = usePoll(() => api.leaderboard(5), 15000);
   const catalog = usePoll(() => api.achievements(), 0);
@@ -28,7 +31,6 @@ export default function Home() {
   const requests = (feed.data || []).filter((r) =>
     filter === 'All' ? true : filter === 'Mine' ? user && canDonate(user.blood_group, r.blood_group) : r.blood_group === filter,
   );
-  if (me && nearest) requests.sort((a, b) => (kmBetween(me, a) ?? 1e9) - (kmBetween(me, b) ?? 1e9));
   const s = stats.data?.totals;
   const bot = config?.bot_username || 'BloodLinkBot';
   const spotlight = (feed.data || []).find((r) => r.urgency === 'Critical') || feed.data?.[0];
@@ -156,6 +158,10 @@ export default function Home() {
               <span className="rounded-full bg-brand-700 px-2.5 py-0.5 text-sm text-white">{feed.data?.length ?? 0}</span>
             </h2>
           </div>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <AreaBar area={area} choose={choose} setHere={setHere} signedIn={signedIn} />
+            {area && <ScopeChips scope={scope} onChange={setScope} />}
+          </div>
           <div className="mb-5 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t('home.filter')}>
             {['All', ...(user ? ['Mine'] : []), ...BLOOD_GROUPS].map((g) => (
               <button
@@ -170,15 +176,6 @@ export default function Home() {
                 {g === 'Mine' ? t('home.mine') : g === 'All' ? t('common.all') : g}
               </button>
             ))}
-            {me && (
-              <button
-                onClick={() => setNearest(!nearest)}
-                aria-pressed={nearest}
-                className={cx('min-h-9 shrink-0 rounded-full px-3.5 py-1 text-sm font-semibold transition', nearest ? 'bg-sky-600 text-white' : 'bg-slate-800 text-sky-400 hover:bg-slate-700')}
-              >
-                📍 {t('geo.nearest')}
-              </button>
-            )}
           </div>
           <ErrorBox error={feed.error} />
           {feed.loading && !feed.data ? (
@@ -187,6 +184,12 @@ export default function Home() {
                 <div key={i} className="skeleton h-64" />
               ))}
             </div>
+          ) : requests.length === 0 && area && (scope === '25' || scope === '50') ? (
+            <Empty icon={HeartHandshake} title={t('area.noneNear', { km: scope })}>
+              <button onClick={() => setScope(scope === '25' ? '50' : 'state')} className="btn-ghost mt-3 min-h-10 py-2 text-sm">
+                {t('area.widen')}
+              </button>
+            </Empty>
           ) : requests.length === 0 ? (
             <Empty icon={HeartHandshake} title={t('home.emptyTitle')}>
               {filter === 'All' ? t('home.emptyAll') : t('home.emptyFilter')}

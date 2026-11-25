@@ -9,7 +9,7 @@ export default function RequestCard({ request: r, onRespond, highlight, me }) {
   const u = URGENCY[r.urgency] || URGENCY.High;
   const pct = Math.min(100, Math.round((r.units_fulfilled / r.units_needed) * 100));
   const active = r.status === 'Active';
-  const km = roundKm(kmBetween(me, r));
+  const km = r.distance_km ?? roundKm(kmBetween(me, r));
   return (
     <article
       className={cx(

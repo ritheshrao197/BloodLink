@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BadgeCheck, Search, Send, Users } from 'lucide-react';
 import { api } from '../lib/api';
 import { usePoll } from '../lib/usePoll';
+import { useArea } from '../lib/area';
 import { BLOOD_GROUPS, COMPATIBILITY, cx } from '../lib/utils';
 import { useI18n } from '../i18n';
 import { BadgeChip, BloodTag, Empty, ErrorBox, Loading, PageHeader } from '../components/ui';
@@ -13,11 +14,14 @@ export default function Donors() {
   const [city, setCity] = useState('');
   const [availableOnly, setAvailableOnly] = useState(true);
 
+  const { area } = useArea(); // nearest first from your own area (signed in, or a district you picked)
   const params = {
     compatible_for: mode === 'compatible' ? group : '',
     blood_group: mode === 'exact' ? group : '',
     city,
     available: availableOnly ? true : '',
+    lat: area?.lat ?? '',
+    lng: area?.lng ?? '',
   };
   const key = JSON.stringify(params);
   const { data, error, loading } = usePoll(() => api.donors(params), 0, key);
@@ -86,7 +90,10 @@ export default function Donors() {
         </Empty>
       ) : (
         <>
-          <p className="mb-3 text-sm text-slate-400">{t('donors.count', { n: num(data.length) })}</p>
+          <p className="mb-3 text-sm text-slate-400">
+            {t('donors.count', { n: num(data.length) })}
+            {area?.label && <> · {t('donors.nearestFrom', { place: area.label })}</>}
+          </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((d) => (
               <div key={d.id} className="card card-hover flex items-center gap-4 p-4">
@@ -99,6 +106,7 @@ export default function Donors() {
                   </div>
                   <div className="text-sm text-slate-400">
                     {d.city} · {t('donors.donations', { n: d.total_donations })}
+                    {d.distance_km != null && <span className="font-semibold text-brand-600"> · {t('geo.away', { km: d.distance_km })}</span>}
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs">
                     <BadgeChip badge={d.badge} />
