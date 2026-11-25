@@ -78,6 +78,7 @@ export const api = {
   donors: (params) => request('/donors', { params }),
   leaderboard: (limit = 10) => request('/leaderboard', { params: { limit } }),
   requests: (status = 'Active', near = {}) => request('/requests', { params: { status, ...near } }),
+  rideHelp: (donationId) => request(`/pledges/${donationId}/ride-help`, { method: 'POST', body: {} }),
   geoPoint: (district, state) => request('/geo/point', { params: { district, state } }),
   sos: (body) => request('/sos', { method: 'POST', body }),
   donate: (requestId, userId, screening) =>

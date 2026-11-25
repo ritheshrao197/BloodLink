@@ -8,6 +8,7 @@ import { useI18n } from '../i18n';
 import { BloodTag, CopyField, ErrorBox, Modal, Spinner } from './ui';
 import SignInByCode from './SignInByCode';
 import { EligibilityForm, ReasonList } from './Eligibility';
+import GettingThere from './Travel';
 
 export default function DonateModal({ request, onClose, onDone }) {
   const { user, setUser } = useSession();
@@ -60,20 +61,7 @@ export default function DonateModal({ request, onClose, onDone }) {
             </ul>
             <p className="mt-2 text-xs text-slate-500">{t('donate.expires', { hours: result.pledge_hours })}</p>
           </div>
-          <p className="text-sm text-slate-300">
-            {t('donate.headTo', { place: `${request.hospital}, ${request.city}` })}
-            {request.contact_phone && <> {t('donate.contact', { phone: request.contact_phone })}</>}
-          </p>
-          {request.contact_phone && (
-            <div className="grid grid-cols-2 gap-2">
-              <a href={`tel:${request.contact_phone.replace(/[^\d+]/g, '')}`} className="btn-ghost">
-                📞 {request.contact_phone}
-              </a>
-              <a href={`https://wa.me/${request.contact_phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="btn-ghost text-emerald-500">
-                💬 WhatsApp
-              </a>
-            </div>
-          )}
+          <GettingThere request={result.request || request} donationId={result.donation_id} />
           <CopyField label={t('donate.invite')} value={result.donor.web_referral_link} />
           <button onClick={onClose} className="btn-ghost w-full">
             {t('common.done')}

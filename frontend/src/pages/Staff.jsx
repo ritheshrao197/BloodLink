@@ -45,7 +45,10 @@ function PledgeRow({ p, onDone }) {
       <div className="flex flex-wrap items-center gap-3">
         <BloodTag group={p.donor.blood_group} />
         <div className="min-w-0 flex-1">
-          <p className="font-bold">{p.donor.name}</p>
+          <p className="flex flex-wrap items-center gap-2 font-bold">
+            {p.donor.name}
+            {p.ride_help && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-300">🆘 {t('staff.needsRide')}</span>}
+          </p>
           <p className="flex items-center gap-1 text-sm text-slate-400">
             <Hospital className="h-4 w-4 shrink-0" />
             <span className="min-w-0">

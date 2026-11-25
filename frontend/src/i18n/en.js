@@ -418,6 +418,15 @@ export default {
     noVouchers: 'No vouchers issued yet.',
     voucherStatus: { Issued: 'Issued', Used: 'Used' },
   },
+  travel: {
+    title: "Getting there",
+    directions: "Directions in Google Maps",
+    cabNote: "Cab apps find the hospital by name or area: check the drop point before booking.",
+    help: "I need help getting there",
+    helpSent: "Help requested. The hospital or the family will call you on {phone}.",
+    helpSentNoPhone: "Help requested. We don't have your phone number, so please call the request's contact too.",
+    helpAlready: "You've already asked for help. They'll contact you soon.",
+  },
   area: {
     near: "Near {place}",
     here: "Near your current position",
@@ -440,6 +449,7 @@ export default {
     tip: "You need at least 12.5 g/dL to donate. Iron-rich food (greens, dal, jaggery, eggs or meat) keeps it up.",
   },
   staff: {
+    needsRide: "Needs a ride",
     lowHb: "Low Hb",
     lowHbHint: "They came but their haemoglobin was below 12.5 g/dL",
     lowHbDone: "{name}: low haemoglobin recorded, iron advice sent",
