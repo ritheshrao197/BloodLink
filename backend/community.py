@@ -64,7 +64,7 @@ def team_scores(db: Session, team_ids: list[int] | None = None) -> dict[int, dic
     if not by_user:
         return scores
     uids = list(by_user)
-    for donor_id, at, pts in db.query(Donation.donor_id, Donation.created_at, Donation.points_awarded).filter(Donation.donor_id.in_(uids)):
+    for donor_id, at, pts in db.query(Donation.donor_id, Donation.created_at, Donation.points_awarded).filter(Donation.donor_id.in_(uids), Donation.status == "confirmed"):
         for m in by_user[donor_id]:
             if at >= m.joined_at:
                 scores[m.team_id]["donations"] += 1
@@ -169,7 +169,7 @@ def team_detail(team_id: int, user_id: int | None = None, db: Session = Depends(
     uids = [u.id for _, u in members]
     joined = {m.user_id: m.joined_at for m, _ in members}
     if uids:
-        for donor_id, at, pts in db.query(Donation.donor_id, Donation.created_at, Donation.points_awarded).filter(Donation.donor_id.in_(uids)):
+        for donor_id, at, pts in db.query(Donation.donor_id, Donation.created_at, Donation.points_awarded).filter(Donation.donor_id.in_(uids), Donation.status == "confirmed"):
             if at >= joined[donor_id]:
                 contrib[donor_id][0] += 1
                 contrib[donor_id][1] += pts or 0

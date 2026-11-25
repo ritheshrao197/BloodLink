@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import func, inspect, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 import database  # noqa: F401  (loads .env before notifier reads the token)
 import achievements
@@ -56,6 +56,8 @@ def migrate() -> None:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
                     if name == "available_since":  # assume people available now have been since joining
                         conn.execute(text("UPDATE users SET available_since = created_at WHERE is_available"))
+                    if table == "donations" and name == "confirmed_at":  # old donations were confirmed on the spot
+                        conn.execute(text("UPDATE donations SET confirmed_at = created_at"))
     db = SessionLocal()
     try:
         for row in [*db.query(User).filter(User.state.is_(None)), *db.query(BloodRequest).filter(BloodRequest.state.is_(None))]:
@@ -157,10 +159,15 @@ def user_private(db: Session, u: User) -> dict:
         "referrals": stats,
         "achievements": achievements.showcase(db, [u.id])[u.id],
         "eligibility": eligibility.status(u) if u.role == "donor" else None,
+        "no_show_count": u.no_show_count or 0,
+        "pledge_blocked_until": iso(u.pledge_blocked_until),
     }
 
 
-def request_out(r: BloodRequest) -> dict:
+def request_out(r: BloodRequest, pledged: int | None = None) -> dict:
+    if pledged is None:  # one request: count its open pledges (lists pass a prefetched count)
+        db = object_session(r)
+        pledged = db.query(Donation).filter(Donation.request_id == r.id, Donation.status == "pledged").count() if db else 0
     return {
         "id": r.id, "requester_name": r.requester_name, "blood_group": r.blood_group,
         "hospital": r.hospital, "city": r.city, "state": r.state, "units_needed": r.units_needed,
@@ -168,7 +175,7 @@ def request_out(r: BloodRequest) -> dict:
         "fulfilled_by": r.fulfilled_by, "is_verified": r.is_verified,
         "notified_count": r.notified_count, "contact_phone": r.contact_phone,
         "compatible_donor_groups": logic.compatible_donor_groups(r.blood_group),
-        "lat": r.lat, "lng": r.lng,
+        "lat": r.lat, "lng": r.lng, "units_pledged": pledged,
         "created_at": iso(r.created_at), "fulfilled_at": iso(r.fulfilled_at),
     }
 
@@ -322,6 +329,7 @@ def user_activity(user_id: int, db: Session = Depends(get_db), a: auth.Actor = D
         "points_log": [{"amount": l.amount, "reason": l.reason, "created_at": iso(l.created_at)} for l in logs],
         "donations": [{"request_id": r.id, "hospital": r.hospital, "city": r.city, "blood_group": r.blood_group,
                        "points_awarded": d.points_awarded, "quick_response": d.quick_response,
+                       "status": d.status, "confirmed_at": iso(d.confirmed_at),
                        "created_at": iso(d.created_at)} for d, r in donations],
         "vouchers": [{"reward_name": v.reward_name, "points_cost": v.points_cost, "voucher_code": v.voucher_code,
                       "status": v.status, "created_at": iso(v.created_at)} for v in vouchers],
@@ -640,7 +648,12 @@ def get_requests(status: str = "Active", db: Session = Depends(get_db)):
     q = db.query(BloodRequest)
     if status.lower() != "all":
         q = q.filter(BloodRequest.status == status.title())
-    return [request_out(r) for r in q.order_by(BloodRequest.id.desc()).limit(200)]
+    rows = q.order_by(BloodRequest.id.desc()).limit(200).all()
+    ids = [r.id for r in rows]
+    pledged = dict(db.query(Donation.request_id, func.count(Donation.id))
+                   .filter(Donation.request_id.in_(ids), Donation.status == "pledged")
+                   .group_by(Donation.request_id).all()) if ids else {}
+    return [request_out(r, pledged.get(r.id, 0)) for r in rows]
 
 
 @app.get("/api/requests/{request_id}")
@@ -652,7 +665,7 @@ def get_request(request_id: int, db: Session = Depends(get_db)):
         db.query(Donation, User).join(User, Donation.donor_id == User.id)
         .filter(Donation.request_id == req.id).all()
     )
-    return {**request_out(req), "donors": [{"name": u.name, "blood_group": u.blood_group,
+    return {**request_out(req), "donors": [{"name": u.name, "blood_group": u.blood_group, "status": d.status,
                                             "created_at": iso(d.created_at)} for d, u in donors]}
 
 
@@ -774,16 +787,17 @@ def redeem(reward_id: int, body: RedeemBody, db: Session = Depends(get_db), a: a
 
 @app.get("/api/activity/recent")
 def recent_activity(limit: int = 8, db: Session = Depends(get_db)):
-    """Latest pledges for the home page ticker (first name + initial only)."""
+    """Latest confirmed donations for the home page ticker (first name + initial only)."""
     rows = (db.query(Donation, BloodRequest, User).join(BloodRequest, Donation.request_id == BloodRequest.id)
-            .join(User, Donation.donor_id == User.id).order_by(Donation.created_at.desc()).limit(min(limit, 20)).all())
+            .join(User, Donation.donor_id == User.id).filter(Donation.status == "confirmed")
+            .order_by(Donation.confirmed_at.desc()).limit(min(limit, 20)).all())
 
     def short(name: str) -> str:
         parts = name.split()
         return f"{parts[0]} {parts[-1][0]}." if len(parts) > 1 else parts[0]
 
     return [{"name": short(u.name), "blood_group": u.blood_group, "hospital": r.hospital, "city": r.city,
-             "badge": u.badge, "created_at": iso(d.created_at)} for d, r, u in rows]
+             "badge": u.badge, "created_at": iso(d.confirmed_at)} for d, r, u in rows]
 
 
 # ---------------------------------------------------------------- public stats (home page)
@@ -831,7 +845,10 @@ def _stats(db: Session) -> dict:
             "telegram_linked": db.query(User).filter(User.telegram_id.isnot(None)).count(),
             "active_requests": db.query(BloodRequest).filter(BloodRequest.status == "Active").count(),
             "fulfilled_requests": db.query(BloodRequest).filter(BloodRequest.status == "Fulfilled").count(),
-            "donations": db.query(Donation).count(),
+            "donations": db.query(Donation).filter(Donation.status == "confirmed").count(),
+            "open_pledges": db.query(Donation).filter(Donation.status == "pledged").count(),
+            "no_shows": db.query(Donation).filter(Donation.status.in_(("no_show", "expired"))).count(),
+            "blood_banks": db.query(User).filter(User.role == "blood_bank").count(),
             "referrals": db.query(Referral).count(),
             "vouchers_issued": db.query(Reward).count(),
             "points_in_circulation": db.query(func.coalesce(func.sum(User.points), 0)).scalar(),
@@ -890,7 +907,8 @@ def admin_verify_request(request_id: int, verified: bool = True, db: Session = D
     _require_admin_or_hospital(a, req)
     req.is_verified = verified
     db.flush()
-    donor_ids = [d for (d,) in db.query(Donation.donor_id).filter(Donation.request_id == req.id)]
+    donor_ids = [d for (d,) in db.query(Donation.donor_id).filter(Donation.request_id == req.id,
+                                                                  Donation.status == "confirmed")]
     achievements.evaluate(db, db.query(User).filter(User.id.in_(donor_ids)).all() if donor_ids else [])
     db.commit()
     return request_out(req)

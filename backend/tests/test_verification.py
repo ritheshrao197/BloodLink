@@ -41,7 +41,8 @@ def test_migrate_marks_old_donations_confirmed(db):
         for col in ("no_show_count", "pledge_blocked_until"):
             conn.execute(text(f"ALTER TABLE users DROP COLUMN {col}"))
     main.migrate()
-    assert db.query(Donation).one().status == "confirmed"
+    old = db.query(Donation).one()
+    assert old.status == "confirmed" and old.confirmed_at == old.created_at
     assert db.get(User, donor_id).no_show_count == 0
 
 
@@ -258,3 +259,32 @@ def test_old_pledges_expire_as_no_shows(db):
     db.expire_all()
     assert sorted(d.status for d in db.query(Donation)) == ["expired", "pledged"]
     assert db.get(User, donor.id).no_show_count == 1
+
+
+# ---------------------------------------------------------------- only confirmed donations count
+def test_feed_and_activity_show_pledge_state(client, db):
+    donor = make_user(db)
+    req = make_request(db, units=2)
+    h = login(db, donor)
+    pledge(client, h, req.id, donor.id)
+    feed = client.get("/api/requests").json()
+    assert feed[0]["units_pledged"] == 1 and feed[0]["units_fulfilled"] == 0
+    detail = client.get(f"/api/requests/{req.id}").json()
+    assert detail["units_pledged"] == 1 and detail["donors"][0]["status"] == "pledged"
+    act = client.get(f"/api/users/{donor.id}/activity", headers=h).json()
+    assert act["donations"][0]["status"] == "pledged"
+    assert client.get(f"/api/users/{donor.id}", headers=h).json()["no_show_count"] == 0
+
+
+def test_pledges_unlock_no_achievements_and_dont_count_in_stats(client, db):
+    import achievements
+    from models import UserAchievement
+
+    donor = make_user(db)
+    pledge(client, login(db, donor), make_request(db).id, donor.id)
+    achievements.evaluate(db, [db.get(User, donor.id)], notify=False)
+    db.commit()
+    assert db.query(UserAchievement).filter(UserAchievement.user_id == donor.id).count() == 0
+    totals = client.get("/api/stats").json()["totals"]
+    assert totals["donations"] == 0
+    assert client.get("/api/activity/recent").json() == []

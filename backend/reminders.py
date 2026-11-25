@@ -27,7 +27,8 @@ INTERVAL_SECONDS = 3600
 
 def _last_hospital(db, user: User) -> str | None:
     row = (db.query(BloodRequest.hospital).join(Donation, Donation.request_id == BloodRequest.id)
-           .filter(Donation.donor_id == user.id).order_by(Donation.created_at.desc()).first())
+           .filter(Donation.donor_id == user.id, Donation.status == "confirmed")
+           .order_by(Donation.confirmed_at.desc()).first())
     return row[0] if row else None
 
 

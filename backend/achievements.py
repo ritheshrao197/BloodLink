@@ -271,9 +271,11 @@ def load_facts(db: Session, users: list[User]) -> dict[int, Facts]:
     ids = [u.id for u in users]
     facts = {u.id: Facts(u) for u in users}
     rows = (db.query(Donation, BloodRequest).join(BloodRequest, Donation.request_id == BloodRequest.id)
-            .filter(Donation.donor_id.in_(ids)).order_by(Donation.created_at, Donation.id).all())
+            .filter(Donation.donor_id.in_(ids), Donation.status == "confirmed")
+            .order_by(Donation.created_at, Donation.id).all())
     req_ids = {r.id for _, r in rows}
-    first = dict(db.query(Donation.request_id, func.min(Donation.id)).filter(Donation.request_id.in_(req_ids))
+    first = dict(db.query(Donation.request_id, func.min(Donation.id))
+                 .filter(Donation.request_id.in_(req_ids), Donation.status == "confirmed")
                  .group_by(Donation.request_id).all()) if req_ids else {}
     for d, r in rows:
         facts[d.donor_id].donations.append(D(
