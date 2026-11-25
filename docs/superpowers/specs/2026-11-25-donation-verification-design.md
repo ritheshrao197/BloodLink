@@ -104,5 +104,7 @@ Plus a manual end-to-end check in the web app.
 
 ## Out of scope
 
-Haemoglobin notifications (#6, the reading is only stored here), removing achievements (#7), the blood bank ↔ hospital
+Achievements stay. They are evaluated at confirmation, so pledges alone never unlock them.
+
+Haemoglobin notifications (#6, the reading is only stored here), the blood bank ↔ hospital
 messaging beyond these notifications (#5), and translating the new strings into languages other than en/kn/hi.
