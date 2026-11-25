@@ -20,13 +20,13 @@ import demo_pulse
 import eligibility
 import geo
 import reminders
+import verification
 from database import Base, SessionLocal, engine, get_db
 import locations
 import logic
 import notifier
 import secrets
 import threading
-import weather
 from models import AuthSession, BloodRequest, Donation, LoginRequest, SosAlert, PointLog, Referral, Reward, User, UserAchievement, utcnow
 from schemas import (AvailabilityBody, DonateBody, EligibilityBody, HealthBody, LanguageBody, LocationBody, RedeemBody, SOSCreate,
                      UserCreate)
@@ -105,6 +105,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="BLOODLINK API", version="2.0", lifespan=lifespan)
 app.include_router(community.router)  # teams + donation camps
+app.include_router(verification.router)  # staff confirm pledges
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 WEB_URL = os.getenv("BLOODLINK_WEB_URL", "http://localhost:5173").rstrip("/")
@@ -670,6 +671,9 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db), a: 
                                  f"Compatible groups: {', '.join(logic.compatible_donor_groups(req.blood_group))}.")
     if db.query(Donation).filter(Donation.request_id == req.id, Donation.donor_id == donor.id).first():
         raise HTTPException(400, "You have already responded to this request.")
+    now = utcnow()
+    if problem := verification.pledge_problem(db, donor, now):
+        raise HTTPException(409, problem)
     if body.screening is None:
         raise HTTPException(400, "Please answer the quick health check before donating.")
     _save_health(donor, body.screening.health)
@@ -678,48 +682,9 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db), a: 
         db.commit()  # keep any recorded deferral
         raise HTTPException(409, {"message": "Not eligible to donate right now.", "eligibility": check})
 
-    now = utcnow()
-    breakdown = [{"code": "donation", "reason": "Successful donation", "points": logic.POINTS_DONATION}]
-    quick = req.created_at and (now - req.created_at) <= timedelta(minutes=logic.QUICK_RESPONSE_MINUTES)
-    if quick:
-        breakdown.append({"code": "quick", "reason": "Quick response (< 5 min)", "points": logic.POINTS_QUICK_RESPONSE})
-    if donor.last_donation_at and (now - donor.last_donation_at) >= timedelta(days=logic.STREAK_DAYS):
-        breakdown.append({"code": "streak", "reason": "Streak bonus (3-month return)", "points": logic.POINTS_STREAK})
-
-    first_donation = (donor.total_donations or 0) == 0
-    for item in breakdown:
-        logic.award(db, donor, item["points"], f"{item['reason']} — request #{req.id}")
-    total = sum(i["points"] for i in breakdown)
-    donor.total_donations = (donor.total_donations or 0) + 1
-    donor.last_donation_at = now
-    db.add(Donation(request_id=req.id, donor_id=donor.id, points_awarded=total, quick_response=bool(quick)))
-
-    req.units_fulfilled = (req.units_fulfilled or 0) + 1
-    req.fulfilled_by = f"{req.fulfilled_by}, {donor.name}" if req.fulfilled_by else donor.name
-    if req.units_fulfilled >= req.units_needed:
-        req.status = "Fulfilled"
-        req.fulfilled_at = now
-
-    # Referral payout: referrer earns +200 BLP and a voucher on the friend's first donation
-    if first_donation and donor.referred_by:
-        referrer = db.query(User).filter(User.referral_code == donor.referred_by).first()
-        if referrer:
-            logic.award(db, referrer, logic.POINTS_REFERRAL_DONATION, f"Referral: {donor.name} donated")
-            code = logic.voucher_code(logic.REFERRAL_VOUCHER["prefix"])
-            db.add(Reward(user_id=referrer.id, reward_name=logic.REFERRAL_VOUCHER["name"], points_cost=0,
-                          voucher_code=code))
-            ref = db.query(Referral).filter(Referral.referrer_id == referrer.id,
-                                            Referral.referred_id == donor.id).first()
-            if ref:
-                ref.status = "Donated"
-                ref.points_awarded = (ref.points_awarded or 0) + logic.POINTS_REFERRAL_DONATION
-            notifier.notify_t(referrer.telegram_id, referrer.language, "ref_donated",
-                              name=notifier.esc(donor.name), points=logic.POINTS_REFERRAL_DONATION, code=code)
-    db.flush()
-    unlocked = achievements.evaluate(db, [donor, referrer] if first_donation and donor.referred_by else [donor])
+    # Only a pledge: points, the next eligible date and the request's units wait for staff (verification.py)
+    d = verification.pledge(db, req, donor, now)
     db.commit()
-    donation_id = db.query(Donation.id).filter(Donation.request_id == req.id, Donation.donor_id == donor.id).scalar()
-    threading.Thread(target=record_weather, args=(donation_id, req.city), daemon=True).start()
 
     if req.requester_telegram_id:
         requester = db.query(User).filter(User.telegram_id == req.requester_telegram_id).first()
@@ -729,35 +694,17 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db), a: 
                           group=donor.blood_group, hospital=notifier.esc(req.hospital), contact=contact,
                           done=req.units_fulfilled, units=req.units_needed,
                           status=notifier.t(lang, f"st_{req.status}"))
+    expected = verification.breakdown(req, donor, now, now)
     return {
-        "status": "success",
-        "message": f"Request {'fulfilled' if req.status == 'Fulfilled' else 'updated'}! "
-                   f"Donor awarded {total} BLP.",
-        "points_awarded": total,
-        "breakdown": breakdown,
-        "achievements": [achievements.public(a) for a in unlocked.get(donor.id, [])],
+        "status": "pledged",
+        "message": f"Pledged! Please go to {req.hospital}. Points are added once staff confirm your donation.",
+        "donation_id": d.id,
+        "expected_points": sum(i["points"] for i in expected),
+        "breakdown": expected,
+        "pledge_hours": verification.PLEDGE_HOURS,
         "donor": user_private(db, donor),
         "request": request_out(req),
     }
-
-
-def record_weather(donation_id: int, district: str) -> None:
-    """Background: note whether it was raining (Rainmaker achievement). Never delays the donation response."""
-    w = weather.current(district)
-    if not w:
-        return
-    db = SessionLocal()
-    try:
-        d = db.get(Donation, donation_id)
-        if d:
-            d.weather = w
-            db.flush()
-            achievements.evaluate(db, [db.get(User, d.donor_id)])
-            db.commit()
-    except Exception:  # noqa: BLE001  (best effort)
-        log.exception("recording weather failed")
-    finally:
-        db.close()
 
 
 # ---------------------------------------------------------------- achievements

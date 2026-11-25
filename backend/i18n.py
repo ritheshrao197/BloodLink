@@ -19,7 +19,7 @@ STRINGS = {
         "achievements": "🎉 <b>ACHIEVEMENT UNLOCKED!</b>\n\n{lines}\n\n💰 +{points} BLP awarded\n🏆 See your collection: /achievements",
         "sos_alert": "🚨 <b>EMERGENCY: {group} BLOOD NEEDED</b>\n\n🏥 {hospital}, {city}\n🩸 Units needed: {units}\n"
                      "{uicon} Urgency: {urgency}\n👤 Requested by: {name}\n\n"
-                     "You are a compatible donor. Respond within 5 minutes for a +20 BLP quick-response bonus!",
+                     "You are a compatible donor. Quick responders get a +20 BLP bonus once the hospital confirms the donation.",
         "donate_btn": "🩸 I Can Donate",
         "urg_Critical": "Critical", "urg_High": "Today", "urg_Normal": "Planned",
         "donor_coming": "✅ <b>{name}</b> ({group}) is coming to donate for your request at {hospital}.{contact}\n"
@@ -27,6 +27,15 @@ STRINGS = {
         "contact": "\n📞 Donor contact: {phone}",
         "st_Active": "Active", "st_Fulfilled": "Fulfilled ✅",
         "ref_joined": "🎉 {name} joined BloodLink with your link! +{points} BLP",
+        "staff_pledge": "🩸 <b>Donor on the way</b> for request #{id}\n👤 {name} ({group}){phone}\n🏥 {hospital}, {city}\n\n"
+                        "Tap <b>Donated</b> once they have donated, or <b>Didn't come</b>. Unconfirmed pledges expire in {hours} h.",
+        "staff_done_btn": "✅ Donated",
+        "staff_noshow_btn": "❌ Didn't come",
+        "pledge_confirmed": "✅ <b>Donation confirmed</b> at {hospital}. Thank you!\n+{points} BLP · balance {balance} BLP\n"
+                            "Your next donation date: <b>{next}</b>",
+        "pledge_missed": "We couldn't confirm your donation at {hospital}, so no points were added. If you did donate, "
+                         "please ask the hospital to confirm it.{blocked}",
+        "pledge_blocked": "\nAfter {n} unconfirmed pledges, new pledges are paused until {until}.",
         "ref_donated": "🩸 Your friend {name} just donated blood!\n+{points} BLP and a voucher: <code>{code}</code>",
         "redeemed": "🎁 You redeemed <b>{reward}</b>!\nVoucher code: <code>{code}</code>\n(Demo voucher — not redeemable)",
     },
@@ -46,7 +55,7 @@ STRINGS = {
         "achievements": "🎉 <b>ಸಾಧನೆ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ!</b>\n\n{lines}\n\n💰 +{points} BLP ನೀಡಲಾಗಿದೆ\n🏆 ನಿಮ್ಮ ಸಂಗ್ರಹ: /achievements",
         "sos_alert": "🚨 <b>ತುರ್ತು: {group} ರಕ್ತ ಬೇಕಾಗಿದೆ</b>\n\n🏥 {hospital}, {city}\n🩸 ಬೇಕಾದ ಯೂನಿಟ್: {units}\n"
                      "{uicon} ತುರ್ತು ಮಟ್ಟ: {urgency}\n👤 ವಿನಂತಿಸಿದವರು: {name}\n\n"
-                     "ನೀವು ಹೊಂದಾಣಿಕೆಯ ದಾನಿ. 5 ನಿಮಿಷದೊಳಗೆ ಪ್ರತಿಕ್ರಿಯಿಸಿದರೆ +20 BLP ಬೋನಸ್!",
+                     "ನೀವು ಹೊಂದಾಣಿಕೆಯ ದಾನಿ. ಆಸ್ಪತ್ರೆ ರಕ್ತದಾನವನ್ನು ದೃಢೀಕರಿಸಿದ ನಂತರ ತ್ವರಿತವಾಗಿ ಪ್ರತಿಕ್ರಿಯಿಸಿದವರಿಗೆ +20 BLP ಬೋನಸ್.",
         "donate_btn": "🩸 ನಾನು ದಾನ ಮಾಡಬಲ್ಲೆ",
         "urg_Critical": "ಅತಿ ತುರ್ತು", "urg_High": "ಇಂದೇ", "urg_Normal": "ಯೋಜಿತ",
         "donor_coming": "✅ <b>{name}</b> ({group}) {hospital} ನಲ್ಲಿ ನಿಮ್ಮ ವಿನಂತಿಗೆ ರಕ್ತದಾನ ಮಾಡಲು ಬರುತ್ತಿದ್ದಾರೆ.{contact}\n"
@@ -54,6 +63,15 @@ STRINGS = {
         "contact": "\n📞 ದಾನಿಯ ಸಂಪರ್ಕ: {phone}",
         "st_Active": "ಸಕ್ರಿಯ", "st_Fulfilled": "ಪೂರ್ಣಗೊಂಡಿದೆ ✅",
         "ref_joined": "🎉 {name} ನಿಮ್ಮ ಲಿಂಕ್ ಮೂಲಕ BloodLink ಸೇರಿದ್ದಾರೆ! +{points} BLP",
+        "staff_pledge": "🩸 ವಿನಂತಿ #{id} ಗೆ <b>ದಾನಿ ಬರುತ್ತಿದ್ದಾರೆ</b>\n👤 {name} ({group}){phone}\n🏥 {hospital}, {city}\n\n"
+                        "ಅವರು ರಕ್ತದಾನ ಮಾಡಿದ ನಂತರ <b>ದಾನ ಮಾಡಿದರು</b> ಒತ್ತಿ, ಇಲ್ಲವೇ <b>ಬರಲಿಲ್ಲ</b>. ದೃಢೀಕರಿಸದ ವಾಗ್ದಾನಗಳು {hours} ಗಂಟೆಯಲ್ಲಿ ಮುಗಿಯುತ್ತವೆ.",
+        "staff_done_btn": "✅ ದಾನ ಮಾಡಿದರು",
+        "staff_noshow_btn": "❌ ಬರಲಿಲ್ಲ",
+        "pledge_confirmed": "✅ {hospital} ನಲ್ಲಿ ನಿಮ್ಮ <b>ರಕ್ತದಾನ ದೃಢೀಕರಿಸಲಾಗಿದೆ</b>. ಧನ್ಯವಾದಗಳು!\n+{points} BLP · ಬ್ಯಾಲೆನ್ಸ್ {balance} BLP\n"
+                            "ನಿಮ್ಮ ಮುಂದಿನ ರಕ್ತದಾನ ದಿನಾಂಕ: <b>{next}</b>",
+        "pledge_missed": "{hospital} ನಲ್ಲಿ ನಿಮ್ಮ ರಕ್ತದಾನವನ್ನು ದೃಢೀಕರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ, ಆದ್ದರಿಂದ ಅಂಕಗಳನ್ನು ಸೇರಿಸಲಾಗಿಲ್ಲ. "
+                         "ನೀವು ದಾನ ಮಾಡಿದ್ದರೆ, ದಯವಿಟ್ಟು ಆಸ್ಪತ್ರೆಗೆ ದೃಢೀಕರಿಸಲು ಹೇಳಿ.{blocked}",
+        "pledge_blocked": "\n{n} ದೃಢೀಕರಿಸದ ವಾಗ್ದಾನಗಳ ನಂತರ, ಹೊಸ ವಾಗ್ದಾನಗಳನ್ನು {until} ವರೆಗೆ ನಿಲ್ಲಿಸಲಾಗಿದೆ.",
         "ref_donated": "🩸 ನಿಮ್ಮ ಸ್ನೇಹಿತ {name} ಈಗಷ್ಟೇ ರಕ್ತದಾನ ಮಾಡಿದ್ದಾರೆ!\n+{points} BLP ಮತ್ತು ವೋಚರ್: <code>{code}</code>",
         "redeemed": "🎁 ನೀವು <b>{reward}</b> ಪಡೆದಿದ್ದೀರಿ!\nವೋಚರ್ ಕೋಡ್: <code>{code}</code>\n(ಡೆಮೊ ವೋಚರ್)",
     },
@@ -73,7 +91,7 @@ STRINGS = {
         "achievements": "🎉 <b>उपलब्धि अनलॉक!</b>\n\n{lines}\n\n💰 +{points} BLP मिले\n🏆 अपना संग्रह देखें: /achievements",
         "sos_alert": "🚨 <b>आपातकाल: {group} खून चाहिए</b>\n\n🏥 {hospital}, {city}\n🩸 ज़रूरी यूनिट: {units}\n"
                      "{uicon} तात्कालिकता: {urgency}\n👤 अनुरोधकर्ता: {name}\n\n"
-                     "आप मेल खाते डोनर हैं। 5 मिनट में जवाब दें और +20 BLP बोनस पाएँ!",
+                     "आप मेल खाते डोनर हैं। अस्पताल द्वारा रक्तदान की पुष्टि के बाद जल्दी जवाब देने वालों को +20 BLP बोनस।",
         "donate_btn": "🩸 मैं रक्तदान करूँगा/करूँगी",
         "urg_Critical": "बहुत ज़रूरी", "urg_High": "आज ही", "urg_Normal": "तय ऑपरेशन",
         "donor_coming": "✅ <b>{name}</b> ({group}) {hospital} में आपके अनुरोध के लिए रक्तदान करने आ रहे हैं।{contact}\n"
@@ -81,6 +99,15 @@ STRINGS = {
         "contact": "\n📞 डोनर का संपर्क: {phone}",
         "st_Active": "सक्रिय", "st_Fulfilled": "पूरा हुआ ✅",
         "ref_joined": "🎉 {name} आपके लिंक से BloodLink से जुड़े! +{points} BLP",
+        "staff_pledge": "🩸 अनुरोध #{id} के लिए <b>दाता आ रहे हैं</b>\n👤 {name} ({group}){phone}\n🏥 {hospital}, {city}\n\n"
+                        "रक्तदान हो जाने पर <b>दान किया</b> दबाएँ, या <b>नहीं आए</b>। बिना पुष्टि के वादे {hours} घंटे में समाप्त हो जाते हैं।",
+        "staff_done_btn": "✅ दान किया",
+        "staff_noshow_btn": "❌ नहीं आए",
+        "pledge_confirmed": "✅ {hospital} में आपके <b>रक्तदान की पुष्टि हो गई</b>। धन्यवाद!\n+{points} BLP · बैलेंस {balance} BLP\n"
+                            "आपकी अगली रक्तदान तिथि: <b>{next}</b>",
+        "pledge_missed": "{hospital} में आपके रक्तदान की पुष्टि नहीं हो सकी, इसलिए कोई अंक नहीं जोड़े गए। अगर आपने दान किया है, "
+                         "तो कृपया अस्पताल से पुष्टि करने को कहें।{blocked}",
+        "pledge_blocked": "\n{n} बिना पुष्टि वाले वादों के बाद, नए वादे {until} तक रोक दिए गए हैं।",
         "ref_donated": "🩸 आपके दोस्त {name} ने अभी रक्तदान किया!\n+{points} BLP और वाउचर: <code>{code}</code>",
         "redeemed": "🎁 आपने <b>{reward}</b> लिया!\nवाउचर कोड: <code>{code}</code>\n(डेमो वाउचर)",
     },
