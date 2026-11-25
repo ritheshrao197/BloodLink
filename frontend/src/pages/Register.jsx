@@ -8,6 +8,7 @@ import { useI18n } from '../i18n';
 import { CopyField, ErrorBox, PageHeader, Spinner } from '../components/ui';
 import SignInByCode, { TelegramLinkButton } from '../components/SignInByCode';
 import LocationPicker from '../components/LocationPicker';
+import { ConditionsCheck, EMPTY_CONDITIONS, HealthFields, PermanentNotice, WhoCanDonate, conditionsAnswer } from '../components/Eligibility';
 
 export default function Register() {
   const { search, navigate } = useRouter();
@@ -15,10 +16,14 @@ export default function Register() {
   const { t, lang } = useI18n();
   const ref = new URLSearchParams(search).get('ref') || '';
   const [form, setForm] = useState({ name: '', blood_group: 'O+', state: null, city: '', phone: '', role: 'donor', referred_by: ref });
+  const [health, setHealth] = useState({ sex: null, date_of_birth: null, weight_kg: null });
+  const [conditions, setConditions] = useState(EMPTY_CONDITIONS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [created, setCreated] = useState(null);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const donor = form.role === 'donor';
+  const screened = !donor || conditionsAnswer(conditions) !== null;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -26,7 +31,15 @@ export default function Register() {
     setError(null);
     try {
       // the account remembers the language it was created in (used for Telegram alerts)
-      const res = await api.register({ ...form, language: lang, referred_by: form.referred_by.trim() || null, phone: form.phone.trim() || null });
+      // donors answer the health basics and the permanent-conditions check (only the outcome is stored)
+      const screening = donor ? { ...health, conditions: conditionsAnswer(conditions) } : {};
+      const res = await api.register({
+        ...form,
+        ...screening,
+        language: lang,
+        referred_by: form.referred_by.trim() || null,
+        phone: form.phone.trim() || null,
+      });
       signIn(res.user, res.token);
       setCreated(res.user);
     } catch (err) {
@@ -49,6 +62,11 @@ export default function Register() {
             {points}
             {after}
           </p>
+          {created.permanently_ineligible && (
+            <div className="mt-6 text-left">
+              <PermanentNotice />
+            </div>
+          )}
           <div className="mt-6 rounded-xl bg-slate-800/60 p-4">
             <div className="text-sm text-slate-400">{t('register.yourCode')}</div>
             <div className="mt-1 font-mono text-3xl font-extrabold tracking-wider text-red-400">{created.referral_code}</div>
@@ -131,8 +149,19 @@ export default function Register() {
               <input id="reg-ref" className="input font-mono uppercase" value={form.referred_by} onChange={set('referred_by')} placeholder="USER_12345" />
             </div>
           </div>
+          {donor && (
+            <div className="space-y-4 border-t border-slate-800 pt-5">
+              <div>
+                <h2 className="font-bold">{t('register.healthTitle')}</h2>
+                <p className="text-xs text-slate-400">{t('register.healthIntro')}</p>
+              </div>
+              <HealthFields value={health} onChange={setHealth} idPrefix="reg-health" required />
+              <WhoCanDonate />
+              <ConditionsCheck value={conditions} onChange={setConditions} idPrefix="reg-cond" />
+            </div>
+          )}
           <ErrorBox error={error} />
-          <button className="btn-primary w-full py-3 text-base" disabled={busy}>
+          <button className="btn-primary w-full py-3 text-base" disabled={busy || !screened}>
             {busy ? <Spinner /> : <Gift className="h-5 w-5" />} {t('register.submit', { n: form.referred_by.trim() ? 100 : 50 })}
           </button>
         </form>

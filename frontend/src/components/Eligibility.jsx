@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarClock, CheckCircle2, HeartPulse, ShieldAlert, Stethoscope } from 'lucide-react';
+import { CalendarClock, CheckCircle2, HeartHandshake, HeartPulse, Info, ShieldAlert, Stethoscope } from 'lucide-react';
 import { api } from '../lib/api';
 import { cx } from '../lib/utils';
 import { useI18n } from '../i18n';
@@ -7,6 +7,11 @@ import { useToast } from './Toast';
 import { ErrorBox, Spinner } from './ui';
 
 const QUESTIONS = ['fever', 'antibiotics', 'alcohol', 'tattoo', 'surgery', 'pregnancy'];
+// permanent conditions (backend eligibility.PERMANENT): only whether one applies is stored, never which one
+export const PERMANENT = ['thalassaemia', 'sickle_cell', 'bleeding', 'hiv', 'hepatitis', 'heart', 'cancer', 'epilepsy', 'kidney_liver', 'insulin_diabetes'];
+export const EMPTY_CONDITIONS = { picked: [], none: false };
+/** The answer to send: [] for "none apply", the ticked codes, or null while unanswered. */
+export const conditionsAnswer = (v) => (v.none ? [] : v.picked.length ? v.picked : null);
 // reasons that come from what we already know (no questionnaire can change them today)
 const BLOCKING = new Set(['interval', 'deferred', 'too_young', 'too_old', 'underweight']);
 
@@ -24,7 +29,7 @@ export function ReasonList({ reasons }) {
   );
 }
 
-function HealthFields({ value, onChange, idPrefix }) {
+export function HealthFields({ value, onChange, idPrefix, required = false }) {
   const { t } = useI18n();
   const set = (k) => (e) => onChange({ ...value, [k]: e.target.value || null });
   const today = new Date().toISOString().slice(0, 10);
@@ -34,7 +39,7 @@ function HealthFields({ value, onChange, idPrefix }) {
         <label className="label" htmlFor={`${idPrefix}-sex`}>
           {t('elig.sex')}
         </label>
-        <select id={`${idPrefix}-sex`} className="input" value={value.sex || ''} onChange={set('sex')}>
+        <select id={`${idPrefix}-sex`} className="input" value={value.sex || ''} onChange={set('sex')} required={required}>
           <option value="">—</option>
           <option value="male">{t('elig.male')}</option>
           <option value="female">{t('elig.female')}</option>
@@ -45,7 +50,7 @@ function HealthFields({ value, onChange, idPrefix }) {
         <label className="label" htmlFor={`${idPrefix}-dob`}>
           {t('elig.dob')}
         </label>
-        <input id={`${idPrefix}-dob`} type="date" max={today} className="input" value={value.date_of_birth || ''} onChange={set('date_of_birth')} />
+        <input id={`${idPrefix}-dob`} type="date" max={today} className="input" value={value.date_of_birth || ''} onChange={set('date_of_birth')} required={required} />
       </div>
       <div>
         <label className="label" htmlFor={`${idPrefix}-weight`}>
@@ -60,8 +65,85 @@ function HealthFields({ value, onChange, idPrefix }) {
           className="input"
           value={value.weight_kg ?? ''}
           onChange={(e) => onChange({ ...value, weight_kg: e.target.value ? Number(e.target.value) : null })}
+          required={required}
         />
       </div>
+    </div>
+  );
+}
+
+/** Every eligibility rule in plain language, shown before anyone registers or pledges. */
+export function WhoCanDonate({ open = false }) {
+  const { t } = useI18n();
+  return (
+    <details className="rounded-xl border border-slate-800 bg-slate-800/30 p-4 text-sm" open={open}>
+      <summary className="flex cursor-pointer items-center gap-2 font-semibold">
+        <Info className="h-4 w-4 shrink-0 text-sky-400" aria-hidden /> {t('elig.who.title')}
+      </summary>
+      <ul className="mt-3 list-disc space-y-1.5 pl-5 text-slate-300">
+        {['age', 'weight', 'hb', 'gap', 'temporary', 'permanent'].map((k) => (
+          <li key={k}>{t(`elig.who.${k}`)}</li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/** Permanent-conditions checklist with an explicit "none of these apply" answer. */
+export function ConditionsCheck({ value, onChange, idPrefix = 'cond' }) {
+  const { t } = useI18n();
+  const toggle = (code) => {
+    const picked = value.picked.includes(code) ? value.picked.filter((c) => c !== code) : [...value.picked, code];
+    onChange({ picked, none: false });
+  };
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-semibold">{t('elig.cond.title')}</legend>
+      <p className="text-xs text-slate-400">{t('elig.cond.intro')}</p>
+      <ul className="divide-y divide-slate-800 rounded-xl border border-slate-800">
+        {PERMANENT.map((code) => (
+          <li key={code}>
+            <label htmlFor={`${idPrefix}-${code}`} className="flex cursor-pointer items-start gap-3 px-3 py-2.5">
+              <input
+                id={`${idPrefix}-${code}`}
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-amber-500"
+                checked={value.picked.includes(code)}
+                onChange={() => toggle(code)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm text-slate-200">{t(`elig.cond.c.${code}`)}</span>
+                <span className="block text-xs text-slate-500">{t(`elig.cond.d.${code}`)}</span>
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <label htmlFor={`${idPrefix}-none`} className="flex cursor-pointer items-start gap-3 rounded-xl bg-emerald-950/30 px-3 py-2.5 text-sm font-semibold text-emerald-300">
+        <input
+          id={`${idPrefix}-none`}
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-600"
+          checked={value.none}
+          onChange={(e) => onChange({ picked: [], none: e.target.checked })}
+        />
+        {t('elig.cond.none')}
+      </label>
+      <p className="text-[11px] text-slate-500">{t('elig.cond.privacy')}</p>
+    </fieldset>
+  );
+}
+
+/** Shown to someone who reported a permanent condition: kind, and points to the redo option. */
+export function PermanentNotice({ children }) {
+  const { t } = useI18n();
+  return (
+    <div className="space-y-2 rounded-xl border border-sky-500/30 bg-sky-950/30 p-4 text-sky-100">
+      <p className="flex items-center gap-2 font-bold">
+        <HeartHandshake className="h-5 w-5 shrink-0" aria-hidden /> {t('elig.permanentTitle')}
+      </p>
+      <p className="text-sm opacity-90">{t('elig.permanentBody')}</p>
+      {children}
     </div>
   );
 }
@@ -109,10 +191,14 @@ export function EligibilityForm({ user, onEligible }) {
   });
   const [basicsConfirmed, setBasicsConfirmed] = useState(false);
   const [answers, setAnswers] = useState(Object.fromEntries(QUESTIONS.map((q) => [q, false])));
+  const [conditions, setConditions] = useState(EMPTY_CONDITIONS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
 
+  const isPermanent = (reasons) => reasons?.some((r) => r.code === 'permanent');
+  if (isPermanent(known.reasons) || isPermanent(result?.reasons)) return <PermanentNotice />;
+  const needsScreening = known.reasons.some((r) => r.code === 'screening');
   const blocking = known.reasons.filter((r) => BLOCKING.has(r.code));
   if (blocking.length) return <NotNow reasons={blocking} />;
   if (result && !result.eligible) return <NotNow reasons={result.reasons} honest={result.reasons.some((r) => QUESTIONS.includes(r.code))} />;
@@ -127,6 +213,7 @@ export function EligibilityForm({ user, onEligible }) {
       answers: Object.fromEntries(questions.map((q) => [q, answers[q]])),
       basics_confirmed: basicsConfirmed,
       health: Object.fromEntries(Object.entries(health).filter(([, v]) => v != null && v !== '')),
+      ...(needsScreening ? { conditions: conditionsAnswer(conditions) } : {}),
     };
     try {
       const res = await api.checkEligibility(user.id, screening);
@@ -148,6 +235,8 @@ export function EligibilityForm({ user, onEligible }) {
           <p className="text-xs text-slate-400">{t('elig.intro')}</p>
         </div>
       </div>
+
+      {needsScreening && <ConditionsCheck value={conditions} onChange={setConditions} idPrefix="donate-cond" />}
 
       {!profileComplete && (
         <fieldset className="space-y-3">
@@ -175,7 +264,11 @@ export function EligibilityForm({ user, onEligible }) {
       </fieldset>
 
       <ErrorBox error={error} />
-      <button className="btn-primary w-full" disabled={busy || (!profileComplete && !basicsConfirmed)} onClick={submit}>
+      <button
+        className="btn-primary w-full"
+        disabled={busy || (!profileComplete && !basicsConfirmed) || (needsScreening && !conditionsAnswer(conditions))}
+        onClick={submit}
+      >
         {busy ? <Spinner /> : <HeartPulse className="h-4 w-4" />} {t('elig.check')}
       </button>
       <p className="text-center text-[11px] text-slate-500">{t('elig.disclaimer')}</p>
@@ -208,6 +301,8 @@ export function EligibilityCard({ user, onUser }) {
     weight_kg: e?.profile?.weight_kg ?? null,
   });
   const [busy, setBusy] = useState(false);
+  const [redo, setRedo] = useState(false);
+  const [conditions, setConditions] = useState(EMPTY_CONDITIONS);
   if (!e) return null;
 
   const days = e.next_eligible_at ? Math.ceil((new Date(e.next_eligible_at) - Date.now()) / 86400000) : 0;
@@ -226,6 +321,27 @@ export function EligibilityCard({ user, onUser }) {
       setBusy(false);
     }
   };
+  const saveScreening = async () => {
+    setBusy(true);
+    try {
+      onUser(await api.setScreening(user.id, conditionsAnswer(conditions)));
+      setRedo(false);
+      setConditions(EMPTY_CONDITIONS);
+      toast(t('elig.saved'));
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const screeningEditor = (
+    <div className="mt-4 space-y-3">
+      <ConditionsCheck value={conditions} onChange={setConditions} idPrefix="profile-cond" />
+      <button className="btn-primary min-h-10 py-2 text-sm" onClick={saveScreening} disabled={busy || !conditionsAnswer(conditions)}>
+        {busy ? <Spinner className="h-4 w-4" /> : null} {t('elig.save')}
+      </button>
+    </div>
+  );
   const undo = async () => {
     try {
       onUser(await api.clearDeferral(user.id));
@@ -239,6 +355,26 @@ export function EligibilityCard({ user, onUser }) {
       <h2 className="flex items-center gap-2 text-lg font-bold">
         <HeartPulse className="h-5 w-5 text-blood-500" aria-hidden /> {t('elig.card')}
       </h2>
+      {e.permanently_ineligible ? (
+        <div className="mt-4">
+          <PermanentNotice>
+            {!redo && (
+              <button onClick={() => setRedo(true)} className="text-xs font-semibold text-sky-300 hover:underline">
+                {t('elig.redo')}
+              </button>
+            )}
+          </PermanentNotice>
+          {redo && screeningEditor}
+        </div>
+      ) : !e.screened ? (
+        <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-950/20 p-4">
+          <p className="font-bold text-amber-200">{t('elig.screenTitle')}</p>
+          <p className="text-xs text-amber-200/80">{t('elig.screenBody')}</p>
+          {screeningEditor}
+        </div>
+      ) : null}
+      {!e.permanently_ineligible && (
+        <>
       <div className={cx('mt-4 flex items-center gap-3 rounded-xl p-4', ready ? 'bg-emerald-950/40 text-emerald-300' : 'bg-amber-950/30 text-amber-200')}>
         {ready ? <CheckCircle2 className="h-6 w-6 shrink-0" /> : <CalendarClock className="h-6 w-6 shrink-0" />}
         <div className="min-w-0">
@@ -246,7 +382,7 @@ export function EligibilityCard({ user, onUser }) {
           <p className="text-xs opacity-80">{waiting ? t('elig.daysLeft', { n: days }) : !user.last_donation_at ? t('elig.neverDonated') : ''}</p>
         </div>
       </div>
-      {!ready && !waiting && <div className="mt-3 text-amber-200"><ReasonList reasons={e.reasons} /></div>}
+      {!ready && !waiting && <div className="mt-3 text-amber-200"><ReasonList reasons={e.reasons.filter((r) => r.code !== 'screening')} /></div>}
       {waiting && (
         <div className="progress-bar mt-3">
           <div className="progress-streak h-full rounded-full" style={{ width: `${Math.max(4, 100 - (100 * days) / e.interval_days)}%` }} />
@@ -260,7 +396,12 @@ export function EligibilityCard({ user, onUser }) {
           </button>
         </p>
       )}
+        </>
+      )}
       <p className="mt-3 text-xs text-slate-500">{t('elig.hint')}</p>
+      <div className="mt-3">
+        <WhoCanDonate />
+      </div>
 
       <h3 className="mt-6 text-sm font-semibold">{t('elig.editBasics')}</h3>
       <div className="mt-2">

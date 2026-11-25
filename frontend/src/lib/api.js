@@ -86,6 +86,7 @@ export const api = {
   checkEligibility: (userId, screening) => request('/eligibility/check', { method: 'POST', body: { user_id: userId, screening } }),
   setHealth: (id, body) => request(`/users/${id}/health`, { method: 'PATCH', body }),
   clearDeferral: (id) => request(`/users/${id}/deferral`, { method: 'DELETE' }),
+  setScreening: (id, conditions) => request(`/users/${id}/screening`, { method: 'POST', body: { conditions } }),
   achievements: () => request('/achievements'),
   userAchievements: (id) => request(`/users/${id}/achievements`),
   achievementsSeen: (id) => request(`/users/${id}/achievements/seen`, { method: 'POST' }),

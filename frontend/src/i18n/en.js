@@ -185,6 +185,8 @@ export default {
     hospitalName: 'Hospital name',
   },
   register: {
+    healthTitle: "Your health",
+    healthIntro: "Asked once, so we only alert you when you can donate safely.",
     title: 'Become a Donor',
     subtitle: 'Join the network that answers emergencies in minutes, not hours.',
     signedInAs: "You're signed in as {name}. Registering again creates a separate account.",
@@ -581,6 +583,20 @@ export default {
   },
   // pre-donation eligibility check
   elig: {
+    permanentTitle: "Thank you for being honest 💙",
+    permanentBody: "With a permanent condition, donating isn't safe for you or the patient, so we won't send you blood alerts. You can still request blood, invite friends and join camps.",
+    redo: "I answered by mistake: redo the check",
+    screenTitle: "Complete your health check",
+    screenBody: "Answer this once before your next donation. It takes 20 seconds.",
+    who: { title: "Who can donate blood?", age: "Age 18 to 65.", weight: "Weight at least 45 kg.", hb: "Haemoglobin at least 12.5 g/dL (the hospital tests this before every donation).", gap: "At least 90 days between donations for men, 120 days for women.", temporary: "Wait a while after a fever, antibiotics, alcohol, a tattoo or piercing, surgery, or pregnancy.", permanent: "Never with the permanent conditions listed below, to protect you and the patient." },
+    cond: {
+      title: "Do any of these apply to you?",
+      intro: "These conditions rule out blood donation permanently.",
+      none: "None of these apply to me",
+      privacy: "We only save whether one applies, never which one.",
+      c: { thalassaemia: "Thalassaemia major or intermedia", sickle_cell: "Sickle cell disease", bleeding: "Haemophilia or another bleeding disorder", hiv: "HIV / AIDS", hepatitis: "Hepatitis B or C (ever)", heart: "Heart disease: heart attack, angina or heart surgery", cancer: "Cancer (now or in the past)", epilepsy: "Epilepsy or fits on treatment", kidney_liver: "Chronic kidney or liver disease", insulin_diabetes: "Diabetes treated with insulin" },
+      d: { thalassaemia: "Carrying the thalassaemia trait (minor) is fine.", sickle_cell: "Carrying the sickle cell trait is fine.", bleeding: "Donating can cause dangerous bleeding.", hiv: "It can pass to the patient through blood.", hepatitis: "Even after treatment it can pass through blood.", heart: "Donating puts strain on the heart.", cancer: "Blood cancers and most other cancers rule out donation.", epilepsy: "Donating can trigger a seizure.", kidney_liver: "Your body needs its blood more than the patient does.", insulin_diabetes: "Diabetes controlled by tablets or diet is fine." },
+    },
     title: "Quick health check",
     intro: "A 20-second self-check so you don't make a wasted trip. The hospital does the final screening.",
     basicsTitle: "About you (asked once)",
@@ -619,6 +635,8 @@ export default {
       pregnancy: "Pregnancy, childbirth or breastfeeding in the last 12 months",
     },
     r: {
+      permanent: "A permanent health condition means you can't donate.",
+      screening: "Please answer the permanent-conditions check first.",
       interval: "Your body needs {days} days between donations. You can donate again from {date}.",
       deferred: "You told us you should wait until {date}.",
       too_young: "Donors must be at least 18 (you can join from {date}).",
