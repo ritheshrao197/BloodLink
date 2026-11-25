@@ -25,7 +25,7 @@ import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "11"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "12"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -185,6 +185,8 @@ def seed(db: Session) -> None:
             u.zeal += 2  # volunteers who recruit also tend to show up
             ambassadors.append(u)
         donors.append(u)
+    for d in donors:  # every demo donor answered the permanent-conditions check when they joined
+        d.screened_at = d.created_at
     db.add_all(donors)
 
     hospitals = []
@@ -475,7 +477,7 @@ def seed_hero(db: Session, rng: random.Random, now: datetime, donors: list[User]
                 phone=h["phone"], role="donor", referral_code=code, points=0, total_donations=0,
                 is_available=True, is_verified=True, is_demo=True, sex=h["sex"], date_of_birth=h["dob"], weight_kg=h["weight"],
                 lat=h["latlng"][0], lng=h["latlng"][1], created_at=dates[0] - timedelta(hours=3))
-    hero.location_at = hero.created_at
+    hero.location_at = hero.screened_at = hero.created_at
     hero.zeal, hero.referral, hero.is_hero = 0, None, True
     db.add(hero)
     db.flush()

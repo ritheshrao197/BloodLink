@@ -4,6 +4,7 @@ This is a *preliminary* check so donors don't make a wasted (or unsafe) trip. Th
 (haemoglobin, blood pressure, history) is always final.
 
 Rules
+  * no permanent condition from PERMANENT (asked once, at registration or before the first pledge)
   * age 18-65, weight >= 45 kg
   * at least 90 days since the last whole-blood donation for men, 120 for women (and when sex is not recorded)
   * temporary deferrals from the questionnaire below, each with its own waiting period
@@ -15,6 +16,7 @@ from models import User, utcnow
 
 MIN_AGE, MAX_AGE = 18, 65
 MIN_WEIGHT_KG = 45
+MIN_HB_G_DL = 12.5  # measured by the hospital before every donation
 INTERVAL_DAYS = {"male": 90, "female": 120}
 DEFAULT_INTERVAL_DAYS = 120  # sex not recorded: use the longer (safer) interval
 
@@ -27,6 +29,33 @@ QUESTIONS = {
     "surgery": ("Surgery or a hospital procedure in the last 6 months?", 180, None),
     "pregnancy": ("Pregnant, delivered a baby or breastfeeding in the last 12 months?", 365, "female"),
 }
+
+
+# Permanent deferrals: code -> (English label, short explanation). Only the outcome is stored, never the code.
+PERMANENT = {
+    "thalassaemia": ("Thalassaemia major or intermedia", "Carrying the thalassaemia trait (minor) is fine."),
+    "sickle_cell": ("Sickle cell disease", "Carrying the sickle cell trait is fine."),
+    "bleeding": ("Haemophilia or another bleeding disorder", "Donating can cause dangerous bleeding."),
+    "hiv": ("HIV / AIDS", "Infections that blood can carry protect the patient by excluding the donor."),
+    "hepatitis": ("Hepatitis B or C (ever)", "Even after treatment these can pass through blood."),
+    "heart": ("Heart disease: heart attack, angina or heart surgery", "Donating strains the heart."),
+    "cancer": ("Cancer (now or in the past)", "Blood cancers and most other cancers rule out donation."),
+    "epilepsy": ("Epilepsy or fits on treatment", "Donating can trigger a seizure."),
+    "kidney_liver": ("Chronic kidney or liver disease", "These organs need the blood more than the patient does."),
+    "insulin_diabetes": ("Diabetes treated with insulin", "Diabetes controlled by tablets or diet is fine."),
+}
+
+
+def needs_screening(user: User) -> bool:
+    return (user.role or "donor") == "donor" and user.screened_at is None
+
+
+def apply_screening(user: User, conditions: list[str], now: datetime | None = None) -> None:
+    """Record the permanent-conditions answer (caller validates codes and commits). The codes are not kept."""
+    user.screened_at = now or utcnow()
+    user.permanently_ineligible = bool(conditions)
+    if user.permanently_ineligible:
+        user.is_available = False
 
 
 def interval_days(user: User) -> int:
@@ -52,6 +81,10 @@ def status(user: User, now: datetime | None = None) -> dict:
     """Eligibility from what we already know about the donor (no questionnaire)."""
     now = now or utcnow()
     reasons = []
+    if user.permanently_ineligible:
+        reasons.append({"code": "permanent", "until": None})
+    elif needs_screening(user):
+        reasons.append({"code": "screening", "until": None})
     nxt = next_eligible_at(user)
     if nxt and nxt > now:
         reasons.append({"code": "interval", "until": iso(nxt), "days": interval_days(user)})
@@ -73,6 +106,8 @@ def status(user: User, now: datetime | None = None) -> dict:
         "interval_days": interval_days(user),
         "deferred_until": iso(user.deferred_until),
         "profile_complete": bool(user.sex and user.date_of_birth and user.weight_kg),
+        "screened": not needs_screening(user),
+        "permanently_ineligible": bool(user.permanently_ineligible),
         "profile": {"sex": user.sex, "date_of_birth": iso(user.date_of_birth), "weight_kg": user.weight_kg},
     }
 
@@ -103,6 +138,8 @@ def check(user: User, screening: dict | None, now: datetime | None = None) -> di
 
 def can_be_alerted(user: User, now: datetime) -> bool:
     """Used by SOS matching: skip donors still inside their interval or a self-reported deferral."""
+    if user.permanently_ineligible:
+        return False
     nxt = next_eligible_at(user)
     if nxt and nxt > now:
         return False
@@ -113,6 +150,10 @@ def can_be_alerted(user: User, now: datetime) -> bool:
     if user.date_of_birth and not MIN_AGE <= age_on(user.date_of_birth, now.date()) <= MAX_AGE:
         return False
     return True
+
+
+def permanent_list() -> list[dict]:
+    return [{"code": c, "text": label, "detail": detail} for c, (label, detail) in PERMANENT.items()]
 
 
 def questions_for(sex: str | None) -> list[dict]:

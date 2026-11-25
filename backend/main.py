@@ -29,7 +29,7 @@ import secrets
 import threading
 from models import AuthSession, BloodRequest, Donation, LoginRequest, SosAlert, PointLog, Referral, Reward, User, UserAchievement, utcnow
 from schemas import (AvailabilityBody, DonateBody, EligibilityBody, HealthBody, LanguageBody, LocationBody, RedeemBody, SOSCreate,
-                     UserCreate)
+                     ScreeningBody, UserCreate)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("bloodlink")
@@ -41,7 +41,8 @@ def migrate() -> None:
                              "sex": "VARCHAR", "date_of_birth": "DATE", "weight_kg": "INTEGER", "deferred_until": "TIMESTAMP",
                              "is_admin": "BOOLEAN DEFAULT FALSE", "is_demo": "BOOLEAN DEFAULT FALSE",
                              "lat": "FLOAT", "lng": "FLOAT", "location_at": "TIMESTAMP",
-                             "no_show_count": "INTEGER DEFAULT 0", "pledge_blocked_until": "TIMESTAMP"},
+                             "no_show_count": "INTEGER DEFAULT 0", "pledge_blocked_until": "TIMESTAMP",
+                             "permanently_ineligible": "BOOLEAN DEFAULT FALSE", "screened_at": "TIMESTAMP"},
                    "requests": {"state": "VARCHAR", "requester_language": "VARCHAR", "lat": "FLOAT", "lng": "FLOAT",
                                 "alert_ring": "INTEGER DEFAULT 0", "next_ring_at": "TIMESTAMP", "is_demo": "BOOLEAN DEFAULT FALSE"},
                    # rows from before staff verification were real donations, so they become confirmed
@@ -159,6 +160,7 @@ def user_private(db: Session, u: User) -> dict:
         "referrals": stats,
         "achievements": achievements.showcase(db, [u.id])[u.id],
         "eligibility": eligibility.status(u) if u.role == "donor" else None,
+        "permanently_ineligible": bool(u.permanently_ineligible),
         "no_show_count": u.no_show_count or 0,
         "pledge_blocked_until": iso(u.pledge_blocked_until),
     }
@@ -268,6 +270,8 @@ def register_user(body: UserCreate, db: Session = Depends(get_db), a: auth.Actor
         referred_by=referrer.referral_code if referrer else None, points=0,
         sex=body.sex, date_of_birth=body.date_of_birth, weight_kg=body.weight_kg,
     )
+    if user.role == "donor":  # the specific conditions are not kept, only whether any applies
+        eligibility.apply_screening(user, body.conditions or [])
     db.add(user)
     db.flush()
     logic.award(db, user, logic.POINTS_REGISTER, "Registration bonus")
@@ -431,8 +435,9 @@ def _save_health(user: User, health: HealthBody | None) -> None:
 
 @app.get("/api/eligibility/questions")
 def eligibility_questions(sex: str | None = None):
-    return {"questions": eligibility.questions_for(sex), "min_age": eligibility.MIN_AGE, "max_age": eligibility.MAX_AGE,
-            "min_weight_kg": eligibility.MIN_WEIGHT_KG, "interval_days": eligibility.INTERVAL_DAYS}
+    return {"questions": eligibility.questions_for(sex), "permanent": eligibility.permanent_list(),
+            "min_age": eligibility.MIN_AGE, "max_age": eligibility.MAX_AGE, "min_weight_kg": eligibility.MIN_WEIGHT_KG,
+            "min_hb_g_dl": eligibility.MIN_HB_G_DL, "interval_days": eligibility.INTERVAL_DAYS}
 
 
 @app.post("/api/eligibility/check")
@@ -441,6 +446,8 @@ def eligibility_check(body: EligibilityBody, db: Session = Depends(get_db), a: a
     user = find_user(db, user_id=body.user_id, telegram_id=body.telegram_id)
     auth.require_self(a, user)
     _save_health(user, body.screening.health)
+    if body.screening.conditions is not None and eligibility.needs_screening(user):
+        eligibility.apply_screening(user, body.screening.conditions)
     result = eligibility.check(user, body.screening.model_dump())
     db.commit()
     return result
@@ -451,6 +458,16 @@ def set_health(user_id: int, body: HealthBody, db: Session = Depends(get_db), a:
     user = find_user(db, user_id=user_id)
     auth.require_self(a, user)
     _save_health(user, body)
+    db.commit()
+    return user_private(db, user)
+
+
+@app.post("/api/users/{user_id}/screening")
+def set_screening(user_id: int, body: ScreeningBody, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    """Answer (or correct) the permanent-conditions check. Only the outcome is stored."""
+    user = find_user(db, user_id=user_id)
+    auth.require_self(a, user)
+    eligibility.apply_screening(user, body.conditions)
     db.commit()
     return user_private(db, user)
 
@@ -473,7 +490,7 @@ def search_donors(
     compatible_for: str | None = Query(None, description="Recipient group: return every compatible donor"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(User).filter(User.role == "donor")
+    q = db.query(User).filter(User.role == "donor", User.permanently_ineligible.isnot(True))
     if compatible_for:
         q = q.filter(User.blood_group.in_(logic.compatible_donor_groups(compatible_for.upper())))
     elif blood_group:
@@ -691,6 +708,8 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db), a: 
     if body.screening is None:
         raise HTTPException(400, "Please answer the quick health check before donating.")
     _save_health(donor, body.screening.health)
+    if body.screening.conditions is not None and eligibility.needs_screening(donor):
+        eligibility.apply_screening(donor, body.screening.conditions)
     check = eligibility.check(donor, body.screening.model_dump())
     if not check["eligible"]:
         db.commit()  # keep any recorded deferral

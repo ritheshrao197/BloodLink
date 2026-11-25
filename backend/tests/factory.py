@@ -8,6 +8,8 @@ SCREENING = {"answers": {}, "basics_confirmed": True}
 
 
 def make_user(db, name="Asha Rao", blood_group="O+", city="Mysuru", state="Karnataka", role="donor", **kw) -> User:
+    if role == "donor":
+        kw.setdefault("screened_at", utcnow())  # answered the permanent-conditions check at registration
     u = User(name=name, blood_group=blood_group, city=city, state=state, role=role,
              referral_code=f"T_{uuid4().hex[:8].upper()}", points=0, **kw)
     db.add(u)

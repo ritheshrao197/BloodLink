@@ -35,6 +35,9 @@ class User(Base):
     date_of_birth = Column(Date, nullable=True)
     weight_kg = Column(Integer, nullable=True)
     deferred_until = Column(DateTime, nullable=True)  # self-reported temporary deferral (fever, tattoo, ...)
+    # permanent-conditions check (eligibility.PERMANENT): only the outcome is stored, never which condition
+    permanently_ineligible = Column(Boolean, default=False)
+    screened_at = Column(DateTime, nullable=True)  # None = donor has not answered the check yet
     is_admin = Column(Boolean, default=False)
     is_demo = Column(Boolean, default=False)
     # opt-in approximate location (rounded to ~1 km) for nearest-first alerts

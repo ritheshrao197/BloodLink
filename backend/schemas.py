@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from logic import BLOOD_GROUPS
 
@@ -22,11 +22,32 @@ class HealthBody(BaseModel):
     weight_kg: Optional[int] = Field(default=None, ge=20, le=250)
 
 
+def _check_conditions(v: Optional[list[str]]) -> Optional[list[str]]:
+    from eligibility import PERMANENT
+
+    if v is None:
+        return v
+    unknown = [c for c in v if c not in PERMANENT]
+    if unknown:
+        raise ValueError(f"unknown condition(s): {', '.join(unknown)}")
+    return sorted(set(v))
+
+
+class ScreeningBody(BaseModel):
+    """Answer to the permanent-conditions check: the codes that apply (empty list = none)."""
+    conditions: list[str]
+
+    _c = field_validator("conditions")(_check_conditions)
+
+
 class Screening(BaseModel):
     """Answers to the pre-donation questionnaire (see eligibility.QUESTIONS)."""
     answers: dict[str, bool] = {}
+    conditions: Optional[list[str]] = None  # permanent-conditions answer, for donors who have not answered it yet
     basics_confirmed: bool = False  # "I am 18-65 years old and weigh at least 45 kg" (when the profile lacks them)
     health: Optional[HealthBody] = None  # optionally save health basics at the same time
+
+    _c = field_validator("conditions")(_check_conditions)
 
 
 class EligibilityBody(BaseModel):
@@ -54,8 +75,18 @@ class UserCreate(BaseModel):
     sex: Optional[Sex] = None
     date_of_birth: Optional[date] = None
     weight_kg: Optional[int] = Field(default=None, ge=20, le=250)
+    conditions: Optional[list[str]] = None  # permanent-conditions check (required for donors); never stored
 
     _bg = field_validator("blood_group")(_check_group)
+    _c = field_validator("conditions")(_check_conditions)
+
+    @model_validator(mode="after")
+    def _donor_screening(self):
+        if self.role == "donor":
+            missing = [f for f in ("sex", "date_of_birth", "weight_kg", "conditions") if getattr(self, f) is None]
+            if missing:
+                raise ValueError(f"donors must answer: {', '.join(missing)}")
+        return self
 
     @field_validator("name", "city")
     @classmethod
