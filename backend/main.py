@@ -603,6 +603,7 @@ def _escalation_loop() -> None:
         time.sleep(60)
         try:
             escalate_once()
+            verification.expire_once()  # pledges nobody confirmed within 24 h
         except Exception:  # noqa: BLE001  (keep the loop alive)
             log.exception("escalation run failed")
 
