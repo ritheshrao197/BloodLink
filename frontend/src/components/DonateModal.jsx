@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PartyPopper, Share2, XCircle } from 'lucide-react';
+import { PartyPopper, XCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { Link } from '../lib/router';
 import { useSession } from '../lib/session';
@@ -7,20 +7,16 @@ import { canDonate } from '../lib/utils';
 import { useI18n } from '../i18n';
 import { BloodTag, CopyField, ErrorBox, Modal, Spinner } from './ui';
 import SignInByCode from './SignInByCode';
-import { RarityTag, achText } from './Achievements';
 import { EligibilityForm, ReasonList } from './Eligibility';
-import ShareCardModal from './ShareCard';
 
 export default function DonateModal({ request, onClose, onDone }) {
   const { user, setUser } = useSession();
-  const i18n = useI18n();
-  const { t } = i18n;
+  const { t } = useI18n();
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [screening, setScreening] = useState(null); // set once the health check passes
-  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     setScreening(null);
@@ -53,39 +49,17 @@ export default function DonateModal({ request, onClose, onDone }) {
         <div className="space-y-4">
           <div className="flex flex-col items-center rounded-xl bg-emerald-950/40 p-5 text-center ring-1 ring-emerald-500/30">
             <PartyPopper className="h-10 w-10 text-emerald-400" />
-            <p className="mt-2 text-2xl font-extrabold text-emerald-300">+{result.points_awarded} BLP</p>
-            <ul className="mt-2 space-y-0.5 text-sm text-slate-300">
+            <p className="mt-2 text-lg font-extrabold text-emerald-300">{t('donate.pledgedTitle')}</p>
+            <p className="mt-1 text-sm text-slate-300">{t('donate.pledgedBody', { points: result.expected_points })}</p>
+            <ul className="mt-2 space-y-0.5 text-sm text-slate-400">
               {result.breakdown.map((b) => (
-                <li key={b.reason}>
+                <li key={b.code}>
                   +{b.points} · {t(`donate.breakdown.${b.code}`)}
                 </li>
               ))}
             </ul>
+            <p className="mt-2 text-xs text-slate-500">{t('donate.expires', { hours: result.pledge_hours })}</p>
           </div>
-          {result.achievements?.length > 0 && (
-            <div className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-300">{t('donate.unlocked')}</p>
-              <ul className="mt-2 space-y-2">
-                {result.achievements.map((a) => (
-                  <li key={a.key} className="flex items-center gap-3">
-                    <span className="text-3xl">{a.icon}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-bold">
-                        {a.name}
-                        {a.tier && ` (${t(`achievements.tier.${a.tier}`)})`}
-                      </span>
-                      <RarityTag rarity={a.rarity} />
-                      <span className="block text-xs text-slate-400">{achText(i18n, a).description}</span>
-                    </span>
-                    <span className="text-sm font-bold text-emerald-400">+{a.points}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link to="/achievements" onClick={onClose} className="mt-3 block text-center text-xs text-amber-300 hover:underline">
-                {t('donate.viewCollection')}
-              </Link>
-            </div>
-          )}
           <p className="text-sm text-slate-300">
             {t('donate.headTo', { place: `${request.hospital}, ${request.city}` })}
             {request.contact_phone && <> {t('donate.contact', { phone: request.contact_phone })}</>}
@@ -100,20 +74,10 @@ export default function DonateModal({ request, onClose, onDone }) {
               </a>
             </div>
           )}
-          <button onClick={() => setSharing(true)} className="btn-primary w-full from-amber-500 to-amber-700 shadow-amber-900/30">
-            <Share2 className="h-4 w-4" /> {t('card.cta')}
-          </button>
           <CopyField label={t('donate.invite')} value={result.donor.web_referral_link} />
           <button onClick={onClose} className="btn-ghost w-full">
             {t('common.done')}
           </button>
-          <ShareCardModal
-            open={sharing}
-            onClose={() => setSharing(false)}
-            kind="donation"
-            user={result.donor}
-            donation={{ hospital: request.hospital, city: request.city, created_at: new Date().toISOString() }}
-          />
         </div>
       ) : (
         <div className="space-y-4">

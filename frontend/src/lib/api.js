@@ -106,12 +106,18 @@ export const api = {
     attendees: (id, userId) => request(`/camps/${id}/attendees`, { params: { user_id: userId } }),
     attend: (id, userId, attendeeId) => request(`/camps/${id}/attend`, { method: 'POST', body: { user_id: userId, attendee_id: attendeeId } }),
   },
+  staff: {
+    pledges: () => request('/staff/pledges'),
+    confirm: (id, hb) => request(`/staff/pledges/${id}/confirm`, { method: 'POST', body: { hb_g_dl: hb ?? null } }),
+    noShow: (id) => request(`/staff/pledges/${id}/no-show`, { method: 'POST', body: {} }),
+  },
   admin: {
     stats: () => request('/admin/stats'),
     users: () => request('/admin/users'),
     vouchers: () => request('/admin/vouchers'),
     favorite: (id) => request(`/admin/users/${id}/favorite`, { method: 'POST' }),
     verifyUser: (id, verified) => request(`/admin/users/${id}/verify`, { method: 'POST', params: { verified } }),
+    setRole: (id, role) => request(`/admin/users/${id}/role`, { method: 'POST', params: { role } }),
     verifyRequest: (id, verified) =>
       request(`/admin/requests/${id}/verify`, { method: 'POST', params: { verified } }),
     setStatus: (id, status) => request(`/admin/requests/${id}/status`, { method: 'POST', params: { status } }),

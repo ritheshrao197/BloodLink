@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, Droplet, Gift, Languages, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Tent, Trophy, UserRound, Users, X } from 'lucide-react';
+import { Award, ClipboardCheck, Droplet, Gift, Languages, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Tent, Trophy, UserRound, Users, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { Link, useRouter } from '../lib/router';
 import { useSession } from '../lib/session';
@@ -87,6 +87,9 @@ function LanguagePicker() {
 export default function Layout({ children }) {
   const { path } = useRouter();
   const { user } = useSession();
+  const nav = user && (user.is_admin || ['hospital', 'blood_bank'].includes(user.role))
+    ? [...NAV, { to: '/staff', key: 'staff', icon: ClipboardCheck }]
+    : NAV;
   const { mode, cycle } = useTheme();
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
@@ -129,7 +132,7 @@ export default function Layout({ children }) {
             </span>
           </Link>
           <nav className={cx('hidden items-center gap-0.5', wide ? 'xl:flex' : '2xl:flex')} aria-label={t('nav.main')}>
-            {NAV.map(navLink)}
+            {nav.map(navLink)}
           </nav>
           <div className="flex items-center gap-1.5">
             <Link to="/sos" className={cx('btn-sos hidden min-h-10 px-4 py-2 text-sm sm:inline-flex', path === '/sos' && 'animate-none')}>
@@ -175,7 +178,7 @@ export default function Layout({ children }) {
             <Link to="/sos" onClick={() => setOpen(false)} className="btn-sos mb-2 w-full animate-none sm:col-span-2 sm:hidden">
               <Siren className="h-4 w-4" /> {t('nav.sosLong')}
             </Link>
-            {NAV.map(navLink)}
+            {nav.map(navLink)}
             {!user && navLink({ to: '/register', key: 'becomeDonor', icon: UserRound })}
           </nav>
         )}

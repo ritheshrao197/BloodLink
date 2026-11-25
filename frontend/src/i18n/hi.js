@@ -1,6 +1,7 @@
 // हिन्दी UI strings. Keys mirror en.js exactly.
 export default {
   common: {
+    bloodBank: "ब्लड बैंक",
     blp: 'BLP',
     loading: 'लोड हो रहा है…',
     signIn: 'साइन इन',
@@ -23,6 +24,7 @@ export default {
     bloodGroup: 'ब्लड ग्रुप {group}',
   },
   nav: {
+    staff: "रक्तदान की पुष्टि",
     feed: 'लाइव फ़ीड',
     donors: 'डोनर खोजें',
     leaderboard: 'लीडरबोर्ड',
@@ -116,15 +118,20 @@ export default {
     activityLine: "{name} ने {hospital} में रक्तदान का वादा किया",
   },
   request: {
+    onTheWay: "{n} रास्ते में",
+    pledged: "{done}/{total} यूनिट की पुष्टि",
     needed: '{group} चाहिए',
     for: '{name} के लिए',
-    pledged: '{done}/{total} यूनिट का वादा',
     accepts: 'स्वीकार्य: {groups}',
     fulfilledBy: '✓ {name} ने पूरा किया',
     verifiedTitle: 'एडमिन द्वारा सत्यापित',
     aria: '{urgency} अनुरोध: {hospital} में {group}',
   },
   donate: {
+    expires: "अगर {hours} घंटे में कोई पुष्टि नहीं करता, तो वादा समाप्त हो जाएगा और छूटा हुआ रक्तदान गिना जाएगा।",
+    pledgedBody: "अस्पताल स्टाफ़ द्वारा आपके रक्तदान की पुष्टि के बाद आपको लगभग +{points} BLP मिलेंगे।",
+    pledgedTitle: "आपने रक्तदान का वादा किया 🩸",
+    donatingAs: "{name} ({group}) के रूप में रक्तदान। अस्पताल स्टाफ़ द्वारा रक्तदान की पुष्टि के बाद अंक जोड़े जाते हैं।",
     title: 'SOS का जवाब दें',
     thanks: 'धन्यवाद, हीरो!',
     stillNeeded: '{city} · अभी {n} यूनिट और चाहिए',
@@ -132,7 +139,6 @@ export default {
     registerCta: 'डोनर के रूप में रजिस्टर करें (+50 BLP)',
     incompatible:
       'आपका ब्लड ग्रुप {mine}, {theirs} मरीज़ से मेल नहीं खाता। यह अनुरोध {groups} स्वीकार करता है। मदद कर सकने वाले दोस्तों से साझा करें!',
-    donatingAs: '{name} ({group}) के रूप में रक्तदान। आपको +100 BLP मिलेंगे, और 5 मिनट में जवाब देने पर +20 अतिरिक्त।',
     confirm: 'मैं पुष्टि करता/करती हूँ कि मैं रक्तदान कर सकता/सकती हूँ और अस्पताल जाऊँगा/जाऊँगी। (अंतिम योग्यता अस्पताल स्टाफ़ जाँचता है।)',
     confirmBtn: 'रक्तदान की पुष्टि करें',
     unlocked: '🎉 उपलब्धि अनलॉक हुई',
@@ -257,6 +263,8 @@ export default {
     awesome: 'बढ़िया',
   },
   profile: {
+    paused: "छूटे हुए रक्तदानों के कारण नए वादे {date} तक रोक दिए गए हैं।",
+    pledgeStatus: { pledged: "अस्पताल की प्रतीक्षा", confirmed: "पुष्टि हुई", no_show: "पुष्टि नहीं हुई", expired: "समाप्त" },
     title: 'मेरा डैशबोर्ड',
     signInSubtitle: 'अपने पॉइंट्स, बैज और रेफ़रल देखने के लिए रेफ़रल कोड से साइन इन करें।',
     newHere: 'नए हैं?',
@@ -340,6 +348,8 @@ export default {
     tier: { Bronze: 'कांस्य', Silver: 'रजत', Gold: 'स्वर्ण', Platinum: 'प्लैटिनम' },
   },
   admin: {
+    pledgeHint: "{open} स्टाफ़ की प्रतीक्षा में · {missed} पुष्टि नहीं हुई",
+    confirmedDonations: "पुष्ट रक्तदान",
     title: 'एडमिन पोर्टल',
     subtitle: 'अस्पतालों और डोनर्स का सत्यापन करें, SOS अनुरोधों पर नज़र रखें और माँग को रियल-टाइम में देखें।',
     demo: 'डेमो मोड · कोई प्रमाणीकरण नहीं',
@@ -404,6 +414,20 @@ export default {
     referralBonus: 'रेफ़रल बोनस',
     noVouchers: 'अभी कोई वाउचर जारी नहीं हुआ।',
     voucherStatus: { Issued: 'जारी', Used: 'इस्तेमाल हुआ' },
+  },
+  staff: {
+    title: "रक्तदान की पुष्टि",
+    subtitle: "आपके अस्पताल या ज़िले के अनुरोधों के लिए वादा करने वाले दाता। रक्तदान हो जाने के बाद ही पुष्टि करें।",
+    signIn: "वादे देखने के लिए अस्पताल या ब्लड बैंक खाते से साइन इन करें।",
+    notStaff: "केवल अस्पताल और ब्लड बैंक खाते रक्तदान की पुष्टि कर सकते हैं।",
+    empty: "अभी कोई दाता प्रतीक्षा में नहीं है।",
+    pledged: "{ago} वादा किया",
+    expires: "{date} को समाप्त",
+    hb: "हीमोग्लोबिन (g/dL, वैकल्पिक)",
+    donated: "दान किया",
+    noShow: "नहीं आए",
+    confirmed: "{name} की पुष्टि हुई: +{points} BLP",
+    missed: "नहीं आए के रूप में दर्ज",
   },
   notFound: { title: 'पेज नहीं मिला', back: 'लाइव फ़ीड पर लौटें' },
   reason: {

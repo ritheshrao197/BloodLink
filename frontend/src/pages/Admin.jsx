@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, BadgeCheck, CheckCircle2, Droplet, Gift, Hospital, Send, Shield, Siren, Timer, Users, XCircle } from 'lucide-react';
+import { Activity, BadgeCheck, CheckCircle2, Gift, Send, Shield, Siren, Timer, Users, XCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { usePoll } from '../lib/usePoll';
 import { URGENCY, cx } from '../lib/utils';
@@ -68,7 +68,7 @@ function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard icon={Users} label={t('admin.donors')} value={num(s.donors)} hint={t('admin.donorsHint', { available: num(s.available_donors), telegram: num(s.telegram_linked) })} />
         <StatCard icon={Siren} label={t('admin.active')} value={s.active_requests} hint={t('admin.fulfilledHint', { n: num(s.fulfilled_requests) })} accent="text-orange-400" />
         <StatCard
@@ -76,6 +76,13 @@ function Overview() {
           label={t('admin.response')}
           value={data.avg_response_minutes != null ? t('home.minutes', { n: num(data.avg_response_minutes) }) : '—'}
           accent="text-emerald-400"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label={t('admin.confirmedDonations')}
+          value={num(s.donations)}
+          hint={t('admin.pledgeHint', { open: num(s.open_pledges), missed: num(s.no_shows) })}
+          accent="text-sky-400"
         />
         <StatCard icon={Gift} label={t('admin.vouchersIssued')} value={num(s.vouchers_issued)} hint={t('admin.circulation', { n: num(s.points_in_circulation) })} accent="text-fuchsia-300" />
       </div>
@@ -316,6 +323,15 @@ function UsersTab() {
     }
   };
 
+  const setRole = async (u, role) => {
+    try {
+      await api.admin.setRole(u.id, role);
+      reload();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
   const star = async (u) => {
     try {
       const res = await api.admin.favorite(u.id);
@@ -357,15 +373,16 @@ function UsersTab() {
                   </td>
                   <td className="px-4 py-3">{u.city}</td>
                   <td className="px-4 py-3">
-                    {u.role === 'hospital' ? (
-                      <span className="flex items-center gap-1 text-sky-300">
-                        <Hospital className="h-4 w-4" /> {t('common.hospital')}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-slate-300">
-                        <Droplet className="h-4 w-4 text-red-400" /> {t('common.donor')}
-                      </span>
-                    )}
+                    <select
+                      value={u.role}
+                      onChange={(e) => setRole(u, e.target.value)}
+                      aria-label={t('admin.cols.role')}
+                      className="min-h-9 rounded-lg border border-slate-700 bg-transparent px-2 py-1 text-xs"
+                    >
+                      <option value="donor">{t('common.donor')}</option>
+                      <option value="hospital">{t('common.hospital')}</option>
+                      <option value="blood_bank">{t('common.bloodBank')}</option>
+                    </select>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
                     <span className="font-bold tabular-nums">{num(u.points)}</span> <BadgeChip badge={u.badge} />

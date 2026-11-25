@@ -1,6 +1,7 @@
 // Konkani UI strings (kok.js - written in Devanagari script). Keys mirror kn.js and en.js exactly (npm run i18n:check).
 export default {
   common: {
+    bloodBank: "रगत बँक",
     blp: 'BLP',
     loading: 'लोड जाता…',
     signIn: 'साइन इन करात',
@@ -23,6 +24,7 @@ export default {
     bloodGroup: 'रक्ताचो गट {group}',
   },
   nav: {
+    staff: "रक्तदान निश्चित करात",
     feed: 'लायव्ह फीड',
     donors: 'रक्तदाते सोदात',
     leaderboard: 'लीडरबोर्ड',
@@ -116,15 +118,20 @@ export default {
     activityLine: "{name} हांणी {hospital} हांगा दान करपाचें उतर दिलें",
   },
   request: {
+    onTheWay: "{n} वाटेर",
+    pledged: "{done}/{total} युनिट निश्चित",
     needed: '{group} जाय',
     for: '{name} खातीर',
-    pledged: '{done}/{total} युनिट उतर दिलां',
     accepts: 'स्वीकार करता: {groups}',
     fulfilledBy: '✓ {name} हांचे कडल्यान पूर्ण जालें',
     verifiedTitle: 'अॅडमिनान पडताळणी केल्लें',
     aria: '{urgency} विनंती: {hospital} हांगा {group}',
   },
   donate: {
+    expires: "{hours} वरांनी कोणेंच निश्चित करूंक ना जाल्यार, उतर सोंपतलें आनी चुकिल्लें रक्तदान म्हूण मेजतले.",
+    pledgedBody: "इस्पितळाच्या कर्मचाऱ्यांनी तुमचें रक्तदान निश्चित केल्याउपरांत तुमकां सुमार +{points} BLP मेळटले.",
+    pledgedTitle: "तुमी रक्तदानाचें उतर दिलां 🩸",
+    donatingAs: "{name} ({group}) म्हणून रक्तदान करतात. इस्पितळाच्या कर्मचाऱ्यांनी रक्तदान निश्चित केल्याउपरांत अंक जोडटात.",
     title: 'SOS क प्रतिसाद दियात',
     thanks: 'देव बरें करूं, हिरो!',
     stillNeeded: '{city} · अजून {n} युनिट जाय',
@@ -132,7 +139,6 @@ export default {
     registerCta: 'रक्तदातो म्हणून नोंदणी करात (+50 BLP)',
     incompatible:
       'तुमचो रक्ताचो गट {mine}, {theirs} दुयेंतीक जुळना. ही विनंती {groups} स्वीकारता. मदत करपाक शकपी इश्टां वांगडा शेअर करात!',
-    donatingAs: '{name} ({group}) म्हणून रक्तदान करतात. तुमकां +100 BLP मेळटले, आनी ५ मिनिटां भितर प्रतिसाद दिल्यार +20 चड मेळटले.',
     confirm: 'हांव रक्तदान करपाक सक्षम आसा आनी हॉस्पिटलांत वतलों/वतलीं हाची खात्री दितां. (अंतिम पात्रताय हॉस्पिटल कर्मचारी तपासतले.)',
     confirmBtn: 'रक्तदान निश्चित करात',
     unlocked: '🎉 यश अनलॉक जालें',
@@ -257,6 +263,8 @@ export default {
     awesome: 'खूब बरें',
   },
   profile: {
+    paused: "चुकिल्ल्या रक्तदानांक लागून नवीं उतरां {date} मेरेन बंद केल्यांत.",
+    pledgeStatus: { pledged: "इस्पितळाची वाट पळयता", confirmed: "निश्चित", no_show: "निश्चित जावंक ना", expired: "सोंपलें" },
     title: 'म्हजो डॅशबोर्ड',
     signInSubtitle: 'तुमचे गूण, बॅज आनी रेफरल पळोवपाक रेफरल कोडान साइन इन करात.',
     newHere: 'हांगा नवे आसात?',
@@ -340,6 +348,8 @@ export default {
     tier: { Bronze: 'कांस्य', Silver: 'रुपें', Gold: 'भांगर', Platinum: 'प्लॅटिनम' },
   },
   admin: {
+    pledgeHint: "{open} कर्मचाऱ्यांची वाट पळयतात · {missed} निश्चित जावंक ना",
+    confirmedDonations: "निश्चित रक्तदान",
     title: 'अॅडमिन पोर्टल',
     subtitle: 'हॉस्पिटलां आनी रक्तदात्यांची पडताळणी करात, SOS विनंत्यांचेर नदर दवरात, मागणी खऱ्या वेळांत पळयात.',
     demo: 'डेमो मोड · प्रमाणीकरण ना',
@@ -404,6 +414,20 @@ export default {
     referralBonus: 'रेफरल बोनस',
     noVouchers: 'अजून खंयचोच व्हाउचर दिवंक ना.',
     voucherStatus: { Issued: 'दिला', Used: 'वापरला' },
+  },
+  staff: {
+    title: "रक्तदान निश्चित करात",
+    subtitle: "तुमच्या इस्पितळांतल्या वा जिल्ह्यांतल्या विनंतींखातीर उतर दिल्ले दाते. तांणी रक्तदान केल्याउपरांतूच निश्चित करात.",
+    signIn: "उतरां पळोवंक इस्पितळ वा रगत बँक खात्यान सायन इन करात.",
+    notStaff: "फकत इस्पितळ आनी रगत बँक खातीं रक्तदान निश्चित करूंक शकतात.",
+    empty: "आतां कोणूच दातो वाट पळयना.",
+    pledged: "{ago} उतर दिलें",
+    expires: "{date} दिसा सोंपता",
+    hb: "हिमोग्लोबिन (g/dL, पर्यायी)",
+    donated: "दान केलें",
+    noShow: "आयलो ना",
+    confirmed: "{name} निश्चित: +{points} BLP",
+    missed: "आयलो ना म्हूण नोंद केलें",
   },
   notFound: { title: 'पान मेळ्ळें ना', back: 'लायव्ह फीडार परतून वचात' },
   reason: {

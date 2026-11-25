@@ -113,6 +113,12 @@ export default function Profile() {
         </div>
       </div>
 
+      {user.pledge_blocked_until && new Date(user.pledge_blocked_until) > new Date() && (
+        <p className="rounded-lg border border-amber-500/40 bg-amber-950/30 px-3 py-2 text-sm text-amber-200">
+          {t('profile.paused', { date: date(user.pledge_blocked_until) })}
+        </p>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Droplet} label={t('profile.points')} value={num(user.points)} hint="BLP" />
         <StatCard
@@ -181,7 +187,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <ShareCardModal open={!!sharing} onClose={() => setSharing(null)} kind={sharing || 'donation'} user={user} donation={a?.donations?.[0]} />
+      <ShareCardModal open={!!sharing} onClose={() => setSharing(null)} kind={sharing || 'donation'} user={user} donation={a?.donations?.find((d) => !d.status || d.status === 'confirmed')} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Panel title={t('profile.history')} rows={a?.points_log} empty={t('profile.noActivity')}>
@@ -208,7 +214,13 @@ export default function Profile() {
                   {d.quick_response && t('profile.quick')}
                 </span>
               </span>
-              <span className="shrink-0 font-bold text-emerald-400">+{d.points_awarded}</span>
+              {!d.status || d.status === 'confirmed' ? (
+                <span className="shrink-0 font-bold text-emerald-400">+{d.points_awarded}</span>
+              ) : (
+                <span className={cx('shrink-0 text-xs font-semibold', d.status === 'pledged' ? 'text-sky-400' : 'text-slate-500')}>
+                  {t(`profile.pledgeStatus.${d.status}`)}
+                </span>
+              )}
             </>
           )}
         </Panel>

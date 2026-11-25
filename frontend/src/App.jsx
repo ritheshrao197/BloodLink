@@ -15,6 +15,7 @@ import Admin from './pages/Admin';
 import Achievements from './pages/Achievements';
 import Teams from './pages/Teams';
 import Camps from './pages/Camps';
+import Staff from './pages/Staff';
 
 const ROUTES = {
   '/': Home,
@@ -28,6 +29,7 @@ const ROUTES = {
   '/rewards': Rewards,
   '/profile': Profile,
   '/admin': Admin,
+  '/staff': Staff,
 };
 
 function NotFound() {

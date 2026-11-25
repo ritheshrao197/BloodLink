@@ -66,7 +66,10 @@ export default function RequestCard({ request: r, onRespond, highlight, me }) {
 
       <div className="mt-4">
         <div className="mb-1 flex flex-wrap justify-between gap-x-2 text-xs text-slate-400">
-          <span>{t('request.pledged', { done: r.units_fulfilled, total: r.units_needed })}</span>
+          <span>
+            {t('request.pledged', { done: r.units_fulfilled, total: r.units_needed })}
+            {r.units_pledged > 0 && <span className="ml-1 text-sky-400">· {t('request.onTheWay', { n: r.units_pledged })}</span>}
+          </span>
           <span>{t('request.accepts', { groups: r.compatible_donor_groups.join(' ') })}</span>
         </div>
         <div className="progress-bar h-1.5" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
