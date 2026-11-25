@@ -27,7 +27,7 @@ def _check_conditions(v: Optional[list[str]]) -> Optional[list[str]]:
 
     if v is None:
         return v
-    unknown = [c for c in v if c not in PERMANENT]
+    unknown = [c for c in v if c not in PERMANENT and c != "any"]  # "any": one applies, unnamed (bot)
     if unknown:
         raise ValueError(f"unknown condition(s): {', '.join(unknown)}")
     return sorted(set(v))

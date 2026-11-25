@@ -120,3 +120,8 @@ def test_seeded_donors_are_screened(db):
 
     seed_data.seed(db)
     assert db.query(User).filter(User.role == "donor", User.screened_at.is_(None)).count() == 0
+
+
+def test_bot_can_report_an_unnamed_condition(client):
+    res = register(client, conditions=["any"])
+    assert res.status_code == 200 and res.json()["user"]["permanently_ineligible"] is True
