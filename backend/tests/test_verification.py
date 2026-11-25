@@ -288,3 +288,39 @@ def test_pledges_unlock_no_achievements_and_dont_count_in_stats(client, db):
     totals = client.get("/api/stats").json()["totals"]
     assert totals["donations"] == 0
     assert client.get("/api/activity/recent").json() == []
+
+
+# ---------------------------------------------------------------- admin + demo data
+def test_admin_assigns_blood_bank_role(client, db):
+    admin_h = login(db, make_user(db, name="Admin", is_admin=True))
+    u = make_user(db, name="City Blood Bank")
+    url = f"/api/admin/users/{u.id}/role"
+    res = client.post(url, params={"role": "blood_bank"}, headers=admin_h)
+    assert res.status_code == 200 and res.json()["role"] == "blood_bank"
+    assert client.post(url, params={"role": "boss"}, headers=admin_h).status_code == 400
+    assert client.post(url, params={"role": "donor"}, headers=login(db, u)).status_code == 403
+
+
+def test_seed_has_confirmed_history_blood_banks_and_live_pledges(db):
+    import seed_data
+
+    seed_data.seed(db)
+    assert {s for (s,) in db.query(Donation.status).distinct()} == {"confirmed", "pledged"}
+    assert db.query(Donation).filter(Donation.status == "confirmed", Donation.confirmed_at.is_(None)).count() == 0
+    assert db.query(User).filter(User.role == "blood_bank").count() >= 6
+    open_pledges = db.query(Donation).filter(Donation.status == "pledged").all()
+    assert len(open_pledges) >= 3
+    assert len({d.donor_id for d in open_pledges}) == len(open_pledges)  # one open pledge per donor
+
+
+def test_clear_demo_keeps_real_donation_confirmed_by_demo_bank(client, db):
+    import seed_data
+
+    donor, _, d = _pledged(client, db)
+    bank = _bank(db, is_demo=True)
+    client.post(f"/api/staff/pledges/{d.id}/confirm", json={}, headers=login(db, bank))
+    seed_data.clear_demo(db)
+    db.expire_all()
+    kept = db.get(Donation, d.id)
+    assert kept.status == "confirmed" and kept.confirmed_by is None
+    assert db.get(User, donor.id).total_donations == 1

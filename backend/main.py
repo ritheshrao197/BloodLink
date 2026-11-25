@@ -869,6 +869,17 @@ def admin_users(db: Session = Depends(get_db), a: auth.Actor = Depends(auth.acto
             for u in db.query(User).order_by(User.id.desc()).all()]
 
 
+@app.post("/api/admin/users/{user_id}/role")
+def admin_set_role(user_id: int, role: str, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
+    auth.require_admin(a)
+    if role not in ("donor", "hospital", "blood_bank"):
+        raise HTTPException(400, "role must be donor, hospital or blood_bank")
+    user = find_user(db, user_id=user_id)
+    user.role = role
+    db.commit()
+    return user_public(user)
+
+
 @app.post("/api/admin/users/{user_id}/verify")
 def admin_verify_user(user_id: int, verified: bool = True, db: Session = Depends(get_db), a: auth.Actor = Depends(auth.actor)):
     auth.require_admin(a)

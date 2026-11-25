@@ -25,7 +25,7 @@ import locations
 import logic
 from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
 
-SEED_VERSION = "10"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "11"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -198,6 +198,15 @@ def seed(db: Session) -> None:
                                       created_at=now - timedelta(days=rng.randint(200, HISTORY_DAYS + 20))))
     db.add_all(hospitals)
 
+    banks = []  # one district blood bank per state, in its busiest district; it confirms pledges there
+    for state in dict.fromkeys(s for s, _d, _w in AREAS):
+        _s, district, _w = max((a for a in AREAS if a[0] == state), key=lambda a: a[2])
+        banks.append(User(name=f"{district} District Blood Bank", blood_group="O+", city=district, state=state,
+                          role="blood_bank", phone=phone(rng), referral_code=code(), points=0, is_verified=True,
+                          is_available=False, is_demo=True,
+                          created_at=now - timedelta(days=rng.randint(300, HISTORY_DAYS + 20))))
+    db.add_all(banks)
+
     by_district: dict[str, list[User]] = {}
     by_state: dict[str, list[User]] = {}
     for d in donors:
@@ -224,9 +233,16 @@ def seed(db: Session) -> None:
         donor.total_donations += 1
         donor.last_donation_at = when
         db.add(Donation(request_id=req.id, donor_id=donor.id, points_awarded=total, quick_response=quick,
+                        status="confirmed", confirmed_at=when,
                         weather="rain" if rng.random() < rain_chance(req.state, when) else "dry", created_at=when))
         req.units_fulfilled += 1
         req.fulfilled_by = f"{req.fulfilled_by}, {donor.name}" if req.fulfilled_by else donor.name
+
+    def pledge(req: BloodRequest, donor: User, when: datetime) -> None:
+        """An open pledge on the live feed: staff haven't confirmed it yet, so nothing is awarded."""
+        db.add(Donation(request_id=req.id, donor_id=donor.id, status="pledged", points_awarded=0,
+                        quick_response=when - req.created_at <= timedelta(minutes=logic.QUICK_RESPONSE_MINUTES),
+                        created_at=when))
 
     def candidates(req: BloodRequest, at: datetime) -> list[User]:
         ok = set(logic.compatible_donor_groups(req.blood_group))
@@ -304,6 +320,7 @@ def seed(db: Session) -> None:
             d.is_available = False
 
     # ---------- the live feed ----------
+    pledged_donors: set[int] = set()  # a donor can have only one open pledge
     for minutes, urgency, units, pledged in ACTIVE:
         created = now - timedelta(minutes=minutes, seconds=rng.randint(0, 50))
         req = new_request(created, urgency, units)
@@ -316,8 +333,9 @@ def seed(db: Session) -> None:
             req.blood_group = pick(rng, REQUEST_GROUPS)
             pool = candidates(req, created)
         req.notified_count = len(pool)
-        for k, donor in enumerate(take(pool, pledged)):
-            respond(req, donor, created + timedelta(minutes=min(minutes * 0.8, 3 + 9 * k + rng.uniform(0, 6))))
+        for k, donor in enumerate(take([p for p in pool if p.id not in pledged_donors], pledged)):
+            pledged_donors.add(donor.id)
+            pledge(req, donor, created + timedelta(minutes=min(minutes * 0.8, 3 + 9 * k + rng.uniform(0, 6))))
 
     # ---------- voucher redemptions ----------
     catalog = sorted(logic.REWARDS, key=lambda r: r["cost"])
@@ -500,6 +518,7 @@ def seed_hero(db: Session, rng: random.Random, now: datetime, donors: list[User]
                 total += logic.POINTS_STREAK
                 earn(hero, logic.POINTS_STREAK, f"Streak bonus (3-month return) — request #{req.id}", when)
             db.add(Donation(request_id=req.id, donor_id=hero.id, points_awarded=total, quick_response=fast,
+                            status="confirmed", confirmed_at=when,
                             weather="rain" if i % 7 == 3 else "dry", created_at=when))
             hero.total_donations += 1
         prev = when
@@ -666,6 +685,8 @@ def clear_demo(db: Session, commit: bool = True) -> int:
     db.query(SosAlert).filter(or_(SosAlert.user_id.in_(demo_users), SosAlert.request_id.in_(demo_reqs))).delete(synchronize_session=False)
     db.query(Donation).filter(or_(Donation.donor_id.in_(demo_users), Donation.request_id.in_(demo_reqs))) \
         .delete(synchronize_session=False)
+    db.query(Donation).filter(Donation.confirmed_by.in_(demo_users)) \
+        .update({Donation.confirmed_by: None}, synchronize_session=False)  # kept donations a demo blood bank confirmed
     db.query(achievements.UserAchievement).filter(achievements.UserAchievement.user_id.in_(demo_users)).delete(synchronize_session=False)
     from models import Camp, CampRSVP, ReminderLog, Team, TeamMember
 
@@ -684,7 +705,7 @@ def clear_demo(db: Session, commit: bool = True) -> int:
     db.query(BloodRequest).filter(BloodRequest.id.in_(demo_reqs)).delete(synchronize_session=False)
     db.query(User).filter(User.id.in_(demo_users)).delete(synchronize_session=False)
     for u in db.query(User):  # kept accounts may have pledged to demo requests that are now gone
-        u.total_donations = db.query(Donation).filter(Donation.donor_id == u.id).count()
+        u.total_donations = db.query(Donation).filter(Donation.donor_id == u.id, Donation.status == "confirmed").count()
     if commit:
         db.commit()
     else:

@@ -1,4 +1,5 @@
-"""Keeps the demo network alive: new SOS requests appear, demo donors respond, stale requests close.
+"""Keeps the demo network alive: new SOS requests appear, demo donors pledge, the blood bank confirms them, stale
+requests close.
 
 Runs only in demo mode (DEMO_LOGIN=1, or DEMO_PULSE=1). Safety: demo requests are flagged is_demo, never alert anyone
 on Telegram and never escalate; only seeded demo donors (no Telegram) respond to them. Real users can still pledge.
@@ -11,11 +12,14 @@ import threading
 import time
 from datetime import timedelta
 
+from sqlalchemy import func
+
 import eligibility
 import geo
 import logic
+import verification
 from database import SessionLocal
-from models import BloodRequest, User, utcnow
+from models import BloodRequest, Donation, User, utcnow
 
 log = logging.getLogger("bloodlink.demo")
 ENABLED = os.getenv("DEMO_PULSE", os.getenv("DEMO_LOGIN", "1")) == "1"
@@ -25,6 +29,7 @@ STALE_HOURS = 30
 GROUPS = {"O+": 27, "B+": 26, "A+": 19, "AB+": 7, "O-": 6, "B-": 5, "A-": 4, "AB-": 2}
 URGENCY = {"Critical": 28, "High": 47, "Normal": 25}
 FIRST_RESPONSE_MIN = {"Critical": 9, "High": 24, "Normal": 70}  # median minutes until someone pledges
+CONFIRM_AFTER_MIN = (35, 120)  # a demo donor reaches the hospital and is confirmed this long after pledging
 _rng = random.Random()
 _next_sos_at = None
 
@@ -83,7 +88,7 @@ def _respond(db, req: BloodRequest) -> bool:
 def tick() -> dict:
     global _next_sos_at
     db = SessionLocal()
-    out = {"created": 0, "pledged": 0, "closed": 0}
+    out = {"created": 0, "pledged": 0, "confirmed": 0, "closed": 0}
     try:
         now = utcnow()
         # close stale demo requests (as hospitals do when they source blood elsewhere)
@@ -99,9 +104,21 @@ def tick() -> dict:
             if _new_request(db):
                 out["created"] += 1
             _next_sos_at = now + timedelta(minutes=_rng.uniform(15, 35))
+        # the blood bank confirms demo donors once they have had time to get there (real pledges wait for real staff)
+        for d in (db.query(Donation).join(BloodRequest, Donation.request_id == BloodRequest.id)
+                  .join(User, Donation.donor_id == User.id)
+                  .filter(Donation.status == "pledged", BloodRequest.is_demo.is_(True), User.is_demo.is_(True),
+                          Donation.created_at < now - timedelta(minutes=CONFIRM_AFTER_MIN[0])).all()):
+            age_min = (now - d.created_at).total_seconds() / 60
+            if age_min >= CONFIRM_AFTER_MIN[1] or _rng.random() < 0.15:
+                verification.confirm(db, d, None, None, now)
+                out["confirmed"] += 1
+        db.commit()
+        pledged = dict(db.query(Donation.request_id, func.count(Donation.id))
+                       .filter(Donation.status == "pledged").group_by(Donation.request_id).all())
         for req in active:
             age_min = (now - req.created_at).total_seconds() / 60
-            if age_min < 1.5:
+            if age_min < 1.5 or (req.units_fulfilled or 0) + pledged.get(req.id, 0) >= (req.units_needed or 1):
                 continue
             # roughly exponential waiting time around the urgency's median
             p = min(0.9, (TICK_SECONDS / 60) * 0.69 / FIRST_RESPONSE_MIN.get(req.urgency, 30))
