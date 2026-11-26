@@ -97,9 +97,9 @@ export default function Layout({ children }) {
   const ThemeIcon = THEME_ICON[mode];
   const themeLabel = t(`nav.theme.${mode}`);
 
-  // The header shows as much nav as fits: full labels, then icons only (current page keeps its label), then the ☰ menu.
+  // The header shows as much nav as fits: icon + label in a row, then icon over a small label, then the ☰ menu.
   // Measured rather than a fixed breakpoint, because the width depends on the language and on being signed in.
-  const [navMode, setNavMode] = useState('menu'); // 'full' | 'compact' | 'menu'
+  const [navMode, setNavMode] = useState('menu'); // 'full' | 'stacked' | 'menu'
   const rowRef = useRef(null);
   const logoRef = useRef(null);
   const rightRef = useRef(null);
@@ -116,7 +116,7 @@ export default function Layout({ children }) {
       const btn = menuBtnRef.current;
       const right = rightRef.current.offsetWidth - (btn && btn.offsetParent ? btn.offsetWidth + 6 : 0); // 6 = gap-1.5
       const avail = inner - logoRef.current.offsetWidth - right - 2 * gap;
-      setNavMode(fullRef.current.offsetWidth <= avail ? 'full' : compactRef.current.offsetWidth <= avail ? 'compact' : 'menu');
+      setNavMode(fullRef.current.offsetWidth <= avail ? 'full' : compactRef.current.offsetWidth <= avail ? 'stacked' : 'menu');
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -124,26 +124,23 @@ export default function Layout({ children }) {
     return () => ro.disconnect();
   }, []);
 
-  const navLink = ({ to, key, icon: Icon }, compact = false) => {
+  // stacked = icon over a small label: every section stays named, in about half the width of the inline row
+  const navLink = ({ to, key, icon: Icon }, stacked = false) => {
     const active = to === '/' ? path === '/' : path.startsWith(to);
-    const label = t(`nav.${key}`);
-    const iconOnly = compact && !active;
     return (
       <Link
         key={to}
         to={to}
         onClick={() => setOpen(false)}
         aria-current={active ? 'page' : undefined}
-        aria-label={iconOnly ? label : undefined}
-        title={iconOnly ? label : undefined}
         className={cx(
-          'flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg py-2 text-sm font-medium transition',
-          iconOnly ? 'min-w-10 justify-center px-2.5' : 'px-3',
+          'flex items-center whitespace-nowrap rounded-lg font-medium transition',
+          stacked ? 'min-h-12 min-w-12 flex-col justify-center gap-1 px-2 py-1 text-[11px] leading-none' : 'min-h-10 gap-2 px-3 py-2 text-sm',
           active ? 'bg-brand-600/10 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-50',
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" />
-        {!iconOnly && label}
+        <Icon className={cx('shrink-0', stacked ? 'h-5 w-5' : 'h-4 w-4')} aria-hidden />
+        {t(`nav.${key}`)}
       </Link>
     );
   };
@@ -159,7 +156,7 @@ export default function Layout({ children }) {
           <div ref={fullRef} className="flex w-max items-center gap-0.5">{NAV.map((n) => navLink(n))}</div>
           <div ref={compactRef} className="flex w-max items-center gap-0.5">{NAV.map((n) => navLink(n, true))}</div>
         </div>
-        <div ref={rowRef} className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4">
+        <div ref={rowRef} className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between gap-3 px-4">
           <span ref={logoRef} className="shrink-0">
             <Link to="/" className="flex shrink-0 items-center gap-2 text-xl font-black tracking-tight" aria-label={t('nav.home')}>
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blood-600 shadow-sm">
@@ -172,7 +169,7 @@ export default function Layout({ children }) {
           </span>
           {navMode !== 'menu' && (
             <nav className="flex items-center gap-0.5" aria-label={t('nav.main')}>
-              {NAV.map((n) => navLink(n, navMode === 'compact'))}
+              {NAV.map((n) => navLink(n, navMode === 'stacked'))}
             </nav>
           )}
           <div ref={rightRef} className="flex shrink-0 items-center gap-1.5">
@@ -210,7 +207,7 @@ export default function Layout({ children }) {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">
                   {user.blood_group}
                 </span>
-                <span className="hidden font-medium md:inline">{user.name.split(' ')[0]}</span>
+                <span className="hidden font-medium 2xl:inline">{user.name.split(' ')[0]}</span>
                 <span className="hidden whitespace-nowrap font-bold text-brand-700 min-[400px]:inline dark:text-brand-300">{user.points} BLP</span>
               </Link>
             ) : (
@@ -230,7 +227,7 @@ export default function Layout({ children }) {
           </div>
         </div>
         {open && navMode === 'menu' && (
-          <nav className="mx-auto grid max-w-7xl gap-1 border-t border-slate-800 p-3 sm:grid-cols-2" aria-label={t('nav.main')}>
+          <nav className="mx-auto grid max-w-screen-2xl gap-1 border-t border-slate-800 p-3 sm:grid-cols-2" aria-label={t('nav.main')}>
             <Link to="/sos" onClick={() => setOpen(false)} className="btn-sos mb-2 w-full animate-none sm:col-span-2 sm:hidden">
               <Siren className="h-4 w-4" /> {t('nav.sosLong')}
             </Link>
