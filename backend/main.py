@@ -93,6 +93,8 @@ async def lifespan(_app: FastAPI):
     try:
         if n := auth.promote_admins(db):
             log.info("Admins from ADMIN_TELEGRAM_IDS: %d", n)
+        if n := eligibility.clear_demo_intervals(db):
+            log.info("Demo accounts: cleared the donation gap for %d, they can donate now", n)
     finally:
         db.close()
     db = SessionLocal()

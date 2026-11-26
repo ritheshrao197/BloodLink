@@ -80,6 +80,21 @@ def next_eligible_at(user: User) -> datetime | None:
     return user.last_donation_at + timedelta(days=interval_days(user))
 
 
+def clear_demo_intervals(db, now: datetime | None = None) -> int:
+    """Demo (test) accounts inside their 90/120-day gap get their last donation moved back to just past it, so every
+    demo account can donate right away. Only the clock is reset: donation history, points and achievements stay.
+    Runs at startup; a test donation made afterwards starts the normal gap again. Real accounts are never touched."""
+    now = now or utcnow()
+    cleared = 0
+    for u in db.query(User).filter(User.is_demo.is_(True), User.last_donation_at.isnot(None)).all():
+        gap = timedelta(days=interval_days(u))
+        if now - u.last_donation_at < gap:
+            u.last_donation_at = now - gap - timedelta(days=1)
+            cleared += 1
+    db.commit()
+    return cleared
+
+
 def age_on(dob: date, today: date) -> int:
     return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
