@@ -686,6 +686,7 @@ def create_sos(body: SOSCreate, background_tasks: BackgroundTasks, db: Session =
     plan = alert_plan(db, req)
     wave = first_wave(plan)
     first = [(u, r, d) for u, r, d in plan if r <= wave]
+    pushed = push.users_with_push(db, [u.id for u, _, _ in first])
     background_tasks.add_task(_broadcast, req.id)
     return {
         "status": "broadcasted",
@@ -695,7 +696,9 @@ def create_sos(body: SOSCreate, background_tasks: BackgroundTasks, db: Session =
         "first_wave": len(first),
         "first_wave_km": geo.RINGS_KM[wave] if wave < len(geo.RINGS_KM) and geo.valid(req.lat, req.lng) else None,
         "escalate_minutes": geo.ESCALATE_MINUTES.get(req.urgency, 10),
-        "telegram_reachable": sum(1 for u, _, _ in first if u.telegram_id),
+        "telegram_reachable": sum(1 for u, _, _ in first if u.telegram_id),  # the bot's own count
+        # alerted right away on any channel: Telegram or browser push
+        "reachable": sum(1 for u, _, _ in first if u.telegram_id or u.id in pushed),
         "donors": [{**user_public(u), "distance_km": geo.shown_km(d), "ring": r} for u, r, d in plan[:20]],
         "request": request_out(req),
     }

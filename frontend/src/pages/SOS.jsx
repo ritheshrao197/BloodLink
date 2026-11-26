@@ -81,7 +81,7 @@ export default function SOS() {
               <div className="text-sm text-slate-400">{t('sos.matched')}</div>
             </div>
             <div className="rounded-xl bg-slate-800/60 p-4">
-              <div className="text-3xl font-extrabold text-sky-400">{result.telegram_reachable}</div>
+              <div className="text-3xl font-extrabold text-sky-400">{result.reachable ?? result.telegram_reachable}</div>
               <div className="text-sm text-slate-400">{t('sos.alerted')}</div>
             </div>
           </div>

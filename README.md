@@ -1,7 +1,7 @@
 # 🩸 BLOODLINK v2.0: Intelligent Blood Donor Network
 
 A hybrid **React web app + Telegram bot** that matches blood requests with compatible donors using
-ABO/Rh rules, alerts donors instantly on Telegram, and keeps them engaged with points, badges, vouchers and referrals.
+ABO/Rh rules, alerts donors instantly on Telegram or by browser notification, and keeps them engaged with points, badges, vouchers and referrals.
 See [architechure.md](architechure.md) for the full blueprint.
 
 ```
@@ -70,7 +70,7 @@ Set `AUTO_SEED=0` if you don't want demo data in the live database.
 | Area | What's there |
 |---|---|
 | **Live feed** (`/`) | Active SOS requests, polled every 4 s, colour-coded by urgency, filter by group or "I can help", one-click donate |
-| **SOS** (`/sos`) | Blood group, hospital, city, units, urgency. Shows matched donors and how many were alerted on Telegram |
+| **SOS** (`/sos`) | Blood group, hospital, city, units, urgency. Shows matched donors and how many were alerted right away (Telegram or browser). Without an account, the requester can turn on browser notifications to hear when a donor responds |
 | **Donor search** (`/donors`) | By exact group or "can donate to" (ABO/Rh matrix), city and availability |
 | **Register** (`/register?ref=CODE`) | +50 BLP, plus a +50 welcome bonus with a referral code. Shows the referral code and a Link Telegram button. Donors give sex, date of birth and weight and answer a permanent-conditions check (thalassaemia, sickle cell, haemophilia, HIV, hepatitis B/C, heart disease and more); someone who reports one is registered but never alerted, and only that outcome is stored |
 | **Dashboard** (`/profile`) | Points, badge progress, availability toggle, referral links and stats, points, donation and voucher history |
@@ -89,6 +89,25 @@ to donate and tells the requester a donor is on the way. Hospital and blood bank
 **✅ Donated** / **❌ Didn't come** buttons; points are awarded only when they confirm. Deep links: `t.me/<bot>?start=USER_12345` (referral) and `?start=link_USER_12345`
 (link a web account).
 
+### Browser notifications
+
+- **Every alert, without Telegram.** Donors and staff turn on notifications from their profile (Profile → Browser
+  notifications). They then get the same messages as on Telegram in the browser, or on the phone's lock screen:
+  - SOS alerts;
+  - pledge alerts for hospital and blood bank staff;
+  - donation confirmations;
+  - reminders.
+
+  Someone who uses both gets both. Tapping a notification opens the right page.
+- **Requesters without an account:** the "SOS sent" screen offers to notify that browser when a donor pledges or needs a ride.
+  This works only for that one request, and the server checks that the browser is the one that raised it.
+- **Set-up:** run `python backend/make_vapid_keys.py` once and put the two lines it prints in `.env` (and in Render's
+  environment). It's free: no account is needed, and browsers deliver through their own push services. Without the keys the
+  feature stays hidden.
+- **iPhone and iPad** (iOS 16.4+): web push works only after "Add to Home Screen". The app explains this when needed.
+- Signing out turns notifications off for that browser. Subscriptions the browser has dropped are cleaned up automatically
+  ([backend/push.py](backend/push.py), [frontend/public/sw.js](frontend/public/sw.js)).
+
 ### Donor safety and engagement
 
 - **Eligibility check.** Before donating, on the web or Telegram, donors answer a 20-second self-check based on India's NBTC guidelines:
@@ -99,7 +118,7 @@ to donate and tells the requester a donor is on the way. Hospital and blood bank
   The server re-checks before accepting a donation. SOS alerts skip donors who can't donate yet. A "yes" pauses alerts until
   that date, and the donor can undo it from their profile. Rules are in [backend/eligibility.py](backend/eligibility.py). It's
   a preliminary check: hospital staff always decide.
-- **Donation reminders** on Telegram: 5 days before a donor can give again, on the day (with an "I'm available" button), and a
+- **Donation reminders** on Telegram and browser notifications: 5 days before a donor can give again, on the day (with an "I'm available" button), and a
   gentle nudge a week later. They run hourly in the backend ([backend/reminders.py](backend/reminders.py)) and are sent once per
   donation cycle. Run them on demand with `POST /api/admin/reminders/run`, or turn them off with `REMINDERS=0`.
 - **Royal shareable cards:** 1080×1080 images drawn in the browser, in five designs: Blood Royalty, Achievement Crown, Diamond

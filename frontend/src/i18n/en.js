@@ -162,7 +162,7 @@ export default {
     sent: '🚨 SOS Broadcasted!',
     summary: 'Request #{id} for {units} unit(s) of {group} at {hospital}, {city}.',
     matched: 'compatible donors matched',
-    alerted: 'alerted instantly on Telegram',
+    alerted: "alerted instantly (Telegram or browser)",
     noBot: 'Telegram bot token not configured on the server — alerts are logged only.',
     matchedDonors: 'Matched donors',
     telegramSent: 'Telegram alert sent',

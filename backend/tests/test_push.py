@@ -85,6 +85,7 @@ def test_sos_reaches_push_only_donors_and_counts_them(client, db, pushed):
     res = client.post("/api/sos", json={"requester_name": "R", "blood_group": "O+", "hospital": "JSS Hospital",
                                         "city": "Mysuru", "state": "Karnataka", "units_needed": 1, "urgency": "Critical"})
     assert res.status_code == 200
+    assert res.json()["reachable"] == 1 and res.json()["telegram_reachable"] == 0
     assert any(e == "https://push.example/donor" for e, _ in pushed)
     db.expire_all()
     assert db.get(BloodRequest, res.json()["request_id"]).notified_count == 1
