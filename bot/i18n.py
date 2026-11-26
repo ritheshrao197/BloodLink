@@ -202,6 +202,16 @@ S = {
         "kn": "📱 ದಾನಿಗಳಿಗಾಗಿ ಸಂಪರ್ಕ ಸಂಖ್ಯೆ ಹಂಚಿಕೊಳ್ಳುವಿರಾ? (ಶಿಫಾರಸು)",
         "hi": "📱 डोनरों के लिए संपर्क नंबर साझा करेंगे? (सुझाया गया)",
     },
+    "sos_stock_head": {
+        "en": "🏦 <b>In stock at blood banks nearby</b> (call before you go):",
+        "kn": "🏦 <b>ಹತ್ತಿರದ ರಕ್ತ ನಿಧಿಗಳಲ್ಲಿ ಲಭ್ಯವಿದೆ</b> (ಹೋಗುವ ಮುನ್ನ ಕರೆ ಮಾಡಿ):",
+        "hi": "🏦 <b>पास के ब्लड बैंकों में उपलब्ध</b> (जाने से पहले कॉल करें):",
+    },
+    "sos_stock_line": {
+        "en": "• <b>{name}</b>{km}: {units}{phone} · {hours} h ago",
+        "kn": "• <b>{name}</b>{km}: {units}{phone} · {hours} ಗಂ. ಹಿಂದೆ",
+        "hi": "• <b>{name}</b>{km}: {units}{phone} · {hours} घंटे पहले",
+    },
     "working": {"en": "⏳ One moment…", "kn": "⏳ ಸ್ವಲ್ಪ ನಿರೀಕ್ಷಿಸಿ…", "hi": "⏳ एक पल…"},
     "sos_done": {
         "en": "🚨 <b>SOS BROADCASTED</b>\n\n🩸 {units} × <b>{group}</b>\n🏥 {hospital}, {district}\n\n"
@@ -379,6 +389,29 @@ COMMANDS = {
 def t(lang: str | None, key: str, **kwargs) -> str:
     entry = S[key]
     return entry.get(lang or "en", entry["en"]).format(**kwargs)
+
+
+def stock_text(lang: str | None, stock: list[dict], now=None) -> str:
+    """Nearby blood bank stock from an SOS response, as a few lines for the confirmation ('' when there is none)."""
+    import html
+    from datetime import datetime, timezone
+
+    if not stock:
+        return ""
+    now = now or datetime.now(timezone.utc)
+    lines = [t(lang, "sos_stock_head")]
+    for s in stock:
+        groups = ([f"{s['units']} × {s['group']}"] if s.get("units") else []) + [
+            f"{n} × {g}" for g, n in (s.get("compatible") or {}).items()]
+        updated = datetime.fromisoformat(s["updated_at"].replace("Z", "+00:00"))
+        if updated.tzinfo is None:
+            updated = updated.replace(tzinfo=timezone.utc)
+        bank = s["bank"]
+        lines.append(t(lang, "sos_stock_line", name=html.escape(bank["name"]),
+                       km=f" ({s['distance_km']:g} km)" if s.get("distance_km") is not None else "",
+                       units=", ".join(groups), phone=f" · 📞 {html.escape(bank['phone'])}" if bank.get("phone") else "",
+                       hours=max(0, int((now - updated).total_seconds() // 3600))))
+    return "\n\n" + "\n".join(lines)
 
 
 # Sanity check at import: every key has every language

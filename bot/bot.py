@@ -43,7 +43,7 @@ from telegram.ext import (
 )
 from telegram.warnings import PTBUserWarning
 
-from i18n import CHOOSE_LANGUAGE, COMMANDS, LANGS, t
+from i18n import CHOOSE_LANGUAGE, COMMANDS, LANGS, stock_text, t
 
 try:
     from dotenv import load_dotenv
@@ -713,7 +713,8 @@ async def sos_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await msg.edit_text(
         t(lang, "sos_done", units=payload["units_needed"], group=payload["blood_group"], hospital=esc(payload["hospital"]),
           district=esc(res["request"]["city"]), matched=res["matched_donors"], alerted=res["telegram_reachable"],
-          id=res["request_id"]),
+          id=res["request_id"])
+        + stock_text(lang, [{**s, "group": payload["blood_group"]} for s in res.get("stock") or []]),
         parse_mode=ParseMode.HTML)
     await show_menu(update, context)
     return END
