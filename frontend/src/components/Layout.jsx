@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, ClipboardCheck, Droplet, Gift, Languages, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Tent, Trophy, UserRound, Users, X } from 'lucide-react';
+import { Award, ClipboardCheck, Package, Droplet, Gift, Languages, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Tent, Trophy, UserRound, Users, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { Link, useRouter } from '../lib/router';
 import { useSession } from '../lib/session';
@@ -10,6 +10,7 @@ import { LANGUAGES, useI18n } from '../i18n';
 const NAV = [
   { to: '/', key: 'feed', icon: Droplet },
   { to: '/donors', key: 'donors', icon: Search },
+  { to: '/stock', key: 'stock', icon: Package },
   { to: '/leaderboard', key: 'leaderboard', icon: Trophy },
   { to: '/teams', key: 'teams', icon: Users },
   { to: '/camps', key: 'camps', icon: Tent },

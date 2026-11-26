@@ -7,6 +7,7 @@ import { useI18n } from '../i18n';
 import { useToast } from '../components/Toast';
 import { BloodTag, Empty, ErrorBox, Loading, PageHeader, Spinner } from '../components/ui';
 import SignInByCode from '../components/SignInByCode';
+import StockEditor from '../components/StockEditor';
 
 const STAFF_ROLES = ['hospital', 'blood_bank'];
 
@@ -123,6 +124,7 @@ export default function Staff() {
         <Loading rows={3} />
       ) : (
         <div className="space-y-3">
+          {user.role === 'blood_bank' && <StockEditor />}
           <ErrorBox error={error} />
           {data?.length ? (
             <ul className="space-y-3">

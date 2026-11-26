@@ -109,6 +109,11 @@ export const api = {
     attendees: (id, userId) => request(`/camps/${id}/attendees`, { params: { user_id: userId } }),
     attend: (id, userId, attendeeId) => request(`/camps/${id}/attend`, { method: 'POST', body: { user_id: userId, attendee_id: attendeeId } }),
   },
+  stock: {
+    mine: () => request('/stock/mine'),
+    save: (units) => request('/stock/mine', { method: 'PUT', body: { units } }),
+    search: (params) => request('/stock', { params }),
+  },
   push: {
     key: () => request('/push/key'),
     subscribe: (body) => request('/push/subscribe', { method: 'POST', body }),

@@ -76,7 +76,8 @@ Set `AUTO_SEED=0` if you don't want demo data in the live database.
 | **Dashboard** (`/profile`) | Points, badge progress, availability toggle, referral links and stats, points, donation and voucher history |
 | **Leaderboard** (`/leaderboard`) | Live top 10 with a podium, badges, blood groups and the 🗣️ Influencer badge (5+ referrals) |
 | **Rewards** (`/rewards`) | Coffee 100 · Movie 250 · Shopping 500 · Merch 1000 BLP. Issues a fake voucher code, also sent to Telegram |
-| **Confirm donations** (`/staff`) | Hospital and blood bank accounts confirm each pledged donor (with an optional haemoglobin reading) or mark them as not come. Points and the next donation date follow only confirmed donations |
+| **Confirm donations** (`/staff`) | Hospital and blood bank accounts confirm each pledged donor (with an optional haemoglobin reading) or mark them as not come. Points and the next donation date follow only confirmed donations. Blood banks also keep their **stock** here (units per blood group) |
+| **Blood availability** (`/stock`) | Public, no sign-in: pick a blood group and district (or Near me) to see verified blood banks within 50 km that hold it or a group the patient can receive, with distance, a call button and "updated 3 h ago". An SOS shows the same list next to the donor alerts (on the web and in the bot), never instead of them. Stock older than 48 h is hidden, and banks are reminded daily once it is 24 h old ([backend/stock.py](backend/stock.py)) |
 | **Admin** (`/admin`) | Demand vs. supply by group, city demand heatmap, average response time, confirmed donations and no-shows, verify/cancel/fulfil requests, verify users and assign roles, voucher log |
 
 **Telegram bot:** fully button-driven, in **English, ಕನ್ನಡ or हिन्दी** (asked on `/start`, changeable with `/language`).

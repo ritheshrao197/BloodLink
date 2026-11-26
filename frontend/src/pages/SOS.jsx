@@ -10,6 +10,7 @@ import LocationPicker from '../components/LocationPicker';
 import { currentPosition } from '../components/Nearby';
 import { LocateFixed } from 'lucide-react';
 import PushToggle from '../components/PushToggle';
+import StockList from '../components/StockList';
 
 const URGENCIES = [
   ['Critical', 'border-red-500 bg-red-600/15 text-red-300'],
@@ -97,6 +98,17 @@ export default function SOS() {
             </div>
           )}
         </div>
+
+        {result.stock?.length > 0 && (
+          <div className="card mt-6 p-5">
+            <h2 className="font-bold">{t('stock.sosTitle')}</h2>
+            <p className="mt-1 text-sm text-slate-400">{t('stock.sosHint')}</p>
+            <StockList rows={result.stock} group={r.blood_group} />
+            <Link to={`/stock?group=${encodeURIComponent(r.blood_group)}`} className="mt-2 inline-block text-sm font-semibold text-sky-500 hover:underline">
+              {t('stock.seeAll')}
+            </Link>
+          </div>
+        )}
 
         {result.donors.length > 0 && (
           <div className="card mt-6 p-5">
