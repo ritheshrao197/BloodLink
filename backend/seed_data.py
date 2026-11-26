@@ -23,9 +23,9 @@ import eligibility
 import geo
 import locations
 import logic
-from models import BloodRequest, Donation, PointLog, Referral, Reward, User, utcnow
+from models import BloodRequest, BloodStock, Donation, PointLog, PushSubscription, Referral, Reward, User, utcnow
 
-SEED_VERSION = "13"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
+SEED_VERSION = "15"  # bump to make deployments with AUTO_SEED=1 refresh their demo data once
 N_DONORS = 700
 N_HISTORY_REQUESTS = 760
 HISTORY_DAYS = 540
@@ -117,6 +117,7 @@ def daytime(rng: random.Random, day: datetime) -> datetime:
 
 
 HB_RNG = random.Random(1250)  # separate stream, so adding readings leaves every other demo value unchanged
+EXTRA_RNG = random.Random(1414)  # same idea for newer features (bank stock, rides, low Hb): older demo data stays as it was
 
 
 def demo_hb() -> float:
@@ -216,6 +217,17 @@ def seed(db: Session) -> None:
                           role="blood_bank", phone=phone(rng), referral_code=code(), points=0, is_verified=True,
                           is_available=False, is_demo=True,
                           created_at=now - timedelta(days=rng.randint(300, HISTORY_DAYS + 20))))
+    has_bank = {b.city for b in banks}
+    for state, district, w in AREAS:  # a blood centre in every mid-sized district, so most SOS screens show stock nearby
+        if w >= 3 and district not in has_bank:
+            banks.append(User(name=f"{district} Blood Centre", blood_group="O+", city=district, state=state,
+                              role="blood_bank", phone=phone(EXTRA_RNG), referral_code=code(), points=0, is_verified=True,
+                              is_available=False, is_demo=True,
+                              created_at=now - timedelta(days=EXTRA_RNG.randint(120, HISTORY_DAYS))))
+    for b in banks:
+        if centre := geo.DISTRICT_CENTRES.get(b.city):
+            b.lat = geo.round_coord(centre[0] + EXTRA_RNG.gauss(0, 0.02))
+            b.lng = geo.round_coord(centre[1] + EXTRA_RNG.gauss(0, 0.02))
     db.add_all(banks)
 
     by_district: dict[str, list[User]] = {}
@@ -249,10 +261,23 @@ def seed(db: Session) -> None:
         req.units_fulfilled += 1
         req.fulfilled_by = f"{req.fulfilled_by}, {donor.name}" if req.fulfilled_by else donor.name
 
+    def low_hb(req: BloodRequest, donor: User, when: datetime) -> None:
+        rng.random()  # the draw respond() makes for the weather: keeps every later demo value as before
+        db.add(Donation(request_id=req.id, donor_id=donor.id, status="deferred_hb", points_awarded=0,
+                        confirmed_at=when, hb_g_dl=round(EXTRA_RNG.uniform(10.8, 12.4), 1), created_at=when))
+        until = when + timedelta(days=eligibility.LOW_HB_PAUSE_DAYS)
+        donor.deferred_until = max(donor.deferred_until or until, until)
+
+    rides: list[bool] = []
+
     def pledge(req: BloodRequest, donor: User, when: datetime) -> None:
         """An open pledge on the live feed: staff haven't confirmed it yet, so nothing is awarded."""
+        # some donors asked for help getting to the hospital (always the first, so staff can see the tag)
+        ride = not rides or EXTRA_RNG.random() < 0.25
+        rides.append(ride)
         db.add(Donation(request_id=req.id, donor_id=donor.id, status="pledged", points_awarded=0,
                         quick_response=when - req.created_at <= timedelta(minutes=logic.QUICK_RESPONSE_MINUTES),
+                        ride_help_at=when + timedelta(minutes=EXTRA_RNG.uniform(1, 6)) if ride else None,
                         created_at=when))
 
     def candidates(req: BloodRequest, at: datetime) -> list[User]:
@@ -317,7 +342,10 @@ def seed(db: Session) -> None:
         responders = take(pool, req.units_needed)
         t = created + timedelta(minutes=max(1.5, rng.lognormvariate(math.log(RESPONSE_MEDIAN[urgency]), 0.8)))
         for donor in responders:
-            respond(req, donor, t)
+            if t < now - timedelta(days=40) and EXTRA_RNG.random() < 0.03:
+                low_hb(req, donor, t)  # came, but Hb was too low: no points, paused for a month (long over now)
+            else:
+                respond(req, donor, t)
             t += timedelta(minutes=rng.uniform(4, 45))
         if req.units_fulfilled >= req.units_needed:
             req.status, req.fulfilled_at = "Fulfilled", t - timedelta(minutes=1)
@@ -347,6 +375,11 @@ def seed(db: Session) -> None:
         for k, donor in enumerate(take([p for p in pool if p.id not in pledged_donors], pledged)):
             pledged_donors.add(donor.id)
             pledge(req, donor, created + timedelta(minutes=min(minutes * 0.8, 3 + 9 * k + rng.uniform(0, 6))))
+
+    # ---------- blood bank stock ----------
+    db.flush()  # bank ids
+    for b in banks:
+        seed_stock(db, b, EXTRA_RNG, now)
 
     # ---------- voucher redemptions ----------
     catalog = sorted(logic.REWARDS, key=lambda r: r["cost"])
@@ -410,6 +443,26 @@ def seed(db: Session) -> None:
         del d.zeal, d.referral
         d.__dict__.pop("is_hero", None)
     db.commit()
+
+
+# ---------- blood bank stock ----------
+# units a mid-sized bank keeps, roughly following how common each group is (rare negatives often run out)
+STOCK_BASE = {"O+": 34, "B+": 30, "A+": 22, "AB+": 9, "O-": 5, "B-": 4, "A-": 3, "AB-": 1}
+
+
+def stock_units(rng: random.Random, group: str, size: float) -> int:
+    base = STOCK_BASE[group] * size
+    if base < 6 and rng.random() < 0.3:
+        return 0
+    return max(0, round(rng.gauss(base, base * 0.3)))
+
+
+def seed_stock(db: Session, bank: User, rng: random.Random, now: datetime) -> None:
+    """A full sheet for one bank, counted a few hours ago (stock older than 48 h is hidden, see stock.py)."""
+    size = 1.6 if bank.name.endswith("District Blood Bank") else rng.uniform(0.5, 1.1)
+    when = now - timedelta(hours=rng.uniform(0.5, 14))
+    for g in logic.BLOOD_GROUPS:
+        db.add(BloodStock(bank_id=bank.id, blood_group=g, units=stock_units(rng, g, size), updated_at=when))
 
 
 # ---------- the showcase accounts: most achievements, earned by a believable history ----------
@@ -712,6 +765,8 @@ def clear_demo(db: Session, commit: bool = True) -> int:
     db.query(Referral).filter(or_(Referral.referrer_id.in_(demo_users), Referral.referred_id.in_(demo_users))) \
         .delete(synchronize_session=False)
     db.query(Reward).filter(Reward.user_id.in_(demo_users)).delete(synchronize_session=False)
+    db.query(BloodStock).filter(BloodStock.bank_id.in_(demo_users)).delete(synchronize_session=False)
+    db.query(PushSubscription).filter(or_(PushSubscription.user_id.in_(demo_users), PushSubscription.request_id.in_(demo_reqs)))         .delete(synchronize_session=False)
     db.query(PointLog).filter(PointLog.user_id.in_(demo_users)).delete(synchronize_session=False)
     db.query(BloodRequest).filter(BloodRequest.id.in_(demo_reqs)).delete(synchronize_session=False)
     db.query(User).filter(User.id.in_(demo_users)).delete(synchronize_session=False)

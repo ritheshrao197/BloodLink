@@ -19,7 +19,7 @@ import geo
 import logic
 import verification
 from database import SessionLocal
-from models import BloodRequest, Donation, User, utcnow
+from models import BloodRequest, BloodStock, Donation, User, utcnow
 
 log = logging.getLogger("bloodlink.demo")
 ENABLED = os.getenv("DEMO_PULSE", os.getenv("DEMO_LOGIN", "1")) == "1"
@@ -29,7 +29,9 @@ STALE_HOURS = 30
 GROUPS = {"O+": 27, "B+": 26, "A+": 19, "AB+": 7, "O-": 6, "B-": 5, "A-": 4, "AB-": 2}
 URGENCY = {"Critical": 28, "High": 47, "Normal": 25}
 FIRST_RESPONSE_MIN = {"Critical": 9, "High": 24, "Normal": 70}  # median minutes until someone pledges
-CONFIRM_AFTER_MIN = (35, 120)  # a demo donor reaches the hospital and is confirmed this long after pledging
+CONFIRM_AFTER_MIN = (35, 120)
+RECOUNT_HOURS = (6, 16)  # demo blood banks update their stock this often, so it never goes stale (hidden after 48 h)
+RIDE_CHANCE = 0.12  # share of demo pledges that ask for help getting to the hospital  # a demo donor reaches the hospital and is confirmed this long after pledging
 _rng = random.Random()
 _next_sos_at = None
 
@@ -78,6 +80,12 @@ def _respond(db, req: BloodRequest) -> bool:
     try:
         main.donate(req.id, DonateBody(user_id=donor.id, screening={"answers": {}, "basics_confirmed": True}), db,
                     auth.Actor(is_bot=True))
+        if _rng.random() < RIDE_CHANCE:  # set directly: no staff message for simulated traffic
+            d = db.query(Donation).filter(Donation.donor_id == donor.id, Donation.request_id == req.id,
+                                          Donation.status == "pledged").first()
+            if d:
+                d.ride_help_at = utcnow()
+                db.commit()
         return True
     except Exception as exc:  # noqa: BLE001  (e.g. the donor turned out ineligible: try someone else next tick)
         db.rollback()
@@ -85,12 +93,33 @@ def _respond(db, req: BloodRequest) -> bool:
         return False
 
 
+def _recount_stock(db, now) -> int:
+    """Demo banks recount every few hours: units drift a little (issued, collected), the sheet gets a fresh time."""
+    import seed_data
+
+    n = 0
+    for bank in db.query(User).filter(User.is_demo.is_(True), User.role == "blood_bank").all():
+        rows = db.query(BloodStock).filter(BloodStock.bank_id == bank.id).all()
+        newest = max((r.updated_at for r in rows), default=None)
+        if newest and now - newest < timedelta(hours=_rng.uniform(*RECOUNT_HOURS)):
+            continue
+        if not rows:
+            seed_data.seed_stock(db, bank, _rng, now)
+        for r in rows:
+            r.units = max(0, r.units + _rng.randint(-3, 3)) if r.units or _rng.random() < 0.3 else 0
+            r.updated_at = now
+        n += 1
+    db.commit()
+    return n
+
+
 def tick() -> dict:
     global _next_sos_at
     db = SessionLocal()
-    out = {"created": 0, "pledged": 0, "confirmed": 0, "closed": 0}
+    out = {"created": 0, "pledged": 0, "confirmed": 0, "closed": 0, "stock": 0}
     try:
         now = utcnow()
+        out["stock"] = _recount_stock(db, now)
         # close stale demo requests (as hospitals do when they source blood elsewhere)
         for req in db.query(BloodRequest).filter(BloodRequest.is_demo.is_(True), BloodRequest.status == "Active",
                                                  BloodRequest.created_at < now - timedelta(hours=STALE_HOURS)):

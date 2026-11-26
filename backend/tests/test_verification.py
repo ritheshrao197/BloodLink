@@ -306,12 +306,22 @@ def test_seed_has_confirmed_history_blood_banks_and_live_pledges(db):
     import seed_data
 
     seed_data.seed(db)
-    assert {s for (s,) in db.query(Donation.status).distinct()} == {"confirmed", "pledged"}
+    import stock
+    from models import BloodStock, utcnow
+
+    assert {s for (s,) in db.query(Donation.status).distinct()} == {"confirmed", "pledged", "deferred_hb"}
     assert db.query(Donation).filter(Donation.status == "confirmed", Donation.confirmed_at.is_(None)).count() == 0
-    assert db.query(User).filter(User.role == "blood_bank").count() >= 6
+    banks = db.query(User).filter(User.role == "blood_bank").all()
+    assert len(banks) >= 6
     open_pledges = db.query(Donation).filter(Donation.status == "pledged").all()
     assert len(open_pledges) >= 3
     assert len({d.donor_id for d in open_pledges}) == len(open_pledges)  # one open pledge per donor
+    assert any(d.ride_help_at for d in open_pledges)  # some donors asked for a ride
+    # low-Hb results are old enough that nobody is still paused by them
+    assert not db.query(User).filter(User.is_demo.is_(True), User.deferred_until > utcnow()).count()
+    # every bank has a fresh full sheet, so stock shows next to an SOS in its district
+    assert db.query(BloodStock).count() == 8 * len(banks)
+    assert stock.nearby(db, "O+", district=banks[0].city, state=banks[0].state)
 
 
 def test_clear_demo_keeps_real_donation_confirmed_by_demo_bank(client, db):
