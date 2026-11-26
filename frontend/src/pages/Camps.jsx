@@ -29,7 +29,7 @@ export default function Camps() {
         )}
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section>
           <div className="mb-4 flex gap-1 rounded-xl bg-slate-900 p-1" role="tablist">
             {['upcoming', 'past'].map((k) => (

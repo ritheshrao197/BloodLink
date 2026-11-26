@@ -40,13 +40,13 @@ export default function Home() {
     <div className="space-y-14">
       {/* ---------------- hero ---------------- */}
       <section className="relative isolate pb-4 pt-6 sm:pt-10">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute left-0 top-0 h-80 w-80 rounded-full bg-brand-300/20 blur-[100px] dark:bg-brand-600/10" />
           <div className="absolute right-0 top-10 h-72 w-72 rounded-full bg-sky-200/30 blur-[100px] dark:bg-sky-500/5" />
           <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-slate-400/10 blur-[100px]" />
         </div>
 
-        <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_1fr]">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/70 px-3 py-1 backdrop-blur dark:border-brand-500/30 dark:bg-brand-500/10">
               <span className="relative flex h-2 w-2">
@@ -85,7 +85,7 @@ export default function Home() {
 
           {/* live spotlight */}
           <div className="relative mx-auto w-full max-w-md">
-            <div aria-hidden className="absolute -right-2 -top-16 z-10 animate-float text-7xl leading-none drop-shadow-[0_16px_24px_rgba(220,38,38,0.4)] sm:-right-8">
+            <div aria-hidden className="absolute -right-2 -top-16 z-10 animate-float text-7xl leading-none drop-shadow-[0_16px_24px_rgba(220,38,38,0.4)] sm:-right-4">
               🩸
             </div>
             <div className="card-glass relative p-6 shadow-lg shadow-slate-900/5">
@@ -150,7 +150,7 @@ export default function Home() {
       </section>
 
       {/* ---------------- feed + dashboard ---------------- */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section aria-labelledby="feed-title">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h2 id="feed-title" className="section-title flex items-center gap-3">

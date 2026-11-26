@@ -29,7 +29,7 @@ function TeamList() {
     <div className="space-y-8">
       <PageHeader icon={Users} title={t('teams.title')} subtitle={t('teams.subtitle')} />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section>
           <div className="mb-4 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t('teams.kindLabel')}>
             {['', ...KINDS].map((k) => (
@@ -259,7 +259,7 @@ function TeamDetail({ id }) {
         {team.gap_to_next ? t('teams.gap', { n: num(team.gap_to_next.points), name: team.gap_to_next.name }) : t('teams.leader')}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="card overflow-hidden">
           <h2 className="border-b border-slate-800 px-5 py-4 font-bold">{t('teams.membersTitle')}</h2>
           <ol className="divide-y divide-slate-800">

@@ -16,6 +16,10 @@
   }
   h1, h2, h3 { letter-spacing: -0.02em; }
   ::selection { background: rgba(20, 184, 166, 0.25); }
+  /* Grid and flex-wrap children default to min-width:auto, so one long word or a sideways chip scroller
+     widens the whole column past a phone screen. Let them shrink; truncate/wrap then works as written. */
+  .grid > * { min-width: 0; }
+  p, h1, h2, h3, h4, li, td { overflow-wrap: anywhere; }
   :focus-visible { @apply outline-none ring-4 ring-brand-500/30; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { @apply bg-slate-900; }

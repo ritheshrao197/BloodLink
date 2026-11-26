@@ -89,7 +89,7 @@ export default function Register() {
   }
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1.3fr_1fr]">
+    <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
       <div>
         <PageHeader icon={HeartHandshake} title={t('register.title')} subtitle={t('register.subtitle')} />
         {user && (

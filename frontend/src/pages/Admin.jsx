@@ -87,7 +87,7 @@ function Overview() {
         <StatCard icon={Gift} label={t('admin.vouchersIssued')} value={num(s.vouchers_issued)} hint={t('admin.circulation', { n: num(s.points_in_circulation) })} accent="text-fuchsia-300" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="card p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-bold">{t('admin.demandSupply')}</h2>
