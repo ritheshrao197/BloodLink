@@ -1185,7 +1185,8 @@ if DIST.is_dir():
             raise HTTPException(404, "Not found")
         file = (DIST / path).resolve()
         if path and file.is_file() and DIST in file.parents:
-            return FileResponse(file)
+            # the service worker must not be cached, or browsers keep running an old one after a deploy
+            return FileResponse(file, headers={"Cache-Control": "no-cache"} if path == "sw.js" else None)
         # client-side routes like /sos, /profile. Never cache the page itself: it names the current build's
         # hashed bundles, so a stale copy keeps showing the old app after a deploy.
         return FileResponse(DIST / "index.html", headers={"Cache-Control": "no-cache"})

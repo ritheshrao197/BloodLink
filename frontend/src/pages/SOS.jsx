@@ -9,6 +9,7 @@ import { BadgeChip, BloodTag, ErrorBox, PageHeader, Spinner } from '../component
 import LocationPicker from '../components/LocationPicker';
 import { currentPosition } from '../components/Nearby';
 import { LocateFixed } from 'lucide-react';
+import PushToggle from '../components/PushToggle';
 
 const URGENCIES = [
   ['Critical', 'border-red-500 bg-red-600/15 text-red-300'],
@@ -90,6 +91,11 @@ export default function SOS() {
               : t('geo.firstWaveDistrict', { n: result.first_wave, min: result.escalate_minutes })}
           </p>
           {!config?.telegram_enabled && <p className="mt-3 text-xs text-amber-300/80">{t('sos.noBot')}</p>}
+          {result.request_token && (
+            <div className="mt-4">
+              <PushToggle compact requestId={r.id} requestToken={result.request_token} />
+            </div>
+          )}
         </div>
 
         {result.donors.length > 0 && (

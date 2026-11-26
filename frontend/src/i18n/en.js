@@ -418,6 +418,17 @@ export default {
     noVouchers: 'No vouchers issued yet.',
     voucherStatus: { Issued: 'Issued', Used: 'Used' },
   },
+  push: {
+    title: "Browser notifications",
+    prompt: "Get SOS alerts and updates right here in this browser, even without Telegram.",
+    on: "Notifications are on in this browser.",
+    turnOn: "Turn on notifications",
+    turnOff: "Turn off",
+    denied: "Notifications are blocked for this site. Allow them in your browser's site settings, then reload.",
+    ios: "On iPhone or iPad: tap Share, then Add to Home Screen, open BloodLink from your Home Screen and turn on notifications there.",
+    sosPrompt: "Get a notification in this browser when a donor responds.",
+    sosOn: "You'll be notified in this browser when donors respond.",
+  },
   travel: {
     title: "Getting there",
     directions: "Directions in Google Maps",

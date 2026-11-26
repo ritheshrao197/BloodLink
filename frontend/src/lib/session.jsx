@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api, hasToken, setToken } from './api';
+import { disablePush } from './push';
 
 const SessionContext = createContext(null);
 
@@ -48,6 +49,7 @@ export function SessionProvider({ children }) {
     setUser(u);
   };
   const signOut = () => {
+    disablePush().catch(() => {}); // the next person on this browser must not get this account's alerts
     api.auth.logout().catch(() => {});
     setToken(null);
     setUser(null);

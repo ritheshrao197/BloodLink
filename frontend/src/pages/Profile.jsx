@@ -9,6 +9,7 @@ import { useI18n } from '../i18n';
 import { useToast } from '../components/Toast';
 import { BloodTag, CopyField, PageHeader, StatCard, Toggle } from '../components/ui';
 import SignInByCode, { TelegramLinkButton } from '../components/SignInByCode';
+import PushToggle from '../components/PushToggle';
 import { Showcase } from '../components/Achievements';
 import { EligibilityCard } from '../components/Eligibility';
 import { NearbyCard } from '../components/Nearby';
@@ -164,6 +165,8 @@ export default function Profile() {
               </div>
             </>
           )}
+
+          <PushToggle />
         </div>
 
         <div className="card space-y-4 p-6">

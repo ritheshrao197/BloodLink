@@ -109,6 +109,11 @@ export const api = {
     attendees: (id, userId) => request(`/camps/${id}/attendees`, { params: { user_id: userId } }),
     attend: (id, userId, attendeeId) => request(`/camps/${id}/attend`, { method: 'POST', body: { user_id: userId, attendee_id: attendeeId } }),
   },
+  push: {
+    key: () => request('/push/key'),
+    subscribe: (body) => request('/push/subscribe', { method: 'POST', body }),
+    unsubscribe: (endpoint) => request('/push/subscribe', { method: 'DELETE', body: { endpoint } }),
+  },
   staff: {
     pledges: () => request('/staff/pledges'),
     confirm: (id, hb) => request(`/staff/pledges/${id}/confirm`, { method: 'POST', body: { hb_g_dl: hb ?? null } }),
