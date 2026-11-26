@@ -4,6 +4,7 @@ LANGUAGES = ("en", "kn", "hi")
 
 STRINGS = {
     "en": {
+        "stock_stale": "📦 Your blood stock was last updated {hours} hours ago. Families stop seeing it after {fresh} hours, so please update it now.",
         "dist": "📍 About {km} km from you",
         "camp_rsvp": "✅ You're registered for <b>{title}</b>!\n📍 {venue}\n🗓 {when}\nWe'll remind you before the day.",
         "camp_thanks": "🎉 Thank you for donating at <b>{title}</b>! +{points} BLP. Your next donation date is on your profile.",
@@ -49,6 +50,7 @@ STRINGS = {
         "redeemed": "🎁 You redeemed <b>{reward}</b>!\nVoucher code: <code>{code}</code>\n(Demo voucher — not redeemable)",
     },
     "kn": {
+        "stock_stale": "📦 ನಿಮ್ಮ ರಕ್ತ ಸಂಗ್ರಹವನ್ನು {hours} ಗಂಟೆಗಳ ಹಿಂದೆ ಕೊನೆಯದಾಗಿ ನವೀಕರಿಸಲಾಗಿದೆ. {fresh} ಗಂಟೆಗಳ ನಂತರ ಕುಟುಂಬಗಳಿಗೆ ಅದು ಕಾಣುವುದಿಲ್ಲ, ದಯವಿಟ್ಟು ಈಗ ನವೀಕರಿಸಿ.",
         "dist": "📍 ನಿಮ್ಮಿಂದ ಸುಮಾರು {km} ಕಿಮೀ ದೂರ",
         "camp_rsvp": "✅ <b>{title}</b> ಗೆ ನೋಂದಣಿ ಆಯಿತು!\n📍 {venue}\n🗓 {when}\nಹಿಂದಿನ ದಿನ ನೆನಪಿಸುತ್ತೇವೆ.",
         "camp_thanks": "🎉 <b>{title}</b> ನಲ್ಲಿ ರಕ್ತದಾನ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ! +{points} BLP. ಮುಂದಿನ ದಾನದ ದಿನಾಂಕ ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿದೆ.",
@@ -94,6 +96,7 @@ STRINGS = {
         "redeemed": "🎁 ನೀವು <b>{reward}</b> ಪಡೆದಿದ್ದೀರಿ!\nವೋಚರ್ ಕೋಡ್: <code>{code}</code>\n(ಡೆಮೊ ವೋಚರ್)",
     },
     "hi": {
+        "stock_stale": "📦 आपका ब्लड स्टॉक आख़िरी बार {hours} घंटे पहले अपडेट हुआ था। {fresh} घंटे बाद परिवारों को यह दिखना बंद हो जाता है, कृपया अभी अपडेट करें।",
         "dist": "📍 आपसे लगभग {km} किमी दूर",
         "camp_rsvp": "✅ <b>{title}</b> के लिए आपका रजिस्ट्रेशन हो गया!\n📍 {venue}\n🗓 {when}\nहम पहले याद दिला देंगे।",
         "camp_thanks": "🎉 <b>{title}</b> में रक्तदान के लिए धन्यवाद! +{points} BLP। अगली रक्तदान तारीख आपकी प्रोफ़ाइल पर है।",

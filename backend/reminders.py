@@ -20,6 +20,7 @@ import notifier
 from database import SessionLocal
 from sqlalchemy import or_
 
+import stock
 from models import BloodRequest, Camp, CampRSVP, Donation, PushSubscription, ReminderLog, User, utcnow
 
 log = logging.getLogger("bloodlink.reminders")
@@ -80,6 +81,7 @@ def run_once(send: bool = True) -> dict:
     finally:
         db.close()
     sent.update(run_camps(send))
+    sent.update(run_stock(send))
     if any(sent.values()):
         log.info("Reminders sent: %s", sent)
     return sent
@@ -121,6 +123,28 @@ def run_camps(send: bool = True) -> dict:
     return sent
 
 
+def run_stock(send: bool = True) -> dict:
+    """Remind blood banks once a day while their stock numbers are getting old (see stock.py)."""
+    db = SessionLocal()
+    sent = {"stock": 0}
+    try:
+        now = utcnow()
+        today = now.date().isoformat()
+        for bank in stock.stale_banks(db):
+            if db.query(ReminderLog).filter_by(user_id=bank.id, kind="stock", cycle=today).first():
+                continue
+            db.add(ReminderLog(user_id=bank.id, kind="stock", cycle=today, sent_at=now))
+            db.commit()
+            if send:
+                _, updated = stock._sheet(db, bank.id)
+                hours = int((now - updated).total_seconds() // 3600)
+                notifier.tell(bank, "stock_stale", "/staff", hours=hours, fresh=stock.FRESH_HOURS)
+            sent["stock"] += 1
+    finally:
+        db.close()
+    return sent
+
+
 def _send(db, u: User, kind: str, now) -> None:
     lang = u.language
     if kind == "soon":
@@ -151,6 +175,8 @@ def _loop() -> None:
 
 
 def start() -> None:
-    if ENABLED and notifier.enabled():
+    import push
+
+    if ENABLED and (notifier.enabled() or push.enabled()):  # browser push alone is enough to send reminders
         threading.Thread(target=_loop, name="reminders", daemon=True).start()
         log.info("Donation reminders scheduled (hourly)")

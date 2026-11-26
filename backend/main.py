@@ -26,6 +26,7 @@ import locations
 import logic
 import notifier
 import push
+import stock
 import secrets
 import threading
 from models import AuthSession, BloodRequest, Donation, LoginRequest, SosAlert, PointLog, Referral, Reward, User, UserAchievement, utcnow
@@ -113,6 +114,7 @@ app = FastAPI(title="BLOODLINK API", version="2.0", lifespan=lifespan)
 app.include_router(community.router)  # teams + donation camps
 app.include_router(verification.router)  # staff confirm pledges
 app.include_router(push.router)  # browser notifications
+app.include_router(stock.router)  # blood bank stock
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 WEB_URL = os.getenv("BLOODLINK_WEB_URL", "http://localhost:5173").rstrip("/")
@@ -700,6 +702,8 @@ def create_sos(body: SOSCreate, background_tasks: BackgroundTasks, db: Session =
         # alerted right away on any channel: Telegram or browser push
         "reachable": sum(1 for u, _, _ in first if u.telegram_id or u.id in pushed),
         "donors": [{**user_public(u), "distance_km": geo.shown_km(d), "ring": r} for u, r, d in plan[:20]],
+        # blood banks nearby that hold this group or a compatible one (shown next to the alerts, never instead of them)
+        "stock": stock.nearby(db, req.blood_group, req.lat, req.lng, req.city, req.state, limit=5),
         "request": request_out(req),
     }
 

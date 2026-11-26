@@ -162,6 +162,19 @@ class PointLog(Base):
     created_at = Column(DateTime, default=utcnow)
 
 
+class BloodStock(Base):
+    """Units of one blood group a blood bank holds. The bank saves all 8 groups together (stock.py)."""
+
+    __tablename__ = "blood_stock"
+    __table_args__ = (UniqueConstraint("bank_id", "blood_group"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    bank_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    blood_group = Column(String, nullable=False)
+    units = Column(Integer, default=0, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, nullable=False)
+
+
 class ReminderLog(Base):
     """One row per reminder sent, so each kind goes out once per donation cycle."""
 
