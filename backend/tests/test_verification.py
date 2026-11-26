@@ -40,6 +40,7 @@ def test_migrate_marks_old_donations_confirmed(db):
         conn.execute(text("ALTER TABLE old RENAME TO donations"))
         for col in ("no_show_count", "pledge_blocked_until"):
             conn.execute(text(f"ALTER TABLE users DROP COLUMN {col}"))
+    engine.dispose()  # pooled SQLite connections can keep the old schema cached; start fresh like a restart would
     main.migrate()
     old = db.query(Donation).one()
     assert old.status == "confirmed" and old.confirmed_at == old.created_at

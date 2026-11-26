@@ -56,7 +56,8 @@ In production one service runs everything: [start.sh](start.sh) starts the bot, 
    (`postgresql://…`). Render's free disk is wiped on every restart, so SQLite would lose data.
 2. **App:** on [render.com](https://render.com) choose **New → Blueprint** and pick this repo. [render.yaml](render.yaml) sets everything up.
    Fill in `TELEGRAM_BOT_TOKEN`, `DATABASE_URL` (from Neon) and `BLOODLINK_WEB_URL` (`https://<name>.onrender.com`, which
-   you can set after the first deploy).
+   you can set after the first deploy). For browser notifications also set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`
+   (run `python backend/make_vapid_keys.py` once and paste its two lines).
 3. **Keep it awake:** free Render services sleep after 15 minutes without web traffic, and then the bot stops answering. Add a
    free monitor at [cron-job.org](https://cron-job.org) or [UptimeRobot](https://uptimerobot.com) that opens
    `https://<name>.onrender.com/api/health` every 10 minutes. The free 750 hours a month cover one service running all the time.

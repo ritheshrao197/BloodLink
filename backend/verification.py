@@ -23,6 +23,7 @@ import auth
 import eligibility
 import logic
 import notifier
+import push
 import weather
 from database import SessionLocal, get_db
 from models import BloodRequest, Donation, Referral, Reward, User, utcnow
@@ -93,13 +94,11 @@ def pledge(db: Session, req: BloodRequest, donor: User, now: datetime) -> Donati
     db.add(d)
     db.flush()
     for s in staff_for(db, req):
-        if not s.telegram_id:
-            continue
         lang = s.language or "en"
         phone = f"\n📞 {notifier.esc(donor.phone)}" if donor.phone else ""
         text = notifier.t(lang, "staff_pledge", id=req.id, name=notifier.esc(donor.name), group=donor.blood_group,
                           phone=phone, hospital=notifier.esc(req.hospital), city=notifier.esc(req.city), hours=PLEDGE_HOURS)
-        notifier.notify_buttons(s.telegram_id, text, [[
+        notifier.tell_text(s, text, "/staff", [[
             {"text": notifier.t(lang, "staff_done_btn"), "callback_data": f"pok_{d.id}"},
             {"text": notifier.t(lang, "staff_noshow_btn"), "callback_data": f"pns_{d.id}"},
             {"text": notifier.t(lang, "staff_lowhb_btn"), "callback_data": f"phb_{d.id}"}]])
@@ -120,7 +119,7 @@ def _referral_payout(db: Session, donor: User) -> User | None:
     if ref:
         ref.status = "Donated"
         ref.points_awarded = (ref.points_awarded or 0) + logic.POINTS_REFERRAL_DONATION
-    notifier.notify_t(referrer.telegram_id, referrer.language, "ref_donated",
+    notifier.tell(referrer, "ref_donated", "/profile",
                       name=notifier.esc(donor.name), points=logic.POINTS_REFERRAL_DONATION, code=code)
     return referrer
 
@@ -152,7 +151,7 @@ def confirm(db: Session, d: Donation, staff: User | None, hb_g_dl: float | None,
     if hb_g_dl is not None:
         mark = "✅" if eligibility.hb_band(hb_g_dl) == "good" else "⚠️"
         text += "\n\n" + notifier.t(lang, "hb_after", hb=f"{hb_g_dl:g}", mark=mark)
-    notifier.notify(donor.telegram_id, text)
+    notifier.tell_text(donor, text, "/profile")
     return {"points": total, "breakdown": items, "achievements": unlocked.get(donor.id, [])}
 
 
@@ -167,7 +166,7 @@ def defer_low_hb(db: Session, d: Donation, staff: User | None, hb_g_dl: float | 
     lang = donor.language
     reading = (notifier.t(lang, "hb_low_value", hb=f"{hb_g_dl:g}") if hb_g_dl is not None
                else notifier.t(lang, "hb_low_novalue"))
-    notifier.notify_t(donor.telegram_id, lang, "hb_low", reading=reading, until=f"{until:%d %b %Y}")
+    notifier.tell(donor, "hb_low", "/profile", reading=reading, until=f"{until:%d %b %Y}")
     log.info("Pledge %s at %s: deferred for low haemoglobin", d.id, req.hospital)
 
 
@@ -182,7 +181,7 @@ def miss(db: Session, d: Donation, status: str, now: datetime) -> None:
         donor.pledge_blocked_until = now + timedelta(days=BLOCK_DAYS)
         blocked = notifier.t(donor.language, "pledge_blocked", n=NO_SHOW_LIMIT,
                              until=f"{donor.pledge_blocked_until:%d %b %Y}")
-    notifier.notify_t(donor.telegram_id, donor.language, "pledge_missed", hospital=notifier.esc(req.hospital),
+    notifier.tell(donor, "pledge_missed", "/profile", hospital=notifier.esc(req.hospital),
                       blocked=blocked)
 
 
@@ -331,18 +330,20 @@ def ride_help(donation_id: int, body: RideHelpBody, db: Session = Depends(get_db
         return {"status": "already_requested", "notified": 0, "phone": donor.phone}
     d.ride_help_at = utcnow()
     req = db.get(BloodRequest, d.request_id)
-    targets = [(req.requester_telegram_id, req.requester_language)] if req.requester_telegram_id else []
-    targets += [(s.telegram_id, s.language) for s in staff_for(db, req) if s.telegram_id]
-    seen = set()
-    for chat, lang in targets:
-        if chat in seen or chat == donor.telegram_id:
-            continue
-        seen.add(chat)
-        phone = f"\n📞 {notifier.esc(donor.phone)}" if donor.phone else ""
-        notifier.notify_t(chat, lang or "en", "ride_help", name=notifier.esc(donor.name), group=donor.blood_group,
-                          id=req.id, hospital=notifier.esc(req.hospital), area=notifier.esc(donor.city), phone=phone)
+    phone = f"\n📞 {notifier.esc(donor.phone)}" if donor.phone else ""
+    words = dict(name=notifier.esc(donor.name), group=donor.blood_group, id=req.id, hospital=notifier.esc(req.hospital),
+                 area=notifier.esc(donor.city), phone=phone)
+    notified = 0
+    if req.requester_telegram_id and req.requester_telegram_id != donor.telegram_id:
+        notifier.notify_t(req.requester_telegram_id, req.requester_language or "en", "ride_help", **words)
+        notified += 1
+    push.to_request(req.id, notifier.t(req.requester_language or "en", "ride_help", **words), "/")
+    for s in staff_for(db, req):
+        if s.id != donor.id:
+            notifier.tell(s, "ride_help", "/staff", **words)
+            notified += 1
     db.commit()
-    return {"status": "requested", "notified": len(seen), "phone": donor.phone}
+    return {"status": "requested", "notified": notified, "phone": donor.phone}
 
 
 @router.post("/api/staff/pledges/{donation_id}/no-show")

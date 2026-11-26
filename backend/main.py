@@ -25,6 +25,7 @@ from database import Base, SessionLocal, engine, get_db
 import locations
 import logic
 import notifier
+import push
 import secrets
 import threading
 from models import AuthSession, BloodRequest, Donation, LoginRequest, SosAlert, PointLog, Referral, Reward, User, UserAchievement, utcnow
@@ -44,7 +45,8 @@ def migrate() -> None:
                              "no_show_count": "INTEGER DEFAULT 0", "pledge_blocked_until": "TIMESTAMP",
                              "permanently_ineligible": "BOOLEAN DEFAULT FALSE", "screened_at": "TIMESTAMP"},
                    "requests": {"state": "VARCHAR", "requester_language": "VARCHAR", "lat": "FLOAT", "lng": "FLOAT",
-                                "alert_ring": "INTEGER DEFAULT 0", "next_ring_at": "TIMESTAMP", "is_demo": "BOOLEAN DEFAULT FALSE"},
+                                "alert_ring": "INTEGER DEFAULT 0", "next_ring_at": "TIMESTAMP", "is_demo": "BOOLEAN DEFAULT FALSE",
+                                "owner_token_hash": "VARCHAR"},
                    # rows from before staff verification were real donations, so they become confirmed
                    "donations": {"weather": "VARCHAR", "status": "VARCHAR DEFAULT 'confirmed'",
                                  "confirmed_at": "TIMESTAMP", "confirmed_by": "INTEGER", "hb_g_dl": "FLOAT",
@@ -110,6 +112,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="BLOODLINK API", version="2.0", lifespan=lifespan)
 app.include_router(community.router)  # teams + donation camps
 app.include_router(verification.router)  # staff confirm pledges
+app.include_router(push.router)  # browser notifications
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 WEB_URL = os.getenv("BLOODLINK_WEB_URL", "http://localhost:5173").rstrip("/")
@@ -601,6 +604,11 @@ def send_rings(db: Session, req: BloodRequest, upto: int) -> int:
     targets = [] if req.is_demo else [  # simulated demo requests never message real people
         {"telegram_id": u.telegram_id, "language": u.language, "km": geo.shown_km(d)} for u, _, d in batch if u.telegram_id]
     sent = notifier.broadcast_sos(request_out(req), targets) if targets else 0
+    pushed = set() if req.is_demo else push.users_with_push(db, [u.id for u, _, _ in batch])
+    for u, _, d in batch:
+        if u.id in pushed:
+            push.to_user(u.id, notifier.sos_text(request_out(req), u.language, geo.shown_km(d)), "/")
+    sent += len([u for u, _, _ in batch if u.id in pushed and not u.telegram_id])  # people reached only by push
     req.notified_count = (req.notified_count or 0) + sent
     db.commit()
     return sent
@@ -671,6 +679,7 @@ def create_sos(body: SOSCreate, background_tasks: BackgroundTasks, db: Session =
     point = (body.lat, body.lng) if geo.valid(body.lat, body.lng) else geo.district_centre(req.city)
     if point:
         req.lat, req.lng = geo.round_coord(point[0]), geo.round_coord(point[1])
+    request_token = push.new_request_token(req)  # lets this browser follow the request by push, without an account
     db.add(req)
     db.commit()
     db.refresh(req)
@@ -681,6 +690,7 @@ def create_sos(body: SOSCreate, background_tasks: BackgroundTasks, db: Session =
     return {
         "status": "broadcasted",
         "request_id": req.id,
+        "request_token": request_token,
         "matched_donors": len(plan),
         "first_wave": len(first),
         "first_wave_km": geo.RINGS_KM[wave] if wave < len(geo.RINGS_KM) and geo.valid(req.lat, req.lng) else None,
@@ -785,6 +795,11 @@ def donate(request_id: int, body: DonateBody, db: Session = Depends(get_db), a: 
                           group=donor.blood_group, hospital=notifier.esc(req.hospital), contact=contact,
                           done=req.units_fulfilled, units=req.units_needed,
                           status=notifier.t(lang, f"st_{req.status}"))
+    lang = req.requester_language or "en"  # the browser that raised the SOS, if it turned on notifications
+    contact = notifier.t(lang, "contact", phone=notifier.esc(donor.phone)) if donor.phone else ""
+    push.to_request(req.id, notifier.t(lang, "donor_coming", name=notifier.esc(donor.name), group=donor.blood_group,
+                                       hospital=notifier.esc(req.hospital), contact=contact, done=req.units_fulfilled,
+                                       units=req.units_needed, status=notifier.t(lang, f"st_{req.status}")), "/")
     expected = verification.breakdown(req, donor, now, now)
     return {
         "status": "pledged",

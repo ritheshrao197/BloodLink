@@ -59,20 +59,39 @@ def send_message(chat_id: str, text: str, buttons: list[list[dict]] | None = Non
         return False
 
 
+def sos_text(request: dict, lang: str | None, km: float | None = None) -> str:
+    """The SOS alert in one donor's language (Telegram HTML; push strips the tags)."""
+    lang = lang or "en"
+    uicon = {"Critical": "🔴", "High": "🟠", "Normal": "🟡"}.get(request["urgency"], "🟠")
+    text = t(lang, "sos_alert", group=esc(request["blood_group"]), hospital=esc(request["hospital"]),
+             city=esc(request["city"]), units=request["units_needed"], uicon=uicon,
+             urgency=t(lang, f"urg_{request['urgency']}"), name=esc(request["requester_name"]))
+    return text + ("\n" + t(lang, "dist", km=km) if km is not None else "")
+
+
 def broadcast_sos(request: dict, donors: list[dict]) -> int:
     """Send the SOS alert, in each donor's language, with a one-tap donate button. Returns number delivered."""
-    uicon = {"Critical": "🔴", "High": "🟠", "Normal": "🟡"}.get(request["urgency"], "🟠")
     sent = 0
     for d in donors:
         lang = d.get("language") or "en"
-        text = t(lang, "sos_alert", group=esc(request["blood_group"]), hospital=esc(request["hospital"]),
-                 city=esc(request["city"]), units=request["units_needed"], uicon=uicon,
-                 urgency=t(lang, f"urg_{request['urgency']}"), name=esc(request["requester_name"]))
-        if d.get("km") is not None:
-            text += "\n" + t(lang, "dist", km=d["km"])
+        text = sos_text(request, lang, d.get("km"))
         buttons = [[{"text": t(lang, "donate_btn"), "callback_data": f"donate_{request['id']}"}]]
         sent += bool(send_message(d["telegram_id"], text, buttons))
     return sent
+
+
+def tell_text(user, text: str, url: str = "/", buttons: list[list[dict]] | None = None) -> None:
+    """Send a message to a person on every channel they use: Telegram (with buttons) and browser push."""
+    import push
+
+    if user.telegram_id:
+        (notify_buttons(user.telegram_id, text, buttons) if buttons else notify(user.telegram_id, text))
+    push.to_user(user.id, text, url)
+
+
+def tell(user, key: str, url: str = "/", buttons: list[list[dict]] | None = None, **kwargs) -> None:
+    """Localized tell_text in the person's own language."""
+    tell_text(user, t(user.language, key, **kwargs), url, buttons)
 
 
 def notify_t(chat_id: str | None, lang: str | None, key: str, **kwargs) -> None:

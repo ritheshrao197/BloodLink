@@ -18,7 +18,9 @@ from datetime import timedelta
 import eligibility
 import notifier
 from database import SessionLocal
-from models import BloodRequest, Camp, CampRSVP, Donation, ReminderLog, User, utcnow
+from sqlalchemy import or_
+
+from models import BloodRequest, Camp, CampRSVP, Donation, PushSubscription, ReminderLog, User, utcnow
 
 log = logging.getLogger("bloodlink.reminders")
 ENABLED = os.getenv("REMINDERS", "1") == "1"
@@ -59,7 +61,8 @@ def run_once(send: bool = True) -> dict:
     try:
         now = utcnow()
         window_start = now - timedelta(days=eligibility.DEFAULT_INTERVAL_DAYS + 10)
-        donors = (db.query(User).filter(User.role == "donor", User.telegram_id.isnot(None),
+        pushed = db.query(PushSubscription.user_id).filter(PushSubscription.user_id.isnot(None))
+        donors = (db.query(User).filter(User.role == "donor", or_(User.telegram_id.isnot(None), User.id.in_(pushed)),
                                         User.last_donation_at.isnot(None), User.last_donation_at >= window_start - timedelta(days=10))
                   .all())
         for u in donors:
@@ -125,16 +128,16 @@ def _send(db, u: User, kind: str, now) -> None:
         hb = _last_hb(db, u)  # get ready for the haemoglobin check: stronger advice when the last reading was close
         tip = (notifier.t(lang, "rem_iron_borderline", hb=f"{hb:g}") if eligibility.hb_band(hb) in ("borderline", "low")
                else notifier.t(lang, "rem_iron"))
-        notifier.notify(u.telegram_id, notifier.t(lang, "rem_soon", days=days) + tip)
+        notifier.tell_text(u, notifier.t(lang, "rem_soon", days=days) + tip, "/profile")
     elif kind == "eligible":
         hospital = _last_hospital(db, u)
         where = notifier.t(lang, "rem_where", hospital=notifier.esc(hospital)) if hospital else ""
         buttons = [[{"text": notifier.t(lang, "rem_available_btn"), "callback_data": "m_available"},
                     {"text": notifier.t(lang, "rem_later_btn"), "callback_data": "rem_later"}]]
-        notifier.notify_buttons(u.telegram_id, notifier.t(lang, "rem_eligible", where=where), buttons)
+        notifier.tell_text(u, notifier.t(lang, "rem_eligible", where=where), "/profile", buttons)
     else:
         buttons = [[{"text": notifier.t(lang, "rem_available_btn"), "callback_data": "m_available"}]]
-        notifier.notify_buttons(u.telegram_id, notifier.t(lang, "rem_nudge"), buttons)
+        notifier.tell_text(u, notifier.t(lang, "rem_nudge"), "/profile", buttons)
 
 
 def _loop() -> None:

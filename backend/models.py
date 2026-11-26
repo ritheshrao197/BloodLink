@@ -75,6 +75,7 @@ class BloodRequest(Base):
     is_demo = Column(Boolean, default=False)  # simulated demo traffic: never alerts anyone on Telegram
     alert_ring = Column(Integer, default=0)  # widest alert circle sent so far
     next_ring_at = Column(DateTime, nullable=True)  # when to widen if still unfulfilled (None = done)
+    owner_token_hash = Column(String, nullable=True)  # lets the browser that raised it follow it by push (push.py)
     created_at = Column(DateTime, default=utcnow)
     fulfilled_at = Column(DateTime, nullable=True)
 
@@ -91,6 +92,19 @@ class SosAlert(Base):
     ring = Column(Integer, default=0)
     distance_km = Column(Float, nullable=True)
     sent_at = Column(DateTime, default=utcnow)
+
+
+class PushSubscription(Base):
+    """A browser that accepted push notifications: for a user, or for one SOS raised without an account."""
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    request_id = Column(Integer, ForeignKey("requests.id"), nullable=True, index=True)
+    endpoint = Column(String, nullable=False, index=True)
+    p256dh = Column(String, nullable=False)
+    auth = Column(String, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class Donation(Base):
