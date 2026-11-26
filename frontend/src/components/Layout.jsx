@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Award, ClipboardCheck, Package, Droplet, Gift, Languages, Menu, Monitor, Moon, Search, Shield, Siren, Sun, Tent, Trophy, UserRound, Users, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { Link, useRouter } from '../lib/router';
@@ -94,25 +94,56 @@ export default function Layout({ children }) {
   const { mode, cycle } = useTheme();
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
-  const wide = false; // eight sections: the full nav needs a 2xl screen in every language
   const ThemeIcon = THEME_ICON[mode];
   const themeLabel = t(`nav.theme.${mode}`);
 
-  const navLink = ({ to, key, icon: Icon }) => {
+  // The header shows as much nav as fits: full labels, then icons only (current page keeps its label), then the ☰ menu.
+  // Measured rather than a fixed breakpoint, because the width depends on the language and on being signed in.
+  const [navMode, setNavMode] = useState('menu'); // 'full' | 'compact' | 'menu'
+  const rowRef = useRef(null);
+  const logoRef = useRef(null);
+  const rightRef = useRef(null);
+  const menuBtnRef = useRef(null);
+  const fullRef = useRef(null);
+  const compactRef = useRef(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const row = rowRef.current;
+      if (!row || !fullRef.current) return;
+      const s = getComputedStyle(row);
+      const gap = parseFloat(s.columnGap) || 0;
+      const inner = row.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+      const btn = menuBtnRef.current;
+      const right = rightRef.current.offsetWidth - (btn && btn.offsetParent ? btn.offsetWidth + 6 : 0); // 6 = gap-1.5
+      const avail = inner - logoRef.current.offsetWidth - right - 2 * gap;
+      setNavMode(fullRef.current.offsetWidth <= avail ? 'full' : compactRef.current.offsetWidth <= avail ? 'compact' : 'menu');
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    [rowRef, logoRef, rightRef, fullRef, compactRef].forEach((r) => r.current && ro.observe(r.current));
+    return () => ro.disconnect();
+  }, []);
+
+  const navLink = ({ to, key, icon: Icon }, compact = false) => {
     const active = to === '/' ? path === '/' : path.startsWith(to);
+    const label = t(`nav.${key}`);
+    const iconOnly = compact && !active;
     return (
       <Link
         key={to}
         to={to}
         onClick={() => setOpen(false)}
         aria-current={active ? 'page' : undefined}
+        aria-label={iconOnly ? label : undefined}
+        title={iconOnly ? label : undefined}
         className={cx(
-          'flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition',
+          'flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg py-2 text-sm font-medium transition',
+          iconOnly ? 'min-w-10 justify-center px-2.5' : 'px-3',
           active ? 'bg-brand-600/10 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-50',
         )}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        {t(`nav.${key}`)}
+        {!iconOnly && label}
       </Link>
     );
   };
@@ -123,19 +154,28 @@ export default function Layout({ children }) {
         {t('nav.skip')}
       </a>
       <header className="glass-nav">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4">
-          <Link to="/" className="flex shrink-0 items-center gap-2 text-xl font-black tracking-tight" aria-label={t('nav.home')}>
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blood-600 shadow-sm">
-              <Droplet className="h-5 w-5 fill-white text-white" />
-            </span>
-            <span className="hidden sm:inline">
-              <span className="text-brand-700 dark:text-brand-300">BLOOD</span>LINK
-            </span>
-          </Link>
-          <nav className={cx('hidden items-center gap-0.5', wide ? 'xl:flex' : '2xl:flex')} aria-label={t('nav.main')}>
-            {NAV.map(navLink)}
-          </nav>
-          <div className="flex items-center gap-1.5">
+        {/* invisible copies of both nav styles, used only to measure how wide each one is */}
+        <div aria-hidden className="pointer-events-none invisible absolute inset-x-0 top-0 -z-10 h-0 overflow-hidden">
+          <div ref={fullRef} className="flex w-max items-center gap-0.5">{NAV.map((n) => navLink(n))}</div>
+          <div ref={compactRef} className="flex w-max items-center gap-0.5">{NAV.map((n) => navLink(n, true))}</div>
+        </div>
+        <div ref={rowRef} className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4">
+          <span ref={logoRef} className="shrink-0">
+            <Link to="/" className="flex shrink-0 items-center gap-2 text-xl font-black tracking-tight" aria-label={t('nav.home')}>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blood-600 shadow-sm">
+                <Droplet className="h-5 w-5 fill-white text-white" />
+              </span>
+              <span className="hidden sm:inline">
+                <span className="text-brand-700 dark:text-brand-300">BLOOD</span>LINK
+              </span>
+            </Link>
+          </span>
+          {navMode !== 'menu' && (
+            <nav className="flex items-center gap-0.5" aria-label={t('nav.main')}>
+              {NAV.map((n) => navLink(n, navMode === 'compact'))}
+            </nav>
+          )}
+          <div ref={rightRef} className="flex shrink-0 items-center gap-1.5">
             <Link to="/sos" className={cx('btn-sos hidden min-h-10 px-4 py-2 text-sm sm:inline-flex', path === '/sos' && 'animate-none')}>
               <Siren className="h-4 w-4" /> {t('nav.sos')}
             </Link>
@@ -165,13 +205,13 @@ export default function Layout({ children }) {
             {user ? (
               <Link
                 to="/profile"
-                className="flex min-h-10 items-center gap-2 rounded-full border border-slate-800 bg-white py-1 pl-1 pr-3 text-sm transition hover:border-brand-400 dark:border-slate-700 dark:bg-slate-900"
+                className="flex min-h-10 items-center gap-2 rounded-full border border-slate-800 bg-white p-1 text-sm min-[400px]:pr-3 transition hover:border-brand-400 dark:border-slate-700 dark:bg-slate-900"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">
                   {user.blood_group}
                 </span>
                 <span className="hidden font-medium md:inline">{user.name.split(' ')[0]}</span>
-                <span className="whitespace-nowrap font-bold text-brand-700 dark:text-brand-300">{user.points} BLP</span>
+                <span className="hidden whitespace-nowrap font-bold text-brand-700 min-[400px]:inline dark:text-brand-300">{user.points} BLP</span>
               </Link>
             ) : (
               <Link to="/register" className="btn-primary hidden min-h-10 px-4 py-2 text-sm lg:inline-flex">
@@ -179,7 +219,8 @@ export default function Layout({ children }) {
               </Link>
             )}
             <button
-              className={cx('flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800', wide ? 'xl:hidden' : '2xl:hidden')}
+              ref={menuBtnRef}
+              className={cx('h-10 w-10 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800', navMode === 'menu' ? 'flex' : 'hidden')}
               onClick={() => setOpen(!open)}
               aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}
               aria-expanded={open}
@@ -188,12 +229,12 @@ export default function Layout({ children }) {
             </button>
           </div>
         </div>
-        {open && (
-          <nav className={cx('grid gap-1 border-t border-slate-800 p-3 sm:grid-cols-2', wide ? 'xl:hidden' : '2xl:hidden')} aria-label={t('nav.main')}>
+        {open && navMode === 'menu' && (
+          <nav className="mx-auto grid max-w-7xl gap-1 border-t border-slate-800 p-3 sm:grid-cols-2" aria-label={t('nav.main')}>
             <Link to="/sos" onClick={() => setOpen(false)} className="btn-sos mb-2 w-full animate-none sm:col-span-2 sm:hidden">
               <Siren className="h-4 w-4" /> {t('nav.sosLong')}
             </Link>
-            {nav.map(navLink)}
+            {nav.map((n) => navLink(n))}
             {!user && navLink({ to: '/register', key: 'becomeDonor', icon: UserRound })}
           </nav>
         )}
